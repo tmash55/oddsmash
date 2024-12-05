@@ -33,8 +33,15 @@ export const authOptions: NextAuthOptionsExtended = {
     ...(connectMongo
       ? [
           EmailProvider({
-            server: process.env.EMAIL_SERVER,
-            from: config.mailgun.fromNoReply,
+            server: {
+              host: "smtp.resend.com",
+              port: 465,
+              auth: {
+                user: "resend",
+                pass: process.env.RESEND_API_KEY,
+              },
+            },
+            from: config.resend.fromNoReply,
           }),
         ]
       : []),
