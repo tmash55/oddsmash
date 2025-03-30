@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -12,47 +12,34 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronDown,
-  Menu,
-  X,
-  BarChart3,
-  LineChart,
-  Calendar,
-  Settings,
-} from "lucide-react";
+} from "@/components/ui/navigation-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { ChevronDown, Menu, X, BarChart3, LineChart, Calendar, Settings } from "lucide-react"
 
-import { useSportsbooks } from "@/contexts/sportsbook-context";
-import { ThemeToggle } from "./theme-toggle";
-import { SportIcon } from "./sport-icon";
+import { useSportsbooks } from "@/contexts/sportsbook-context"
+import { ThemeToggle } from "./theme-toggle"
+import { SportIcon } from "./sport-icon"
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = React.useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const pathname = usePathname();
-  const { openSportsbookSelector } = useSportsbooks();
+  const [isScrolled, setIsScrolled] = React.useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const pathname = usePathname()
+  const { openSportsbookSelector } = useSportsbooks()
 
   // Handle scroll effect
   React.useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
-        setIsScrolled(true);
+        setIsScrolled(true)
       } else {
-        setIsScrolled(false);
+        setIsScrolled(false)
       }
-    };
+    }
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   // Player Props dropdown items
   const playerPropsItems = [
@@ -80,7 +67,7 @@ export function Header() {
       href: "/nhl/player-props",
       icon: <SportIcon sport="nhl" size="xs" />,
     },
-  ];
+  ]
 
   return (
     <header
@@ -88,7 +75,7 @@ export function Header() {
         "sticky top-0 z-50 w-full border-b backdrop-blur transition-all duration-300",
         isScrolled
           ? "bg-background/80 supports-[backdrop-filter]:bg-background/60"
-          : "bg-background/95 supports-[backdrop-filter]:bg-background/80"
+          : "bg-background/95 supports-[backdrop-filter]:bg-background/80",
       )}
     >
       {/* Gradient background with subtle animation */}
@@ -116,7 +103,7 @@ export function Header() {
                 <NavigationMenuTrigger
                   className={cn(
                     "px-3 transition-all duration-300",
-                    pathname?.startsWith("/player-props") && "bg-muted"
+                    pathname?.startsWith("/player-props") && "bg-muted",
                   )}
                 >
                   <BarChart3 className="mr-2 h-4 w-4" />
@@ -130,23 +117,15 @@ export function Header() {
                           className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
                           href="/player-props"
                         >
-                          <div className="mt-4 mb-2 text-lg font-medium text-white">
-                            Player Props
-                          </div>
+                          <div className="mt-4 mb-2 text-lg font-medium text-white">Player Props</div>
                           <p className="text-sm leading-tight text-white/90">
-                            Compare odds across sportsbooks and find the best
-                            value for any player prop bet
+                            Compare odds across sportsbooks and find the best value for any player prop bet
                           </p>
                         </a>
                       </NavigationMenuLink>
                     </li>
                     {playerPropsItems.map((item) => (
-                      <ListItem
-                        key={item.title}
-                        title={item.title}
-                        href={item.href}
-                        icon={item.icon}
-                      >
+                      <ListItem key={item.title} title={item.title} href={item.href} icon={item.icon}>
                         {item.description}
                       </ListItem>
                     ))}
@@ -160,7 +139,7 @@ export function Header() {
                     className={cn(
                       navigationMenuTriggerStyle(),
                       "px-3 transition-all duration-300",
-                      pathname?.startsWith("/parlay-builder") && "bg-muted"
+                      pathname?.startsWith("/parlay-builder") && "bg-muted",
                     )}
                   >
                     <LineChart className="mr-2 h-4 w-4" />
@@ -175,7 +154,7 @@ export function Header() {
                     className={cn(
                       navigationMenuTriggerStyle(),
                       "px-3 transition-all duration-300",
-                      pathname?.startsWith("/promo-calendar") && "bg-muted"
+                      pathname?.startsWith("/promo-calendar") && "bg-muted",
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
@@ -189,40 +168,16 @@ export function Header() {
 
         {/* Right column - Theme toggle and Sportsbooks button */}
         <div className="hidden md:flex justify-end items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openSportsbookSelector}
-            className="border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            My Sportsbooks
-          </Button>
+         
           <ThemeToggle />
         </div>
 
         {/* Mobile Menu Button */}
         <div className="flex justify-end md:hidden col-span-2 space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openSportsbookSelector}
-            className="border-primary/20 hover:border-primary hover:bg-primary/5"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-2"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+          <Button variant="ghost" size="icon" className="ml-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span className="sr-only">Toggle menu</span>
           </Button>
         </div>
@@ -230,19 +185,19 @@ export function Header() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t">
+        <div className="md:hidden border-t bg-background/95 backdrop-blur-sm">
           <div className="container py-4">
             <nav className="flex flex-col space-y-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     className={cn(
-                      "w-full justify-start px-3 py-2 h-auto font-medium",
-                      pathname?.startsWith("/player-props") && "bg-muted"
+                      "w-full justify-start px-3 py-2 h-auto font-medium text-base border border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20",
+                      pathname?.startsWith("/player-props") && "bg-primary/20 dark:bg-primary/30",
                     )}
                   >
-                    <BarChart3 className="mr-2 h-4 w-4" />
+                    <BarChart3 className="mr-2 h-5 w-5 text-primary" />
                     Player Props
                     <ChevronDown className="ml-auto h-4 w-4" />
                   </Button>
@@ -250,17 +205,11 @@ export function Header() {
                 <DropdownMenuContent align="start" className="w-56">
                   {playerPropsItems.map((item) => (
                     <DropdownMenuItem key={item.title} asChild>
-                      <Link
-                        href={item.href}
-                        className="flex items-center"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
+                      <Link href={item.href} className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
                         {item.icon}
                         <div className="ml-2">
                           <p className="font-medium">{item.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                       </Link>
                     </DropdownMenuItem>
@@ -271,28 +220,28 @@ export function Header() {
               <Link
                 href="/parlay-builder"
                 className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center rounded-md px-3 py-2 text-base font-medium border",
                   pathname?.startsWith("/parlay-builder")
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/20 text-foreground border-primary/30 dark:bg-primary/30"
+                    : "text-foreground border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20",
                 )}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <LineChart className="mr-2 h-4 w-4" />
+                <LineChart className="mr-2 h-5 w-5 text-primary" />
                 Parlay Builder
               </Link>
 
               <Link
                 href="/promo-calendar"
                 className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center rounded-md px-3 py-2 text-base font-medium border",
                   pathname?.startsWith("/promo-calendar")
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/20 text-foreground border-primary/30 dark:bg-primary/30"
+                    : "text-foreground border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20",
                 )}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Calendar className="mr-2 h-4 w-4" />
+                <Calendar className="mr-2 h-5 w-5 text-primary" />
                 Promo Calendar
               </Link>
             </nav>
@@ -300,7 +249,7 @@ export function Header() {
         </div>
       )}
     </header>
-  );
+  )
 }
 
 const ListItem = React.forwardRef<
@@ -314,7 +263,7 @@ const ListItem = React.forwardRef<
           ref={ref}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
+            className,
           )}
           {...props}
         >
@@ -322,14 +271,13 @@ const ListItem = React.forwardRef<
             {icon && <span className="mr-2">{icon}</span>}
             <div>
               <div className="text-sm font-medium leading-none">{title}</div>
-              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                {children}
-              </p>
+              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
             </div>
           </div>
         </a>
       </NavigationMenuLink>
     </li>
-  );
-});
-ListItem.displayName = "ListItem";
+  )
+})
+ListItem.displayName = "ListItem"
+
