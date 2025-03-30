@@ -75,6 +75,14 @@ export const SPORT_MARKETS: SportMarkets = {
   'baseball_mlb': [
     // Batter Props
     { 
+        value: 'Home_Runs', 
+        label: 'Home Runs', 
+        apiKey: 'batter_home_runs',
+        hasAlternates: true,
+        alternateKey: 'batter_home_runs_alternate',
+        alwaysFetchAlternate: true
+      },
+    { 
       value: 'Hits', 
       label: 'Hits', 
       apiKey: 'batter_hits',
@@ -90,14 +98,7 @@ export const SPORT_MARKETS: SportMarkets = {
       alternateKey: 'batter_total_bases_alternate',
       alwaysFetchAlternate: true
     },
-    { 
-      value: 'Home_Runs', 
-      label: 'Home Runs', 
-      apiKey: 'batter_home_runs',
-      hasAlternates: true,
-      alternateKey: 'batter_home_runs_alternate',
-      alwaysFetchAlternate: true
-    },
+    
     { 
       value: 'RBIs', 
       label: 'RBIs', 

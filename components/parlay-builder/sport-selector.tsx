@@ -16,7 +16,7 @@ export function SportSelector({
   onSelectSport,
 }: SportSelectorProps) {
   return (
-    <ScrollArea className="w-full" orientation="horizontal">
+    <ScrollArea className="w-full">
       <div className="flex space-x-2 pb-2">
         {sports.map((sport) => (
           <button

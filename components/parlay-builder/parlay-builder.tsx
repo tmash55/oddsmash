@@ -57,7 +57,7 @@ export function ParlayBuilder() {
     sportsbookId: string
   ) => {
     // Find the market
-    let market;
+    let market: any; // Temporary fix for type issues
     Object.values(game.markets).forEach((marketGroup) => {
       if (Array.isArray(marketGroup)) {
         const found = marketGroup.find((m) => m.id === marketId);
@@ -82,11 +82,11 @@ export function ParlayBuilder() {
         gameId: game.id,
         marketId: marketId,
         selection: selection,
-        odds: market.odds[sportsbookId],
+        odds: market.odds?.[sportsbookId] ?? 0,
         sportsbookId: sportsbookId,
-        type: market.type,
+        type: market.type ?? 'unknown',
         description: `${game.homeTeam.abbreviation} vs ${game.awayTeam.abbreviation}: ${selection}`,
-        line: market.line,
+        line: market.line ?? 0,
       };
 
       setSelectedLegs((prev) => [...prev, newLeg]);
@@ -221,7 +221,7 @@ export function ParlayBuilder() {
             onValueChange={setActiveSportsbook}
             className="w-full"
           >
-            <ScrollArea className="w-full" orientation="horizontal">
+            <ScrollArea className="w-full">
               <TabsList className="w-full justify-start">
                 {sportsbooks
                   .filter((sportsbook) =>
@@ -304,7 +304,7 @@ export function ParlayBuilder() {
             onValueChange={setActiveSportsbook}
             className="w-full sm:w-auto"
           >
-            <ScrollArea className="w-full" orientation="horizontal">
+            <ScrollArea className="w-full">
               <TabsList className="w-full sm:w-auto justify-start">
                 {sportsbooks
                   .filter((sportsbook) =>
