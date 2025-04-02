@@ -35,6 +35,7 @@ export function SportIcon({ sport, size = "md", className }: SportIconProps) {
   // Color mapping
   const colorMap: Record<string, string> = {
     basketball_nba: "text-orange-500",
+    basketball_ncaab: "text-orange-500",
     nba: "text-orange-500",
     baseball_mlb: "text-red-500",
     mlb: "text-red-500",

@@ -54,7 +54,7 @@ export function GameCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="overflow-hidden mb-3 border-0 shadow-sm border-l-2 border-l-primary/30 bg-card/50 hover:bg-card/70 transition-colors duration-200">
+        <Card className="overflow-hidden mb-3 border-0 shadow-sm border-l-2 border-l-primary/30 border-r-2 border-r-primary/30 bg-card/50 hover:bg-card/70 transition-colors duration-200 mx-1">
           <CardContent className="p-0">
             {/* Desktop View - Improved Sportsbook Style */}
             <div className="hidden sm:block">

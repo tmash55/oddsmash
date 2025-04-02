@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
   ChevronUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  Search,
+  X,
+  Filter,
+  ChevronDownIcon,
 } from "lucide-react";
 import {
   SPORT_MARKETS,
@@ -25,6 +27,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface PlayerPropsModalProps {
   open: boolean;
@@ -52,9 +62,8 @@ export function PlayerPropsModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [showType, setShowType] = useState<"both" | "over" | "under">("both");
   const [propData, setPropData] = useState<any>(null); // Store the full API response
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
   // Get available markets for this sport
   const availableMarkets = getMarketsForSport(sportId);
@@ -74,37 +83,6 @@ export function PlayerPropsModal({
       fetchPlayerProps();
     }
   }, [open, game, activeMarket]);
-
-  // Check if tabs can be scrolled
-  useEffect(() => {
-    const checkScroll = () => {
-      if (tabsRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-      }
-    };
-
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
-  }, [open, activeMarket]);
-
-  // Scroll tabs left or right
-  const scrollTabs = (direction: "left" | "right") => {
-    if (tabsRef.current) {
-      const scrollAmount = 200; // Adjust as needed
-      const newScrollLeft =
-        direction === "left"
-          ? tabsRef.current.scrollLeft - scrollAmount
-          : tabsRef.current.scrollLeft + scrollAmount;
-
-      tabsRef.current.scrollTo({
-        left: newScrollLeft,
-        behavior: "smooth",
-      });
-    }
-  };
 
   // Fetch player props from the API
   const fetchPlayerProps = async () => {
@@ -227,6 +205,12 @@ export function PlayerPropsModal({
     return market ? market.label : key;
   };
 
+  // Get current market display name
+  const getCurrentMarketName = () => {
+    const market = availableMarkets.find((m) => m.value === activeMarket);
+    return market ? market.label : "Select Market";
+  };
+
   // Filter props by search query
   const filteredProps = playerProps.filter((prop) =>
     prop.player.toLowerCase().includes(searchQuery.toLowerCase())
@@ -271,51 +255,96 @@ export function PlayerPropsModal({
     // We're not closing the modal here anymore
   };
 
+  // Clear search query
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   // Render a prop card
   const renderPropCard = (prop: any) => {
     const showOver = showType === "both" || showType === "over";
     const showUnder = showType === "both" || showType === "under";
 
     return (
-      <Card key={prop.id} className="overflow-hidden">
-        <CardContent className="p-3">
-          <div className="font-medium mb-1">{prop.player}</div>
-          <div className="text-sm text-muted-foreground mb-2">
-            {prop.marketName} {prop.line}
+      <Card
+        key={prop.id}
+        className="overflow-hidden border border-border/60 hover:border-border"
+      >
+        <CardHeader className="p-3 pb-0">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-semibold text-sm">{prop.player}</h4>
+              <div className="flex items-center mt-1">
+                <Badge variant="secondary" className="font-normal text-xs">
+                  {prop.marketName} {prop.line}
+                </Badge>
+              </div>
+            </div>
           </div>
-
+        </CardHeader>
+        <CardContent className="p-3 pt-2">
           <div className="grid grid-cols-2 gap-2">
             {showOver && (
               <Button
                 onClick={() => handleSelectProp(prop, true)}
+                variant={prop.overOdds > 0 ? "outline" : "outline"}
                 className={cn(
-                  "flex justify-between items-center",
-                  prop.overOdds > 0 ? "text-green-500" : "text-blue-500"
+                  "h-auto py-2 justify-between items-center border border-border/60 hover:border-border",
+                  prop.overOdds > 0
+                    ? "hover:bg-green-500/10"
+                    : "hover:bg-blue-500/10"
                 )}
                 disabled={!prop.overOdds}
               >
                 <div className="flex items-center">
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  <span>Over</span>
+                  <ChevronUp
+                    className={cn(
+                      "h-4 w-4 mr-1",
+                      prop.overOdds > 0 ? "text-green-500" : "text-blue-500"
+                    )}
+                  />
+                  <span className="font-medium">Over</span>
                 </div>
-                <span>{displayOdds(prop.overOdds)}</span>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    prop.overOdds > 0 ? "text-green-500" : "text-blue-500"
+                  )}
+                >
+                  {displayOdds(prop.overOdds)}
+                </span>
               </Button>
             )}
 
             {showUnder && (
               <Button
                 onClick={() => handleSelectProp(prop, false)}
+                variant={prop.underOdds > 0 ? "outline" : "outline"}
                 className={cn(
-                  "flex justify-between items-center",
-                  prop.underOdds > 0 ? "text-green-500" : "text-blue-500"
+                  "h-auto py-2 justify-between items-center border border-border/60 hover:border-border",
+                  prop.underOdds > 0
+                    ? "hover:bg-green-500/10"
+                    : "hover:bg-blue-500/10"
                 )}
                 disabled={!prop.underOdds}
               >
                 <div className="flex items-center">
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  <span>Under</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 mr-1",
+                      prop.underOdds > 0 ? "text-green-500" : "text-blue-500"
+                    )}
+                  />
+                  <span className="font-medium">Under</span>
                 </div>
-                <span>{displayOdds(prop.underOdds)}</span>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    prop.underOdds > 0 ? "text-green-500" : "text-blue-500"
+                  )}
+                >
+                  {displayOdds(prop.underOdds)}
+                </span>
               </Button>
             )}
           </div>
@@ -327,72 +356,85 @@ export function PlayerPropsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Player Props</DialogTitle>
+        <DialogHeader className="p-6 pb-2 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle>Player Props</DialogTitle>
+            <Badge variant="outline" className="ml-2">
+              {getCurrentMarketName()}
+            </Badge>
+          </div>
           <div className="text-sm text-muted-foreground mt-1">
             {game?.homeTeam?.name} vs {game?.awayTeam?.name}
           </div>
         </DialogHeader>
 
-        <div className="px-6 py-2 border-b">
-          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-            <div className="relative flex-1 flex items-center">
-              {canScrollLeft && (
+        <div className="px-6 py-3 border-b">
+          {/* Market Selector Dropdown */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={() => scrollTabs("left")}
+                  variant="outline"
+                  className="w-full sm:w-auto justify-between"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <span>{getCurrentMarketName()}</span>
+                  <ChevronDownIcon className="ml-2 h-4 w-4 opacity-70" />
                 </Button>
-              )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-[200px] max-h-[300px] overflow-y-auto"
+              >
+                {availableMarkets.map((market) => (
+                  <DropdownMenuItem
+                    key={market.value}
+                    className={cn(
+                      "cursor-pointer",
+                      activeMarket === market.value &&
+                        "bg-primary/10 font-medium"
+                    )}
+                    onClick={() => setActiveMarket(market.value)}
+                  >
+                    {market.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              <div className="w-full overflow-hidden">
-                <Tabs
-                  value={activeMarket}
-                  onValueChange={setActiveMarket}
-                  className="w-full"
-                >
-                  <div ref={tabsRef} className="overflow-x-auto scrollbar-hide">
-                    <TabsList className="w-max flex whitespace-nowrap px-2">
-                      {availableMarkets.map((market) => (
-                        <TabsTrigger
-                          key={market.value}
-                          value={market.value}
-                          className="flex-shrink-0"
-                        >
-                          {market.label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </div>
-                </Tabs>
+            <div className="flex-1 relative w-full">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground" />
               </div>
-
-              {canScrollRight && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={() => scrollTabs("right")}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center w-full sm:w-auto">
               <Input
                 placeholder="Search players..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
+                className="pl-10 pr-10 w-full"
               />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 h-full"
+                  onClick={clearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="icon"
+              className="sm:hidden"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
           </div>
 
-          <div className="mt-2">
+          {/* Filter Controls - Always visible on desktop, toggleable on mobile */}
+          <div className={cn("sm:block", !showFilters && "hidden")}>
             <Tabs
               value={showType}
               onValueChange={(value: any) => setShowType(value)}
@@ -406,37 +448,42 @@ export function PlayerPropsModal({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Loading props...</span>
+        {/* This div is the container for the scrollable content */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full max-h-[calc(90vh-200px)]">
+            <div className="p-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading props...</span>
+                </div>
+              ) : error ? (
+                <div className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-4 text-center">
+                  <p className="font-medium">{error}</p>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={fetchPlayerProps}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : filteredProps.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    {searchQuery
+                      ? "No matching players found"
+                      : "No props available"}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredProps.map(renderPropCard)}
+                </div>
+              )}
             </div>
-          ) : error ? (
-            <div className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-4 text-center">
-              <p className="font-medium">{error}</p>
-              <Button
-                variant="outline"
-                className="mt-2"
-                onClick={fetchPlayerProps}
-              >
-                Retry
-              </Button>
-            </div>
-          ) : filteredProps.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                {searchQuery
-                  ? "No matching players found"
-                  : "No props available"}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredProps.map(renderPropCard)}
-            </div>
-          )}
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

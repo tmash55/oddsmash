@@ -1,6 +1,6 @@
 "use client";
-
-import type React from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   Sheet,
@@ -9,16 +9,23 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Calculator, ExternalLink, AlertCircle, X } from "lucide-react";
+import {
+  Trash2,
+  Calculator,
+  ExternalLink,
+  AlertCircle,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { type ParlayLeg, type Game, formatOdds } from "@/data/sports-data";
 import { sportsbooks } from "@/data/sportsbooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
 import { useSportsbooks } from "@/contexts/sportsbook-context";
 import {
   Tooltip,
@@ -26,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface BetslipProps {
   open: boolean;
@@ -53,6 +61,7 @@ export function Betslip({
     null
   );
   const { userSportsbooks } = useSportsbooks();
+  const [animatePayouts, setAnimatePayouts] = useState(false);
 
   // Add logging for debugging
   useEffect(() => {
@@ -62,6 +71,13 @@ export function Betslip({
       console.log("Betslip - Player props data:", playerPropsData);
     }
   }, [open, userSportsbooks, legs, playerPropsData]);
+
+  // Trigger payout animation when wager amount changes
+  useEffect(() => {
+    setAnimatePayouts(true);
+    const timer = setTimeout(() => setAnimatePayouts(false), 500);
+    return () => clearTimeout(timer);
+  }, [wagerAmount]);
 
   // Get odds for player props
   const getPlayerPropOdds = (
@@ -352,26 +368,31 @@ export function Betslip({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md w-full p-0 flex flex-col h-[85vh] sm:h-full">
-        <SheetHeader className="p-6 border-b">
+      <SheetContent
+        className="sm:max-w-md w-full p-0 flex flex-col h-[100vh] sm:h-full"
+        side="right"
+      >
+        <SheetHeader className="p-6 border-b relative">
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center">
-              <span>Betslip</span>
-              <Badge className="ml-2 bg-primary text-primary-foreground">
-                {legs.length}
-              </Badge>
+            <SheetTitle className="flex items-center gap-2">
+              <span className="flex items-center">
+                Betslip
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                  className="ml-2 inline-flex"
+                >
+                  <Badge className="bg-primary text-primary-foreground flex items-center justify-center">
+                    {legs.length}
+                  </Badge>
+                </motion.div>
+              </span>
             </SheetTitle>
-            {legs.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearAll}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear All
-              </Button>
-            )}
+            <SheetClose className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </SheetClose>
           </div>
           <SheetDescription>
             Build your parlay and compare odds across sportsbooks
@@ -382,73 +403,126 @@ export function Betslip({
           <ScrollArea className="h-full">
             <div className="p-6 space-y-6">
               {legs.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Your betslip is empty</p>
+                <motion.div
+                  className="text-center py-12"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex justify-center mb-4">
+                    <motion.div
+                      animate={{
+                        y: [0, -10, 0],
+                        opacity: [1, 0.8, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        repeatType: "reverse",
+                      }}
+                    >
+                      <Sparkles className="h-12 w-12 text-primary/50" />
+                    </motion.div>
+                  </div>
+                  <p className="text-muted-foreground mb-3">
+                    Your betslip is empty
+                  </p>
                   <Button
                     variant="outline"
-                    className="mt-4"
+                    className="mt-2"
                     onClick={() => onOpenChange(false)}
                   >
                     Add Selections
                   </Button>
-                </div>
+                </motion.div>
               ) : (
                 <>
                   {/* Parlay Legs */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Parlay Legs
-                    </h3>
-
-                    {legs.map((leg) => {
-                      const game = getGameInfo(leg.gameId);
-                      const marketDisplay = formatMarketDisplay(leg);
-
-                      return (
-                        <div
-                          key={leg.id}
-                          className="flex items-start justify-between p-4 rounded-md border"
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Parlay Legs
+                      </h3>
+                      {legs.length > 0 && (
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                         >
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-medium">
-                                {leg.selection}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {marketDisplay}
-                              </span>
-                            </div>
-                            {game && (
-                              <div className="text-xs text-muted-foreground">
-                                {game.awayTeam.abbreviation} @{" "}
-                                {game.homeTeam.abbreviation}
-                              </div>
-                            )}
-                            <div className="flex items-center mt-1">
-                              <span
-                                className={cn(
-                                  "text-xs font-medium",
-                                  leg.odds > 0
-                                    ? "text-green-500"
-                                    : "text-blue-500"
-                                )}
-                              >
-                                {displayOdds(leg.odds)} ({leg.sportsbookId})
-                              </span>
-                            </div>
-                          </div>
-
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onRemoveLeg(leg.id)}
-                            className="h-10 w-10 ml-2"
+                            onClick={handleClearAll}
+                            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                            title="Clear all legs"
                           >
-                            <Trash2 className="h-5 w-5 text-muted-foreground" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      );
-                    })}
+                        </motion.div>
+                      )}
+                    </div>
+
+                    <AnimatePresence>
+                      {legs.map((leg) => {
+                        const game = getGameInfo(leg.gameId);
+                        const marketDisplay = formatMarketDisplay(leg);
+
+                        return (
+                          <motion.div
+                            key={leg.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.2 }}
+                            layout
+                          >
+                            <div className="flex items-start justify-between p-4 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors">
+                              <div className="space-y-1 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-sm font-medium">
+                                    {leg.selection}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {marketDisplay}
+                                  </span>
+                                </div>
+                                {game && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {game.awayTeam.abbreviation} @{" "}
+                                    {game.homeTeam.abbreviation}
+                                  </div>
+                                )}
+                                <div className="flex items-center mt-1">
+                                  <span
+                                    className={cn(
+                                      "text-xs font-medium",
+                                      leg.odds > 0
+                                        ? "text-green-500"
+                                        : "text-blue-500"
+                                    )}
+                                  >
+                                    {displayOdds(leg.odds)} ({leg.sportsbookId})
+                                  </span>
+                                </div>
+                              </div>
+
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onRemoveLeg(leg.id)}
+                                  className="h-10 w-10 ml-2 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </Button>
+                              </motion.div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
 
                   {/* Wager Amount */}
@@ -489,7 +563,7 @@ export function Betslip({
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {userSportsbooks.map((sportsbook) => {
                         const odds = parlayOdds[sportsbook];
                         const isBest =
@@ -508,73 +582,114 @@ export function Betslip({
                           <TooltipProvider key={sportsbook}>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button
-                                  onClick={() =>
-                                    isAvailable &&
-                                    setSelectedSportsbook(sportsbook)
+                                <motion.div
+                                  whileHover={
+                                    isAvailable ? { scale: 1.01, y: -1 } : {}
                                   }
-                                  className={cn(
-                                    "w-full flex items-center justify-between p-4 rounded-md border transition-colors relative",
-                                    isSelected
-                                      ? "border-primary bg-primary/10"
-                                      : "",
-                                    isBest && !isSelected
-                                      ? "border-primary/50"
-                                      : "",
-                                    !isAvailable
-                                      ? "opacity-60 cursor-not-allowed"
-                                      : ""
-                                  )}
-                                  disabled={!isAvailable}
+                                  whileTap={isAvailable ? { scale: 0.99 } : {}}
+                                  layout
                                 >
-                                  <div className="flex items-center">
-                                    <div>
-                                      <div className="text-sm font-medium">
-                                        {sportsbookInfo?.name || sportsbook}
+                                  <button
+                                    onClick={() =>
+                                      isAvailable &&
+                                      setSelectedSportsbook(sportsbook)
+                                    }
+                                    className={cn(
+                                      "w-full flex items-center justify-between p-4 rounded-md border transition-all duration-200 relative",
+                                      isSelected
+                                        ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+                                        : "",
+                                      isBest && !isSelected
+                                        ? "border-primary/30 bg-primary/5"
+                                        : "",
+                                      !isAvailable
+                                        ? "opacity-60 cursor-not-allowed"
+                                        : "hover:border-primary/50"
+                                    )}
+                                    disabled={!isAvailable}
+                                  >
+                                    <div className="flex items-center">
+                                      <div className="w-6 h-6 mr-2 relative">
+                                        <img
+                                          src={
+                                            sportsbookInfo?.logo ||
+                                            "/placeholder.svg?height=24&width=24"
+                                          }
+                                          alt={
+                                            sportsbookInfo?.name || sportsbook
+                                          }
+                                          className="w-full h-full object-contain"
+                                        />
                                       </div>
-                                      <div
-                                        className={cn(
-                                          "text-xs font-medium",
-                                          isAvailable
-                                            ? odds! > 0
-                                              ? "text-green-500"
-                                              : "text-blue-500"
-                                            : "text-muted-foreground"
-                                        )}
-                                      >
-                                        {isAvailable
-                                          ? displayOdds(odds!)
-                                          : "N/A"}
+                                      <div>
+                                        <div className="text-sm font-medium">
+                                          {sportsbookInfo?.name || sportsbook}
+                                        </div>
+                                        <div
+                                          className={cn(
+                                            "text-xs font-medium",
+                                            isAvailable
+                                              ? odds! > 0
+                                                ? "text-green-500"
+                                                : "text-blue-500"
+                                              : "text-muted-foreground"
+                                          )}
+                                        >
+                                          {isAvailable
+                                            ? displayOdds(odds!)
+                                            : "N/A"}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  <div className="text-right">
-                                    {isAvailable ? (
-                                      <>
-                                        <div className="text-sm font-medium">
-                                          ${payout.toFixed(2)}
+                                    <div className="text-right">
+                                      {isAvailable ? (
+                                        <>
+                                          <motion.div
+                                            className="text-sm font-medium"
+                                            animate={
+                                              animatePayouts
+                                                ? {
+                                                    scale: [1, 1.1, 1],
+                                                  }
+                                                : {}
+                                            }
+                                            transition={{ duration: 0.5 }}
+                                          >
+                                            ${payout.toFixed(2)}
+                                          </motion.div>
+                                          <div className="text-xs text-muted-foreground">
+                                            Potential Payout
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="flex items-center text-muted-foreground">
+                                          <AlertCircle className="h-4 w-4 mr-1" />
+                                          <span className="text-xs">
+                                            Different lines
+                                          </span>
                                         </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          Potential Payout
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center text-muted-foreground">
-                                        <AlertCircle className="h-4 w-4 mr-1" />
-                                        <span className="text-xs">
-                                          Different lines
-                                        </span>
-                                      </div>
+                                      )}
+                                    </div>
+
+                                    {isBest && (
+                                      <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 500,
+                                          damping: 15,
+                                          delay: 0.1,
+                                        }}
+                                      >
+                                        <Badge className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] sm:text-xs px-1.5 py-0 whitespace-nowrap">
+                                          Best Odds
+                                        </Badge>
+                                      </motion.div>
                                     )}
-                                  </div>
-
-                                  {isBest && (
-                                    <Badge className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0">
-                                      Best Odds
-                                    </Badge>
-                                  )}
-                                </button>
+                                  </button>
+                                </motion.div>
                               </TooltipTrigger>
                               {!isAvailable && (
                                 <TooltipContent side="top">
@@ -600,47 +715,34 @@ export function Betslip({
           selectedSportsbook &&
           parlayOdds[selectedSportsbook] !== null && (
             <SheetFooter className="p-6 border-t">
-              <Button
-                className="w-full h-14 text-base"
-                size="lg"
-                onClick={handlePlaceBet}
+              <motion.div
+                className="w-full"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
-                <span>
-                  {selectedSportsbook === bestOdds.sportsbook
-                    ? `Place Bet with Best Odds (${
-                        sportsbooks.find((sb) => sb.id === selectedSportsbook)
-                          ?.name || selectedSportsbook
-                      })`
-                    : `Place Bet on ${
-                        sportsbooks.find((sb) => sb.id === selectedSportsbook)
-                          ?.name || selectedSportsbook
-                      }`}
-                </span>
-                <ExternalLink className="ml-2 h-5 w-5" />
-              </Button>
+                <Button
+                  className="w-full h-14 text-base bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                  size="lg"
+                  onClick={handlePlaceBet}
+                >
+                  <span>
+                    {selectedSportsbook === bestOdds.sportsbook
+                      ? `Place Bet with Best Odds (${
+                          sportsbooks.find((sb) => sb.id === selectedSportsbook)
+                            ?.name || selectedSportsbook
+                        })`
+                      : `Place Bet on ${
+                          sportsbooks.find((sb) => sb.id === selectedSportsbook)
+                            ?.name || selectedSportsbook
+                        }`}
+                  </span>
+                  <ExternalLink className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
             </SheetFooter>
           )}
       </SheetContent>
     </Sheet>
-  );
-}
-
-// Badge component for the betslip count
-function Badge({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        className
-      )}
-    >
-      {children}
-    </span>
   );
 }

@@ -1,9 +1,11 @@
 import { ParlayBuilder } from "@/components/parlay-builder/parlay-builder";
+import { GradientBackground } from "@/components/ui/gradient-background";
 
 export default function ParlayBuilderPage() {
   return (
     <div className="flex min-h-screen flex-col overflow-hidden">
       <div className="relative w-full max-w-full">
+        <GradientBackground />
         {/* Mobile Header - Full Width with minimal padding */}
         <div className="px-3 py-4 mb-2 sm:hidden">
           <h1 className="text-2xl font-bold tracking-tight">Parlay Builder</h1>

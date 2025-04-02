@@ -6,22 +6,14 @@ import { SportSelector } from "./sport-selector";
 import { GameCard } from "./game-card";
 import { BetslipButton } from "./betslip-button";
 import { Betslip } from "./betslip";
-import { ActiveSportsbookSelector } from "./active-sportsbook-selector";
 import { toast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
-import { Calendar, Filter, SortAsc, Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
 import { formatOdds } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-import { SportsbookSelector } from "../sportsbook-selector";
+// First, add the import for the GameFilters component at the top of the file
+import { GameFilters } from "./game-filters";
 
 // Define a type for the API event response
 interface ApiEvent {
@@ -34,13 +26,16 @@ interface ApiEvent {
   bookmakers?: any[];
 }
 
+// Define a type for the date filter
+type DateFilterType = "today" | "tomorrow" | "week" | "all";
+
 export function ParlayBuilder() {
-  const [selectedSport, setSelectedSport] = useState("baseball_mlb");
+  const [selectedSport, setSelectedSport] = useState("basketball_nba");
   const [games, setGames] = useState<Game[]>([]);
   const [selectedLegs, setSelectedLegs] = useState<ParlayLeg[]>([]);
   const [isBetslipOpen, setIsBetslipOpen] = useState(false);
   const [activeSportsbook, setActiveSportsbook] = useState("draftkings");
-  const [dateFilter, setDateFilter] = useState("today");
+  const [dateFilter, setDateFilter] = useState<DateFilterType>("today");
   const [oddsFormat, setOddsFormat] = useState<"american" | "decimal">(
     "american"
   );
@@ -50,6 +45,8 @@ export function ParlayBuilder() {
   const [playerPropsData, setPlayerPropsData] = useState<Record<string, any>>(
     {}
   );
+  // Add a new state for filtered games
+  const [filteredGames, setFilteredGames] = useState<Game[]>([]);
 
   // Get user's selected sportsbooks from hook
   const { selectedSportsbooks } = useSportsbookPreferences();
@@ -861,8 +858,77 @@ export function ParlayBuilder() {
     console.log("Cleared all legs from betslip");
   };
 
+  // Add this helper function near the other formatting functions
+  const formatDateForDebug = (date: Date): string => {
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+  };
+
+  // Add a useEffect to filter games based on dateFilter
+  useEffect(() => {
+    if (!games.length) {
+      setFilteredGames([]);
+      return;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    console.log(`Date filtering: Today is ${formatDateForDebug(today)}`);
+    console.log(`Tomorrow starts at ${formatDateForDebug(tomorrow)}`);
+    console.log(`Next week ends at ${formatDateForDebug(nextWeek)}`);
+
+    let filtered;
+    switch (dateFilter) {
+      case "today":
+        filtered = games.filter((game) => {
+          const gameDate = new Date(game.startTime);
+          const isToday = gameDate >= today && gameDate < tomorrow;
+          if (isToday) {
+            console.log(`Game at ${formatDateForDebug(gameDate)} is TODAY`);
+          }
+          return isToday;
+        });
+        break;
+      case "tomorrow":
+        filtered = games.filter((game) => {
+          const gameDate = new Date(game.startTime);
+          const nextDay = new Date(tomorrow);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const isTomorrow = gameDate >= tomorrow && gameDate < nextDay;
+          if (isTomorrow) {
+            console.log(`Game at ${formatDateForDebug(gameDate)} is TOMORROW`);
+          }
+          return isTomorrow;
+        });
+        break;
+      case "week":
+        filtered = games.filter((game) => {
+          const gameDate = new Date(game.startTime);
+          const isThisWeek = gameDate >= today && gameDate < nextWeek;
+          if (isThisWeek) {
+            console.log(`Game at ${formatDateForDebug(gameDate)} is THIS WEEK`);
+          }
+          return isThisWeek;
+        });
+        break;
+      case "all":
+      default:
+        filtered = games;
+        break;
+    }
+
+    console.log(
+      `Date filter: ${dateFilter} - Filtered from ${games.length} to ${filtered.length} games`
+    );
+    setFilteredGames(filtered);
+  }, [games, dateFilter]);
+
   return (
-    <div className="relative bg-background rounded-lg border p-0 sm:p-4">
+    <div className="relative bg-background sm:rounded-lg sm:border p-0 sm:p-4 w-full max-w-full overflow-hidden">
       <div className="mb-3 sm:mb-6">
         <SportSelector
           sports={sports}
@@ -871,144 +937,28 @@ export function ParlayBuilder() {
         />
       </div>
 
+      {/* Filters and Controls */}
+      <GameFilters
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        oddsFormat={oddsFormat}
+        setOddsFormat={setOddsFormat}
+        selectedSportsbooks={selectedSportsbooks}
+        activeSportsbook={activeSportsbook}
+        setActiveSportsbook={setActiveSportsbook}
+      />
       {/* Main column headers - only show on desktop */}
       <div className="hidden sm:grid grid-cols-4 mb-4 px-2">
         <div className="col-span-1 font-medium text-muted-foreground">
-          {dateFilter.toUpperCase()}
-        </div>
-        <div className="col-span-3 grid grid-cols-3">
-          <div className="text-center font-medium text-muted-foreground">
-            SPREAD
-          </div>
-          <div className="text-center font-medium text-muted-foreground">
-            MONEYLINE
-          </div>
-          <div className="text-center font-medium text-muted-foreground">
-            TOTAL
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Controls */}
-      <div className="mb-3">
-        {/* Mobile View - Compact Controls */}
-        <div className="flex flex-col space-y-2 sm:hidden">
-          <div className="flex items-center justify-between px-2">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[110px] h-8 text-xs">
-                <Calendar className="mr-1 h-3 w-3" />
-                <SelectValue placeholder="Date" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center space-x-1">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                <Filter className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                <SortAsc className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "rounded-none h-8 px-2 text-xs",
-                  oddsFormat === "american" ? "bg-primary/10" : ""
-                )}
-                onClick={() => setOddsFormat("american")}
-              >
-                American
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "rounded-none h-8 px-2 text-xs",
-                  oddsFormat === "decimal" ? "bg-primary/10" : ""
-                )}
-                onClick={() => setOddsFormat("decimal")}
-              >
-                Decimal
-              </Button>
-            </div>
-
-            <ActiveSportsbookSelector
-              selectedSportsbooks={selectedSportsbooks}
-              activeSportsbook={activeSportsbook}
-              onSelectSportsbook={setActiveSportsbook}
-            />
-          </div>
-        </div>
-
-        {/* Desktop View - Horizontal */}
-        <div className="hidden sm:flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[130px]">
-                <Calendar className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Date" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" size="sm" className="h-10">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
-
-            <Button variant="outline" size="sm" className="h-10">
-              <SortAsc className="mr-2 h-4 w-4" />
-              Sort
-            </Button>
-
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "rounded-none h-10",
-                  oddsFormat === "american" ? "bg-primary/10" : ""
-                )}
-                onClick={() => setOddsFormat("american")}
-              >
-                American
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "rounded-none h-10",
-                  oddsFormat === "decimal" ? "bg-primary/10" : ""
-                )}
-                onClick={() => setOddsFormat("decimal")}
-              >
-                Decimal
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ActiveSportsbookSelector
-              selectedSportsbooks={selectedSportsbooks}
-              activeSportsbook={activeSportsbook}
-              onSelectSportsbook={setActiveSportsbook}
-            />
-            <SportsbookSelector />
-          </div>
+          {dateFilter === "today"
+            ? "TODAY'S GAMES"
+            : dateFilter === "tomorrow"
+            ? "TOMORROW'S GAMES"
+            : dateFilter === "week"
+            ? "THIS WEEK'S GAMES"
+            : dateFilter === "all"
+            ? "ALL GAMES"
+            : "GAMES"}
         </div>
       </div>
 
@@ -1066,18 +1016,29 @@ export function ParlayBuilder() {
       {/* Games list */}
       {!isLoading && !error && (
         <div className="space-y-3">
-          {games.length === 0 ? (
+          {filteredGames.length === 0 ? (
             <div className="bg-card rounded-lg border p-8 text-center">
               <h3 className="text-lg font-medium mb-2">No Games Available</h3>
               <p className="text-muted-foreground">
-                There are no games available for{" "}
-                {sports.find((s) => s.id === selectedSport)?.name ||
-                  selectedSport}{" "}
-                at the moment.
+                {games.length > 0
+                  ? `There are no games available for ${
+                      dateFilter === "today"
+                        ? "today"
+                        : dateFilter === "tomorrow"
+                        ? "tomorrow"
+                        : dateFilter === "week"
+                        ? "this week"
+                        : dateFilter
+                    }.`
+                  : `There are no games available for ${
+                      sports.find((s) => s.id === selectedSport)?.name ||
+                      selectedSport
+                    } at
+                the moment.`}
               </p>
             </div>
           ) : (
-            games.map((game) => (
+            filteredGames.map((game) => (
               <GameCard
                 key={game.id}
                 game={game}
