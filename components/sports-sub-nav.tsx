@@ -31,11 +31,12 @@ export function SportsSubNav({ baseRoute, className }: SportsSubNavProps) {
       path: `/nba/${baseRoute}`,
     },
     {
-      id: "nfl",
-      name: "NFL",
-      icon: <SportIcon sport="nfl" size="xs" />,
-      path: `/nfl/${baseRoute}`,
+      id: "ncaab",
+      name: "NCAAB",
+      icon: <SportIcon sport="ncaab" size="xs" />,
+      path: `/ncaab/${baseRoute}`,
     },
+
     {
       id: "mlb",
       name: "MLB",
@@ -47,6 +48,12 @@ export function SportsSubNav({ baseRoute, className }: SportsSubNavProps) {
       name: "NHL",
       icon: <SportIcon sport="nhl" size="xs" />,
       path: `/nhl/${baseRoute}`,
+    },
+    {
+      id: "nfl",
+      name: "NFL",
+      icon: <SportIcon sport="nfl" size="xs" />,
+      path: `/nfl/${baseRoute}`,
     },
   ];
 

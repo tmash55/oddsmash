@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,15 +15,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings2, Loader2 } from "lucide-react";
 import { sportsbooks } from "@/data/sportsbooks";
 import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
-import { useRouter, usePathname } from "next/navigation";
 
 export function SportsbookSelector() {
-  const { selectedSportsbooks, toggleSportsbook, selectAll, clearAll, maxSelections } = useSportsbookPreferences();
-  const [tempSelections, setTempSelections] = useState<string[]>(selectedSportsbooks);
+  const {
+    selectedSportsbooks,
+    toggleSportsbook,
+    selectAll,
+    clearAll,
+    maxSelections,
+  } = useSportsbookPreferences();
+  const [tempSelections, setTempSelections] =
+    useState<string[]>(selectedSportsbooks);
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
 
   // Reset temp selections when dialog opens
   const handleOpenChange = (open: boolean) => {
@@ -35,11 +38,11 @@ export function SportsbookSelector() {
   };
 
   const handleToggle = (id: string) => {
-    setTempSelections(prev => {
+    setTempSelections((prev) => {
       if (prev.includes(id)) {
         // Don't allow deselecting if it's the last one
         if (prev.length === 1) return prev;
-        return prev.filter(sbId => sbId !== id);
+        return prev.filter((sbId) => sbId !== id);
       }
       // Don't allow adding if already at max selections
       if (prev.length >= maxSelections) return prev;
@@ -48,7 +51,7 @@ export function SportsbookSelector() {
   };
 
   const handleSelectAll = () => {
-    setTempSelections(sportsbooks.map(sb => sb.id).slice(0, maxSelections));
+    setTempSelections(sportsbooks.map((sb) => sb.id).slice(0, maxSelections));
   };
 
   const handleClearAll = () => {
@@ -57,17 +60,18 @@ export function SportsbookSelector() {
 
   const handleSave = async () => {
     // Only trigger a refresh if the selections have changed
-    const hasChanges = tempSelections.length !== selectedSportsbooks.length ||
-      tempSelections.some(id => !selectedSportsbooks.includes(id));
+    const hasChanges =
+      tempSelections.length !== selectedSportsbooks.length ||
+      tempSelections.some((id) => !selectedSportsbooks.includes(id));
 
     if (hasChanges) {
       setIsSaving(true);
       try {
         // Update the stored preferences
         toggleSportsbook(tempSelections);
-        
-        // Force a hard navigation to the current page to reset all server components
-        router.push(pathname);
+
+        // Force a full page refresh instead of client-side navigation
+        window.location.reload();
       } finally {
         setIsSaving(false);
       }
@@ -110,19 +114,13 @@ export function SportsbookSelector() {
                 <div
                   key={sportsbook.id}
                   className={`flex items-center justify-between p-2 rounded-lg border hover:bg-accent ${
-                    disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    disabled
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
                   }`}
                   onClick={() => !disabled && handleToggle(sportsbook.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="relative h-8 w-8">
-                      <Image
-                        src={sportsbook.logo}
-                        alt={sportsbook.name}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
                     <span className="font-medium">{sportsbook.name}</span>
                   </div>
                   <div
@@ -138,7 +136,11 @@ export function SportsbookSelector() {
           </div>
         </ScrollArea>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
@@ -148,11 +150,11 @@ export function SportsbookSelector() {
                 Saving...
               </>
             ) : (
-              'Save Changes'
+              "Save Changes"
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

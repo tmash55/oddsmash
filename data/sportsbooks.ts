@@ -1,73 +1,84 @@
 export interface Sportsbook {
   id: string;
   name: string;
-  logo: string;
+  logo?: string;
+  regions?: string[];
+  isActive?: boolean;
+  url?: string; // Add URL property
 }
 
 export const sportsbooks: Sportsbook[] = [
   {
     id: "draftkings",
     name: "DraftKings",
-    logo: "/draftkings-logo.svg",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://sportsbook.draftkings.com/",
   },
   {
     id: "fanduel",
     name: "FanDuel",
-    logo: "/fanduel-logo.svg",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://sportsbook.fanduel.com/",
   },
   {
     id: "betmgm",
     name: "BetMGM",
-    logo: "/betmgm-logo.svg",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://sports.betmgm.com/",
+  },
+
+  {
+    id: "pointsbet",
+    name: "PointsBet",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://pointsbet.com/",
   },
   {
     id: "williamhill_us",
     name: "Caesars",
-    logo: "/caesars-logo.svg",
-  },
-  {
-    id: "betrivers",
-    name: "BetRivers",
-    logo: "/betrivers-logo.svg",
-  },
-  {
-    id: "betus",
-    name: "BetUS",
-    logo: "/betus-logo.svg",
-  },
-  {
-    id: "bovada",
-    name: "Bovada",
-    logo: "/bovada-logo.svg",
-  },
-  {
-    id: "fanatics",
-    name: "Fanatics",
-    logo: "/fanatics-logo.svg",
-  },
-  {
-    id: "ballybet",
-    name: "Bally Bet",
-    logo: "/ballybet-logo.svg",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://www.williamhill.com/us/",
   },
   {
     id: "espnbet",
     name: "ESPN BET",
-    logo: "/espnbet-logo.svg",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://espnbet.com/",
   },
   {
-    id: "fliff",
-    name: "Fliff",
-    logo: "/fliff-logo.svg",
+    id: "fanatics",
+    name: "Fanatics",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://sportsbook.fanatics.com/",
   },
   {
-    id: "hardrockbet",
-    name: "Hard Rock Bet",
-    logo: "/hardrockbet-logo.svg",
+    id: "bet365",
+    name: "Bet365",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us", "uk", "eu"],
+    isActive: true,
+    url: "https://www.bet365.com/",
   },
   {
-    id: "pinnacle",
-    name: "Pinnacle",
-    logo: "/pinnacle-logo.svg",
+    id: "unibet_us",
+    name: "Unibet",
+    logo: "/placeholder.svg?height=24&width=24",
+    regions: ["us"],
+    isActive: true,
+    url: "https://unibet.com/",
   },
-]; 
+];

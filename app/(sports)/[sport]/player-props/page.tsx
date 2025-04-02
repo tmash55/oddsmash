@@ -3,19 +3,21 @@ import { GradientBackground } from "@/components/ui/gradient-background";
 
 interface PlayerPropsPageProps {
   params: {
-    sport: string
-  }
+    sport: string;
+  };
 }
 
 export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
   // Map route param to API sport key
   const sportMap: { [key: string]: string } = {
-    'nba': 'basketball_nba',
-    'mlb': 'baseball_mlb',
-    'nhl': 'hockey_nhl'
-  }
+    nba: "basketball_nba",
+    ncaab: "basketball_ncaab",
+    mlb: "baseball_mlb",
+    nhl: "hockey_nhl",
+    nfl: "americanfootball_nfl",
+  };
 
-  const sport = sportMap[params.sport] || 'basketball_nba'
+  const sport = sportMap[params.sport] || "basketball_nba";
 
   return (
     <div className="flex min-h-screen flex-col">

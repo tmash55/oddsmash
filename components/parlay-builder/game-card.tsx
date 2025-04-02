@@ -1,22 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import type { Game } from "@/data/sports-data";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { formatOdds } from "@/data/sports-data";
+import { PlayerPropsModal } from "./player-props-modal";
 
 interface GameCardProps {
-  game: Game;
+  game: any;
   activeSportsbook: string;
   onSelectMarket: (
-    game: Game,
+    game: any,
     marketId: string,
     selection: string,
     sportsbookId: string
@@ -24,7 +19,7 @@ interface GameCardProps {
   isMarketSelected: (gameId: string, marketId: string) => boolean;
   formatGameTime: (dateString: string) => string;
   formatGameDate: (dateString: string) => string;
-  displayOdds?: (odds: number) => string;
+  displayOdds: (odds: number | undefined | null) => string;
 }
 
 export function GameCard({
@@ -33,377 +28,429 @@ export function GameCard({
   onSelectMarket,
   isMarketSelected,
   formatGameTime,
-  displayOdds = formatOdds,
+  formatGameDate,
+  displayOdds,
 }: GameCardProps) {
-  const [isPropsOpen, setIsPropsOpen] = useState(false);
+  const [showPlayerProps, setShowPlayerProps] = useState(false);
 
-  // Helper function to determine text color based on odds
-  const getOddsColor = (odds: number) => {
-    return odds > 0 ? "text-green-500" : "text-blue-500";
+  // Handle selecting a player prop
+  const handleSelectProp = (prop: any) => {
+    onSelectMarket(game, prop.id, prop, activeSportsbook);
   };
 
+  // Get the spread, moneyline, and total markets
+  const awaySpread = game.markets.spread?.[1] || null;
+  const homeSpread = game.markets.spread?.[0] || null;
+  const awayMoneyline = game.markets.moneyline?.[1] || null;
+  const homeMoneyline = game.markets.moneyline?.[0] || null;
+  const overTotal = game.markets.total?.[0] || null;
+  const underTotal = game.markets.total?.[1] || null;
+
   return (
-    <div className="mb-4 pt-2">
-      {/* Game Header */}
-      <div className="flex items-center mb-2 px-2">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/90 text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-            SGP
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {formatGameTime(game.startTime)}
-          </span>
-        </div>
-      </div>
-
-      {/* Teams and Markets - Mobile First Layout */}
-      <div className="grid grid-cols-4 gap-1">
-        {/* Teams Column */}
-        <div className="col-span-1 space-y-4 pr-2">
-          {/* Away Team */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex-shrink-0 bg-muted/30 rounded-md overflow-hidden">
-              <img
-                src={game.awayTeam.logo || "/placeholder.svg"}
-                alt={game.awayTeam.name}
-                className="w-full h-full object-contain p-1"
-              />
-            </div>
-            <div>
-              <div className="font-bold text-sm sm:text-base">
-                {game.awayTeam.abbreviation}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {game.awayTeam.record}
-              </div>
-            </div>
-          </div>
-
-          {/* Home Team */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex-shrink-0 bg-muted/30 rounded-md overflow-hidden">
-              <img
-                src={game.homeTeam.logo || "/placeholder.svg"}
-                alt={game.homeTeam.name}
-                className="w-full h-full object-contain p-1"
-              />
-            </div>
-            <div>
-              <div className="font-bold text-sm sm:text-base">
-                {game.homeTeam.abbreviation}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {game.homeTeam.record}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Betting Markets */}
-        <div className="col-span-3 grid grid-cols-3 gap-1">
-          {/* Spread Column */}
-          <div className="space-y-4">
-            {/* Away Team Spread */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.spread[1].id,
-                  game.markets.spread[1].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.spread[1].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span className="font-medium text-sm">
-                {game.markets.spread[1].line > 0 ? "+" : ""}
-                {game.markets.spread[1].line}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.spread[1].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.spread[1].odds[activeSportsbook])}
-              </span>
-            </button>
-
-            {/* Home Team Spread */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.spread[0].id,
-                  game.markets.spread[0].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.spread[0].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span className="font-medium text-sm">
-                {game.markets.spread[0].line > 0 ? "+" : ""}
-                {game.markets.spread[0].line}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.spread[0].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.spread[0].odds[activeSportsbook])}
-              </span>
-            </button>
-          </div>
-
-          {/* Moneyline Column */}
-          <div className="space-y-4">
-            {/* Away Team Moneyline */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.moneyline[1].id,
-                  game.markets.moneyline[1].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.moneyline[1].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.moneyline[1].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.moneyline[1].odds[activeSportsbook])}
-              </span>
-            </button>
-
-            {/* Home Team Moneyline */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.moneyline[0].id,
-                  game.markets.moneyline[0].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.moneyline[0].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.moneyline[0].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.moneyline[0].odds[activeSportsbook])}
-              </span>
-            </button>
-          </div>
-
-          {/* Total Column */}
-          <div className="space-y-4">
-            {/* Over */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.total[0].id,
-                  game.markets.total[0].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.total[0].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span className="font-medium text-sm">
-                O {game.markets.total[0].line}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.total[0].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.total[0].odds[activeSportsbook])}
-              </span>
-            </button>
-
-            {/* Under */}
-            <button
-              onClick={() =>
-                onSelectMarket(
-                  game,
-                  game.markets.total[1].id,
-                  game.markets.total[1].selection,
-                  activeSportsbook
-                )
-              }
-              className={cn(
-                "w-full h-14 sm:h-16 flex flex-col items-center justify-center rounded border transition-colors",
-                isMarketSelected(game.id, game.markets.total[1].id)
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:bg-accent/50"
-              )}
-            >
-              <span className="font-medium text-sm">
-                U {game.markets.total[1].line}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-sm",
-                  getOddsColor(game.markets.total[1].odds[activeSportsbook])
-                )}
-              >
-                {displayOdds(game.markets.total[1].odds[activeSportsbook])}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* More Props Section */}
-      <Collapsible open={isPropsOpen} onOpenChange={setIsPropsOpen}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full flex items-center justify-center py-2 mt-2 text-muted-foreground hover:text-foreground"
-          >
-            {isPropsOpen ? (
-              <>
-                <ChevronUp className="h-4 w-4 mr-2" />
-                <span>Hide Props</span>
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-4 w-4 mr-2" />
-                <span>More wagers</span>
-              </>
-            )}
-          </Button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
-            {/* Player Props Section */}
-            {game.markets.playerProps &&
-              game.markets.playerProps.length > 0 && (
+    <>
+      <Card className="overflow-hidden mb-4 border-0 shadow-sm border-l-2 border-l-primary/30 bg-card/50">
+        <CardContent className="p-0">
+          {/* Desktop View - Improved Sportsbook Style */}
+          <div className="hidden sm:block">
+            <div className="p-4 bg-muted/30 border-b">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold mb-3">Player Props</h4>
-                  <div className="space-y-2">
-                    {game.markets.playerProps.map((market) => (
-                      <button
-                        key={market.id}
-                        onClick={() =>
-                          onSelectMarket(
-                            game,
-                            market.id,
-                            market.selection,
-                            activeSportsbook
-                          )
-                        }
-                        className={cn(
-                          "w-full flex items-center justify-between p-3 rounded border transition-colors",
-                          isMarketSelected(game.id, market.id)
-                            ? "border-primary bg-primary/10"
-                            : "border-border bg-card hover:bg-accent/50"
-                        )}
-                      >
-                        <div className="text-left">
-                          <div className="text-sm font-medium">
-                            {market.selection}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {market.name}
-                          </div>
-                        </div>
-                        <span
-                          className={cn(
-                            "font-medium text-sm",
-                            getOddsColor(market.odds[activeSportsbook])
-                          )}
-                        >
-                          {displayOdds(market.odds[activeSportsbook])}
-                        </span>
-                      </button>
-                    ))}
+                  <div className="font-medium text-base">
+                    {game.awayTeam.name} @ {game.homeTeam.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {formatGameDate(game.startTime)} •{" "}
+                    {formatGameTime(game.startTime)}
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
 
-            {/* Game Props Section */}
-            {game.markets.gameProps && game.markets.gameProps.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3">Game Props</h4>
-                <div className="space-y-2">
-                  {game.markets.gameProps.map((market) => (
-                    <button
-                      key={market.id}
-                      onClick={() =>
-                        onSelectMarket(
-                          game,
-                          market.id,
-                          market.selection,
-                          activeSportsbook
-                        )
-                      }
-                      className={cn(
-                        "w-full flex items-center justify-between p-3 rounded border transition-colors",
-                        isMarketSelected(game.id, market.id)
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-card hover:bg-accent/50"
-                      )}
-                    >
-                      <div className="text-left">
-                        <div className="text-sm font-medium">
-                          {market.selection}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {market.name}
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "font-medium text-sm",
-                          getOddsColor(market.odds[activeSportsbook])
-                        )}
-                      >
-                        {displayOdds(market.odds[activeSportsbook])}
-                      </span>
-                    </button>
-                  ))}
+            <div className="p-4">
+              {/* Away Team Row */}
+              <div className="grid grid-cols-4 gap-3 items-center mb-3">
+                <div className="col-span-1 flex items-center">
+                  <div className="font-medium">{game.awayTeam.name}</div>
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={awaySpread}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={awayMoneyline}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={overTotal}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
                 </div>
               </div>
-            )}
+
+              {/* Home Team Row */}
+              <div className="grid grid-cols-4 gap-3 items-center">
+                <div className="col-span-1 flex items-center">
+                  <div className="font-medium">{game.homeTeam.name}</div>
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={homeSpread}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={homeMoneyline}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MarketButton
+                    market={underTotal}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* More Wagers Button */}
+            <div className="px-4 pb-4">
+              <Button
+                variant="ghost"
+                className="w-full justify-between text-primary hover:text-primary border border-border/50 text-sm"
+                onClick={() => setShowPlayerProps(true)}
+              >
+                <span>More wagers</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+
+          {/* Mobile View - Redesigned Compact Grid Layout */}
+          <div className="sm:hidden">
+            {/* Game Header */}
+            <div className="p-2 bg-muted/30 border-b">
+              <div className="text-xs text-muted-foreground">
+                {formatGameDate(game.startTime)} •{" "}
+                {formatGameTime(game.startTime)}
+              </div>
+            </div>
+
+            <div className="p-2">
+              {/* Away Team Row */}
+              <div className="grid grid-cols-4 gap-1 items-center mb-1">
+                <div className="col-span-1">
+                  <div className="text-xs font-medium truncate">
+                    {game.awayTeam.name}
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={awaySpread}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={awayMoneyline}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={overTotal}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                    prefix="O"
+                  />
+                </div>
+              </div>
+
+              {/* Home Team Row */}
+              <div className="grid grid-cols-4 gap-1 items-center">
+                <div className="col-span-1">
+                  <div className="text-xs font-medium truncate">
+                    {game.homeTeam.name}
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={homeSpread}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={homeMoneyline}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <MobileMarketButton
+                    market={underTotal}
+                    gameId={game.id}
+                    activeSportsbook={activeSportsbook}
+                    onSelect={onSelectMarket}
+                    isSelected={isMarketSelected}
+                    game={game}
+                    displayOdds={displayOdds}
+                    prefix="U"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* More Wagers Button */}
+            <div className="px-2 pb-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-between text-primary hover:text-primary border border-border/50 h-7 text-xs"
+                onClick={() => setShowPlayerProps(true)}
+              >
+                <span>More wagers</span>
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Player Props Modal */}
+      <PlayerPropsModal
+        open={showPlayerProps}
+        onOpenChange={setShowPlayerProps}
+        game={game}
+        sportId={game.sportId}
+        activeSportsbook={activeSportsbook}
+        onSelectProp={handleSelectProp}
+        displayOdds={displayOdds}
+      />
+    </>
+  );
+}
+
+// Standard Market Button Component (for desktop)
+function MarketButton({
+  market,
+  gameId,
+  activeSportsbook,
+  onSelect,
+  isSelected,
+  game,
+  displayOdds,
+}: {
+  market: any;
+  gameId: string;
+  activeSportsbook: string;
+  onSelect: (
+    game: any,
+    marketId: string,
+    selection: string,
+    sportsbookId: string
+  ) => void;
+  isSelected: (gameId: string, marketId: string) => boolean;
+  game: any;
+  displayOdds: (odds: number | undefined | null) => string;
+}) {
+  if (!market) {
+    return (
+      <Button variant="outline" className="w-full h-10" disabled>
+        <span className="text-muted-foreground">N/A</span>
+      </Button>
+    );
+  }
+
+  const odds =
+    market.odds?.[activeSportsbook] !== undefined
+      ? market.odds[activeSportsbook]
+      : null;
+  const selected = isSelected(gameId, market.id);
+  const hasOdds = odds !== null && odds !== undefined;
+
+  return (
+    <Button
+      variant={selected ? "default" : "outline"}
+      className={cn(
+        "w-full justify-between h-10 px-3",
+        selected ? "bg-primary text-primary-foreground" : "bg-background"
+      )}
+      onClick={() =>
+        onSelect(game, market.id, market.selection, activeSportsbook)
+      }
+      disabled={!hasOdds && !selected}
+    >
+      <div className="flex items-center">
+        {market.line !== undefined && (
+          <span className="text-sm">
+            {market.type === "total"
+              ? (market.selection === "Over" ? "O " : "U ") +
+                Math.abs(market.line)
+              : (market.line > 0 ? "+" : "") + market.line}
+          </span>
+        )}
+      </div>
+      <span
+        className={cn(
+          "text-sm font-medium",
+          !selected && hasOdds
+            ? odds > 0
+              ? "text-green-500"
+              : "text-blue-500"
+            : ""
+        )}
+      >
+        {displayOdds(odds)}
+      </span>
+    </Button>
+  );
+}
+
+// Compact Mobile Market Button Component
+function MobileMarketButton({
+  market,
+  gameId,
+  activeSportsbook,
+  onSelect,
+  isSelected,
+  game,
+  displayOdds,
+  prefix = "",
+}: {
+  market: any;
+  gameId: string;
+  activeSportsbook: string;
+  onSelect: (
+    game: any,
+    marketId: string,
+    selection: string,
+    sportsbookId: string
+  ) => void;
+  isSelected: (gameId: string, marketId: string) => boolean;
+  game: any;
+  displayOdds: (odds: number | undefined | null) => string;
+  prefix?: string;
+}) {
+  if (!market) {
+    return (
+      <div className="h-9 bg-muted/30 rounded flex items-center justify-center">
+        <span className="text-muted-foreground text-[10px]">N/A</span>
+      </div>
+    );
+  }
+
+  const odds =
+    market.odds?.[activeSportsbook] !== undefined
+      ? market.odds[activeSportsbook]
+      : null;
+  const selected = isSelected(gameId, market.id);
+  const hasOdds = odds !== null && odds !== undefined;
+  const isPositiveOdds = hasOdds && odds > 0;
+
+  if (!hasOdds && !selected) {
+    return (
+      <div className="h-9 bg-muted/30 rounded flex items-center justify-center opacity-50">
+        <span className="text-muted-foreground text-[10px]">N/A</span>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className={cn(
+        "h-9 rounded flex flex-col items-center justify-center transition-colors w-full px-1",
+        selected
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted/30 hover:bg-muted/50"
+      )}
+      onClick={() =>
+        onSelect(game, market.id, market.selection, activeSportsbook)
+      }
+      disabled={!hasOdds && !selected}
+    >
+      <div className="flex flex-col items-center">
+        {market.line !== undefined && market.type === "total" && (
+          <div className="text-[10px] leading-tight">
+            {prefix || (market.selection === "Over" ? "O " : "U ")}
+            {Math.abs(market.line)}
+          </div>
+        )}
+        {market.line !== undefined && market.type !== "total" && (
+          <div className="text-[10px] leading-tight">
+            {(market.line > 0 ? "+" : "") + market.line}
+          </div>
+        )}
+        <div
+          className={cn(
+            "text-xs font-semibold",
+            !selected && isPositiveOdds
+              ? "text-green-500"
+              : !selected && hasOdds
+              ? "text-blue-500"
+              : ""
+          )}
+        >
+          {displayOdds(odds)}
+        </div>
+      </div>
+    </button>
   );
 }

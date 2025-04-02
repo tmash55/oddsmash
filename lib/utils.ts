@@ -5,7 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Format odds for display
-export function formatOdds(odds: number): string {
+// Update the formatOdds function to handle undefined or null values
+export function formatOdds(odds: number | undefined | null): string {
+  if (odds === undefined || odds === null) {
+    return "-";
+  }
   return odds > 0 ? `+${odds}` : odds.toString();
 }

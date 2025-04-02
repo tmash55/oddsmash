@@ -4,6 +4,8 @@ import {
   PiFootballDuotone,
   PiHockeyDuotone,
   PiGolfDuotone,
+  PiSoccerBallDuotone,
+  PiTennisBallDuotone,
 } from "react-icons/pi";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +20,8 @@ export function SportIcon({ sport, size = "md", className }: SportIconProps) {
   const containerSizeMap = {
     xs: "h-5 w-5",
     sm: "h-6 w-6",
-    md: "h-7 w-7",
-    lg: "h-9 w-9",
+    md: "h-8 w-8",
+    lg: "h-10 w-10",
   };
 
   // Size mapping for react-icons (they use pixel values)
@@ -43,6 +45,10 @@ export function SportIcon({ sport, size = "md", className }: SportIconProps) {
     icehockey_nhl: "text-blue-500",
     golf_pga: "text-emerald-500",
     pga: "text-emerald-500",
+    soccer_epl: "text-purple-500",
+    epl: "text-purple-500",
+    tennis_atp: "text-yellow-500",
+    atp: "text-yellow-500",
   };
 
   // Get the appropriate icon based on the sport
@@ -94,6 +100,24 @@ export function SportIcon({ sport, size = "md", className }: SportIconProps) {
       );
     }
 
+    if (sportKey.includes("soccer") || sportKey.includes("epl")) {
+      return (
+        <PiSoccerBallDuotone
+          size={iconSize}
+          className={cn(iconColor, className)}
+        />
+      );
+    }
+
+    if (sportKey.includes("tennis") || sportKey.includes("atp")) {
+      return (
+        <PiTennisBallDuotone
+          size={iconSize}
+          className={cn(iconColor, className)}
+        />
+      );
+    }
+
     // Default icon - fallback to basketball
     return (
       <PiBasketballDuotone
@@ -106,7 +130,7 @@ export function SportIcon({ sport, size = "md", className }: SportIconProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center",
+        "flex items-center justify-center rounded-full bg-background/50 p-1",
         containerSizeMap[size],
         className
       )}

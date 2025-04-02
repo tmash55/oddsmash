@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { createContext, useContext, useState, useEffect } from "react";
-import { sportsbooks } from "@/data/sports-data";
+import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
 
 type SportsbookContextType = {
   userSportsbooks: string[];
@@ -23,21 +23,22 @@ export function SportsbookProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [userSportsbooks, setUserSportsbooks] = useState<string[]>([]);
+  // Use the hook for sportsbook preferences
+  const { selectedSportsbooks, toggleSportsbook } = useSportsbookPreferences();
+
+  // Keep the additional state from the original context
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [showSportsbookSelector, setShowSportsbookSelector] = useState(false);
 
-  // Load preferences from localStorage on initial render
-  useEffect(() => {
-    const storedSportsbooks = localStorage.getItem("userSportsbooks");
-    const visitStatus = localStorage.getItem("hasVisitedBefore");
+  // Create a setter function that works with the hook
+  const setUserSportsbooks = (sportsbooks: string[]) => {
+    // Use the toggleSportsbook function from the hook to update the preferences
+    toggleSportsbook(sportsbooks);
+  };
 
-    if (storedSportsbooks) {
-      setUserSportsbooks(JSON.parse(storedSportsbooks));
-    } else {
-      // Default to all sportsbooks if none are selected
-      setUserSportsbooks(sportsbooks.map((sb) => sb.id));
-    }
+  // Load first visit status from localStorage on initial render
+  useEffect(() => {
+    const visitStatus = localStorage.getItem("hasVisitedBefore");
 
     if (visitStatus === "true") {
       setIsFirstVisit(false);
@@ -48,13 +49,6 @@ export function SportsbookProvider({
     }
   }, []);
 
-  // Save preferences to localStorage whenever they change
-  useEffect(() => {
-    if (userSportsbooks.length > 0) {
-      localStorage.setItem("userSportsbooks", JSON.stringify(userSportsbooks));
-    }
-  }, [userSportsbooks]);
-
   // Add a convenience method to open the selector
   const openSportsbookSelector = () => {
     setShowSportsbookSelector(true);
@@ -63,7 +57,7 @@ export function SportsbookProvider({
   return (
     <SportsbookContext.Provider
       value={{
-        userSportsbooks,
+        userSportsbooks: selectedSportsbooks, // Use the selectedSportsbooks from the hook
         setUserSportsbooks,
         isFirstVisit,
         setIsFirstVisit,
