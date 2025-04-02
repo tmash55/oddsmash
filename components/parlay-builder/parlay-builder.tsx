@@ -1065,7 +1065,7 @@ export function ParlayBuilder() {
 
       {/* Games list */}
       {!isLoading && !error && (
-        <div className="space-y-0">
+        <div className="space-y-3">
           {games.length === 0 ? (
             <div className="bg-card rounded-lg border p-8 text-center">
               <h3 className="text-lg font-medium mb-2">No Games Available</h3>

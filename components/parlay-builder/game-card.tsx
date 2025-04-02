@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlayerPropsModal } from "./player-props-modal";
+import { motion } from "framer-motion";
 
 interface GameCardProps {
   game: any;
@@ -48,231 +49,265 @@ export function GameCard({
 
   return (
     <>
-      <Card className="overflow-hidden mb-4 border-0 shadow-sm border-l-2 border-l-primary/30 bg-card/50">
-        <CardContent className="p-0">
-          {/* Desktop View - Improved Sportsbook Style */}
-          <div className="hidden sm:block">
-            <div className="p-4 bg-muted/30 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-base">
-                    {game.awayTeam.name} @ {game.homeTeam.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {formatGameDate(game.startTime)} •{" "}
-                    {formatGameTime(game.startTime)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4">
-              {/* Away Team Row */}
-              <div className="grid grid-cols-4 gap-3 items-center mb-3">
-                <div className="col-span-1 flex items-center">
-                  <div className="font-medium">{game.awayTeam.name}</div>
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={awaySpread}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={awayMoneyline}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={overTotal}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-              </div>
-
-              {/* Home Team Row */}
-              <div className="grid grid-cols-4 gap-3 items-center">
-                <div className="col-span-1 flex items-center">
-                  <div className="font-medium">{game.homeTeam.name}</div>
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={homeSpread}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={homeMoneyline}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MarketButton
-                    market={underTotal}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* More Wagers Button */}
-            <div className="px-4 pb-4">
-              <Button
-                variant="ghost"
-                className="w-full justify-between text-primary hover:text-primary border border-border/50 text-sm"
-                onClick={() => setShowPlayerProps(true)}
-              >
-                <span>More wagers</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile View - Redesigned Compact Grid Layout */}
-          <div className="sm:hidden">
-            {/* Game Header */}
-            <div className="p-2 bg-muted/30 border-b">
-              <div className="text-xs text-muted-foreground">
-                {formatGameDate(game.startTime)} •{" "}
-                {formatGameTime(game.startTime)}
-              </div>
-            </div>
-
-            <div className="p-2">
-              {/* Away Team Row */}
-              <div className="grid grid-cols-4 gap-1 items-center mb-1">
-                <div className="col-span-1">
-                  <div className="text-xs font-medium truncate">
-                    {game.awayTeam.name}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="overflow-hidden mb-3 border-0 shadow-sm border-l-2 border-l-primary/30 bg-card/50 hover:bg-card/70 transition-colors duration-200">
+          <CardContent className="p-0">
+            {/* Desktop View - Improved Sportsbook Style */}
+            <div className="hidden sm:block">
+              <div className="p-4 bg-muted/30 border-b hover:bg-muted/50 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-base">
+                      {game.awayTeam.name} @ {game.homeTeam.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatGameDate(game.startTime)} •{" "}
+                      {formatGameTime(game.startTime)}
+                    </div>
                   </div>
                 </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={awaySpread}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={awayMoneyline}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={overTotal}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                    prefix="O"
-                  />
-                </div>
               </div>
 
-              {/* Home Team Row */}
-              <div className="grid grid-cols-4 gap-1 items-center">
-                <div className="col-span-1">
-                  <div className="text-xs font-medium truncate">
-                    {game.homeTeam.name}
+              <div className="p-4">
+                {/* Add market type labels in the desktop view */}
+                <div className="grid grid-cols-4 gap-3 mb-2 px-1">
+                  <div className="col-span-1"></div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                      Spread
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                      Moneyline
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                      Total
+                    </span>
                   </div>
                 </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={homeSpread}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
+
+                {/* Away Team Row */}
+                <div className="grid grid-cols-4 gap-3 items-center mb-3">
+                  <div className="col-span-1 flex items-center">
+                    <div className="font-bold text-lg">
+                      {game.awayTeam.name}
+                    </div>
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={awaySpread}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={awayMoneyline}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={overTotal}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={homeMoneyline}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                  />
+
+                {/* Home Team Row */}
+                <div className="grid grid-cols-4 gap-3 items-center">
+                  <div className="col-span-1 flex items-center">
+                    <div className="font-bold text-lg">
+                      {game.homeTeam.name}
+                    </div>
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={homeSpread}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={homeMoneyline}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MarketButton
+                      market={underTotal}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <MobileMarketButton
-                    market={underTotal}
-                    gameId={game.id}
-                    activeSportsbook={activeSportsbook}
-                    onSelect={onSelectMarket}
-                    isSelected={isMarketSelected}
-                    game={game}
-                    displayOdds={displayOdds}
-                    prefix="U"
-                  />
-                </div>
+              </div>
+
+              {/* More Wagers Button */}
+              <div className="px-4 pb-4">
+                <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/5 border border-border/50 text-sm transition-all duration-200 group"
+                    onClick={() => setShowPlayerProps(true)}
+                  >
+                    <span>More wagers</span>
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                  </Button>
+                </motion.div>
               </div>
             </div>
 
-            {/* More Wagers Button */}
-            <div className="px-2 pb-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-between text-primary hover:text-primary border border-border/50 h-7 text-xs"
-                onClick={() => setShowPlayerProps(true)}
-              >
-                <span>More wagers</span>
-                <ChevronRight className="h-3 w-3" />
-              </Button>
+            {/* Mobile View - Redesigned Compact Grid Layout */}
+            <div className="sm:hidden">
+              {/* Game Header */}
+              <div className="p-2 bg-muted/30 border-b">
+                <div className="text-xs text-muted-foreground">
+                  {formatGameDate(game.startTime)} •{" "}
+                  {formatGameTime(game.startTime)}
+                </div>
+              </div>
+
+              <div className="p-2">
+                {/* Away Team Row */}
+                <div className="grid grid-cols-4 gap-1 items-center mb-1">
+                  <div className="col-span-1">
+                    <div className="text-xs font-bold truncate">
+                      {game.awayTeam.name}
+                    </div>
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={awaySpread}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={awayMoneyline}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={overTotal}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                      prefix="O"
+                    />
+                  </div>
+                </div>
+
+                {/* Home Team Row */}
+                <div className="grid grid-cols-4 gap-1 items-center">
+                  <div className="col-span-1">
+                    <div className="text-xs font-bold truncate">
+                      {game.homeTeam.name}
+                    </div>
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={homeSpread}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={homeMoneyline}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <MobileMarketButton
+                      market={underTotal}
+                      gameId={game.id}
+                      activeSportsbook={activeSportsbook}
+                      onSelect={onSelectMarket}
+                      isSelected={isMarketSelected}
+                      game={game}
+                      displayOdds={displayOdds}
+                      prefix="U"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* More Wagers Button */}
+              <div className="px-2 pb-2">
+                <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/5 border border-border/50 h-7 text-xs transition-all duration-200 group"
+                    onClick={() => setShowPlayerProps(true)}
+                  >
+                    <span>More wagers</span>
+                    <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform duration-200" />
+                  </Button>
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Player Props Modal */}
       <PlayerPropsModal
@@ -327,40 +362,49 @@ function MarketButton({
   const hasOdds = odds !== null && odds !== undefined;
 
   return (
-    <Button
-      variant={selected ? "default" : "outline"}
-      className={cn(
-        "w-full justify-between h-10 px-3",
-        selected ? "bg-primary text-primary-foreground" : "bg-background"
-      )}
-      onClick={() =>
-        onSelect(game, market.id, market.selection, activeSportsbook)
-      }
-      disabled={!hasOdds && !selected}
-    >
-      <div className="flex items-center">
-        {market.line !== undefined && (
-          <span className="text-sm">
-            {market.type === "total"
-              ? (market.selection === "Over" ? "O " : "U ") +
-                Math.abs(market.line)
-              : (market.line > 0 ? "+" : "") + market.line}
-          </span>
-        )}
-      </div>
-      <span
+    <motion.div whileTap={{ scale: 0.97 }}>
+      <Button
+        variant={selected ? "default" : "outline"}
         className={cn(
-          "text-sm font-medium",
-          !selected && hasOdds
-            ? odds > 0
-              ? "text-green-500"
-              : "text-blue-500"
-            : ""
+          "w-full justify-between h-10 px-3 transition-all duration-200",
+          selected
+            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+            : "bg-background hover:border-primary/50"
         )}
+        onClick={() =>
+          onSelect(game, market.id, market.selection, activeSportsbook)
+        }
+        disabled={!hasOdds && !selected}
       >
-        {displayOdds(odds)}
-      </span>
-    </Button>
+        <div className="flex items-center">
+          {market.line !== undefined && (
+            <span
+              className={cn(
+                "text-sm font-medium",
+                selected ? "" : "text-muted-foreground"
+              )}
+            >
+              {market.type === "total"
+                ? (market.selection === "Over" ? "O " : "U ") +
+                  Math.abs(market.line)
+                : (market.line > 0 ? "+" : "") + market.line}
+            </span>
+          )}
+        </div>
+        <span
+          className={cn(
+            "text-sm font-mono tracking-tight",
+            !selected && hasOdds
+              ? odds > 0
+                ? "text-green-500 font-bold"
+                : "text-blue-500 font-bold"
+              : ""
+          )}
+        >
+          {displayOdds(odds)}
+        </span>
+      </Button>
+    </motion.div>
   );
 }
 
@@ -414,43 +458,45 @@ function MobileMarketButton({
   }
 
   return (
-    <button
-      className={cn(
-        "h-9 rounded flex flex-col items-center justify-center transition-colors w-full px-1",
-        selected
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted/30 hover:bg-muted/50"
-      )}
-      onClick={() =>
-        onSelect(game, market.id, market.selection, activeSportsbook)
-      }
-      disabled={!hasOdds && !selected}
-    >
-      <div className="flex flex-col items-center">
-        {market.line !== undefined && market.type === "total" && (
-          <div className="text-[10px] leading-tight">
-            {prefix || (market.selection === "Over" ? "O " : "U ")}
-            {Math.abs(market.line)}
-          </div>
+    <motion.div whileTap={{ scale: 0.95 }}>
+      <button
+        className={cn(
+          "h-9 rounded flex flex-col items-center justify-center transition-all duration-200 w-full px-1",
+          selected
+            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+            : "bg-muted/30 hover:bg-muted/50"
         )}
-        {market.line !== undefined && market.type !== "total" && (
-          <div className="text-[10px] leading-tight">
-            {(market.line > 0 ? "+" : "") + market.line}
-          </div>
-        )}
-        <div
-          className={cn(
-            "text-xs font-semibold",
-            !selected && isPositiveOdds
-              ? "text-green-500"
-              : !selected && hasOdds
-              ? "text-blue-500"
-              : ""
+        onClick={() =>
+          onSelect(game, market.id, market.selection, activeSportsbook)
+        }
+        disabled={!hasOdds && !selected}
+      >
+        <div className="flex flex-col items-center">
+          {market.line !== undefined && market.type === "total" && (
+            <div className="text-[10px] uppercase font-medium leading-tight">
+              {prefix || (market.selection === "Over" ? "O " : "U ")}
+              {Math.abs(market.line)}
+            </div>
           )}
-        >
-          {displayOdds(odds)}
+          {market.line !== undefined && market.type !== "total" && (
+            <div className="text-[10px] font-medium leading-tight">
+              {(market.line > 0 ? "+" : "") + market.line}
+            </div>
+          )}
+          <div
+            className={cn(
+              "text-xs font-mono tracking-tight",
+              !selected && isPositiveOdds
+                ? "text-green-500 font-bold"
+                : !selected && hasOdds
+                ? "text-blue-500 font-bold"
+                : ""
+            )}
+          >
+            {displayOdds(odds)}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </motion.div>
   );
 }
