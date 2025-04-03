@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { getOdds, OddsAPIError } from "@/lib/odds-api";
-import { getCachedData, setCachedData, generateCacheKey } from "@/lib/redis";
+import {
+  getCachedData,
+  generateCacheKey,
+  filterCachedOddsBySelectedSportsbooks,
+} from "@/lib/redis";
 
-// First, add an interface for the cached data structure at the top of the file
+// Interface for the cached data structure
 interface CachedOddsData {
   events: any[];
   timestamp: number;
+  hasEvents?: boolean;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get("sport") || "basketball_nba";
-  const bookmakers = searchParams.get("bookmakers")?.split(",") || [
+  const userSelectedBookmakers = searchParams.get("bookmakers")?.split(",") || [
     "draftkings",
     "fanduel",
     "betmgm",
@@ -23,7 +28,9 @@ export async function GET(request: Request) {
   ];
 
   console.log(
-    `API Request - Sport: ${sport}, Bookmakers: ${bookmakers.join(", ")}`
+    `API Request - Sport: ${sport}, User Selected Bookmakers: ${userSelectedBookmakers.join(
+      ", "
+    )}`
   );
 
   if (!sport) {
@@ -34,41 +41,53 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Generate a cache key for this specific request using your implementation
-    const cacheKey = generateCacheKey([
-      "parlay-builder",
-      sport,
-      ...bookmakers,
-      ...markets,
-    ]);
+    // Generate a cache key without bookmakers
+    const cacheKey = generateCacheKey(["parlay-builder", sport, ...markets]);
 
-    // Then update the getCachedData call with the type parameter
     // Try to get from cache first
     const cachedData = await getCachedData<CachedOddsData>(cacheKey);
     if (cachedData) {
       console.log(`Cache hit for ${sport}`);
-      return NextResponse.json(cachedData, {
+
+      // Filter the cached events to include only the user's selected bookmakers
+      const filteredEvents = filterCachedOddsBySelectedSportsbooks(
+        cachedData.events,
+        userSelectedBookmakers
+      );
+
+      // Create the response with filtered events
+      const responseData = {
+        events: filteredEvents,
+        timestamp: cachedData.timestamp,
+        hasEvents: Array.isArray(filteredEvents) && filteredEvents.length > 0,
+      };
+
+      return NextResponse.json(responseData, {
         headers: {
           "x-last-updated": new Date(
             cachedData.timestamp || Date.now()
           ).toISOString(),
           "x-cache-hit": "true",
+          "x-cache-key": cacheKey,
         },
       });
     }
 
     console.log(`Cache miss for ${sport}, fetching from API`);
+
     // If not in cache, fetch from API using our enhanced getOdds function
-    const oddsData = await getOdds(sport, bookmakers, markets);
+    // Note: getOdds now fetches ALL bookmakers and filters the response
+    const oddsData = await getOdds(sport, userSelectedBookmakers, markets);
 
     // Prepare response data with timestamp
     const responseData = {
       events: oddsData,
       timestamp: Date.now(),
+      hasEvents: Array.isArray(oddsData) && oddsData.length > 0,
     };
 
-    // Cache the data
-    await setCachedData(cacheKey, responseData);
+    // Cache the complete data (with all bookmakers)
+    // Note: We're caching the unfiltered data in getOdds, so we don't need to cache here
 
     console.log(`Fetched ${oddsData.length} events for ${sport}`);
 
@@ -76,6 +95,7 @@ export async function GET(request: Request) {
       headers: {
         "x-last-updated": new Date().toISOString(),
         "x-cache-hit": "false",
+        "x-cache-key": cacheKey,
       },
     });
   } catch (error) {

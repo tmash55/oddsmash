@@ -1,16 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { SportIcon } from "../sport-icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Sport {
   id: string;
   name: string;
   icon?: string;
+  isOffSeason?: boolean;
+  active?: boolean;
 }
 
 interface SportSelectorProps {
@@ -118,8 +126,115 @@ export function SportSelector({
     }
   };
 
+  // Check if the selected sport is in off-season
+  const isSelectedSportOffSeason = useCallback(() => {
+    const sport = sports.find((s) => s.id === selectedSport);
+    return sport?.isOffSeason || false;
+  }, [selectedSport, sports]);
+
+  // Render sport button with optional off-season indicator
+  const renderSportButton = (sport: Sport, isMobile: boolean = false) => {
+    const isOffSeason = sport.isOffSeason;
+    const buttonContent = (
+      <motion.button
+        key={sport.id}
+        data-sport-id={sport.id}
+        className={cn(
+          "flex flex-col items-center justify-center",
+          isMobile ? "min-w-[80px] px-3 py-3 mx-1" : "p-3",
+          "rounded-xl transition-all relative",
+          selectedSport === sport.id
+            ? getSportColor(sport.id)
+            : "hover:bg-muted/70 border border-transparent"
+        )}
+        onClick={() => onSelectSport(sport.id)}
+        whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+        whileHover={
+          isMobile
+            ? { y: -2, transition: { duration: 0.15 } }
+            : {
+                y: -3,
+                backgroundColor:
+                  selectedSport === sport.id ? undefined : "rgba(0,0,0,0.05)",
+                transition: { duration: 0.15 },
+              }
+        }
+      >
+        <div
+          className={cn(
+            "relative",
+            selectedSport === sport.id &&
+              `after:content-[''] after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:w-${
+                isMobile ? "1" : "1.5"
+              } after:h-${isMobile ? "1" : "1.5"} after:rounded-full ${
+                getSportColor(sport.id).split(" ")[0]
+              }`
+          )}
+        >
+          <SportIcon
+            sport={sport.id}
+            size={isMobile ? "md" : "lg"}
+            className={
+              selectedSport === sport.id
+                ? getSportColor(sport.id).split(" ")[0]
+                : ""
+            }
+          />
+          {isOffSeason && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border border-background" />
+          )}
+        </div>
+        <span
+          className={cn(
+            "mt-2",
+            isMobile ? "text-xs truncate max-w-[70px] text-center" : "text-sm",
+            "font-medium",
+            selectedSport === sport.id ? "font-semibold" : ""
+          )}
+        >
+          {sport.name}
+        </span>
+      </motion.button>
+    );
+
+    if (isOffSeason) {
+      return (
+        <TooltipProvider key={sport.id}>
+          <Tooltip>
+            <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
+            <TooltipContent>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-amber-500" />
+                <span>{sport.name} is currently in off-season</span>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return buttonContent;
+  };
+
   return (
     <div className="relative">
+      {/* Off-season message when a sport in off-season is selected */}
+      {isSelectedSportOffSeason() && (
+        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-amber-700 dark:text-amber-400">
+              {sports.find((s) => s.id === selectedSport)?.name} is currently in
+              off-season
+            </p>
+            <p className="text-sm text-muted-foreground">
+              No events are currently available. Please check back during the
+              regular season or select another sport.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mobile View - Horizontal Scrollable List */}
       <div className="relative sm:hidden">
         {/* Gradient masks for scroll indication */}
@@ -162,49 +277,9 @@ export function SportSelector({
           ref={scrollContainerRef}
           className="flex overflow-x-auto scrollbar-hide py-3 px-4 -mx-2 relative"
         >
-          {sports.map((sport) => (
-            <motion.button
-              key={sport.id}
-              data-sport-id={sport.id}
-              className={cn(
-                "flex flex-col items-center justify-center min-w-[80px] px-3 py-3 rounded-xl transition-all mx-1",
-                selectedSport === sport.id
-                  ? getSportColor(sport.id)
-                  : "hover:bg-muted/70 border border-transparent"
-              )}
-              onClick={() => onSelectSport(sport.id)}
-              whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
-              whileHover={{ y: -2, transition: { duration: 0.15 } }}
-            >
-              <div
-                className={cn(
-                  "relative",
-                  selectedSport === sport.id &&
-                    `after:content-[''] after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full ${
-                      getSportColor(sport.id).split(" ")[0]
-                    }`
-                )}
-              >
-                <SportIcon
-                  sport={sport.id}
-                  size="md"
-                  className={
-                    selectedSport === sport.id
-                      ? getSportColor(sport.id).split(" ")[0]
-                      : ""
-                  }
-                />
-              </div>
-              <span
-                className={cn(
-                  "mt-2 text-xs font-medium truncate max-w-[70px] text-center",
-                  selectedSport === sport.id ? "font-semibold" : ""
-                )}
-              >
-                {sport.name}
-              </span>
-            </motion.button>
-          ))}
+          {sports
+            .filter((sport) => sport.active !== false)
+            .map((sport) => renderSportButton(sport, true))}
         </div>
 
         {/* Right Scroll Button */}
@@ -232,53 +307,9 @@ export function SportSelector({
 
       {/* Desktop View - Grid Layout */}
       <div className="hidden sm:grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 p-1">
-        {sports.map((sport) => (
-          <motion.button
-            key={sport.id}
-            className={cn(
-              "flex flex-col items-center justify-center p-3 rounded-xl transition-all",
-              selectedSport === sport.id
-                ? getSportColor(sport.id)
-                : "hover:bg-muted/70 border border-transparent"
-            )}
-            onClick={() => onSelectSport(sport.id)}
-            whileHover={{
-              y: -3,
-              backgroundColor:
-                selectedSport === sport.id ? undefined : "rgba(0,0,0,0.05)",
-              transition: { duration: 0.15 },
-            }}
-            whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
-          >
-            <div
-              className={cn(
-                "relative",
-                selectedSport === sport.id &&
-                  `after:content-[''] after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full ${
-                    getSportColor(sport.id).split(" ")[0]
-                  }`
-              )}
-            >
-              <SportIcon
-                sport={sport.id}
-                size="lg"
-                className={
-                  selectedSport === sport.id
-                    ? getSportColor(sport.id).split(" ")[0]
-                    : ""
-                }
-              />
-            </div>
-            <span
-              className={cn(
-                "mt-2 text-sm font-medium",
-                selectedSport === sport.id ? "font-semibold" : ""
-              )}
-            >
-              {sport.name}
-            </span>
-          </motion.button>
-        ))}
+        {sports
+          .filter((sport) => sport.active !== false)
+          .map((sport) => renderSportButton(sport))}
       </div>
     </div>
   );

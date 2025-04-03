@@ -97,7 +97,7 @@ export const sports: Sport[] = [
     id: "americanfootball_nfl",
     name: "NFL",
     icon: "/football.svg",
-    active: true,
+    active: false,
   },
 ];
 

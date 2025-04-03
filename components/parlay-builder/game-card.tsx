@@ -47,6 +47,11 @@ export function GameCard({
   const overTotal = game.markets.total?.[0] || null;
   const underTotal = game.markets.total?.[1] || null;
 
+  // Add this function to handle prop selection from the modal
+  const handleSelectPropWrapper = (prop: any) => {
+    handleSelectProp(prop);
+  };
+
   return (
     <>
       <motion.div
@@ -316,8 +321,9 @@ export function GameCard({
         game={game}
         sportId={game.sportId}
         activeSportsbook={activeSportsbook}
-        onSelectProp={handleSelectProp}
+        onSelectProp={handleSelectPropWrapper}
         displayOdds={displayOdds}
+        isMarketSelected={isMarketSelected}
       />
     </>
   );

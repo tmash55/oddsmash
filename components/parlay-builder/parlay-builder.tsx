@@ -442,6 +442,7 @@ export function ParlayBuilder() {
 
     // Check if we already have this data cached
     if (playerPropsData[cacheKey]) {
+      console.log(`Using cached player props data for ${cacheKey}`);
       return playerPropsData[cacheKey];
     }
 
@@ -559,6 +560,25 @@ export function ParlayBuilder() {
     });
   };
 
+  // Add this function to the ParlayBuilder component
+  const checkForExistingPlayerSelection = (
+    playerName: string,
+    marketType: string
+  ) => {
+    // Check if there's already a selection for this player and market type
+    return selectedLegs.some((leg) => {
+      // Only check player props
+      if (leg.type !== "player-prop" || !leg.propData) return false;
+
+      // Check if this is the same player
+      if (leg.propData.player !== playerName) return false;
+
+      // Check if this is the same market type (normalized to remove _alternate suffix)
+      const legMarketNormalized = leg.propData.market.replace("_alternate", "");
+      return legMarketNormalized === marketType;
+    });
+  };
+
   // Add or remove a leg from the parlay
   const toggleLeg = async (
     game: Game,
@@ -642,6 +662,29 @@ export function ParlayBuilder() {
       if (isPlayerProp) {
         console.log("Processing player prop selection:", selection);
 
+        // Get the player name and normalized market key
+        const playerName =
+          selection.player || selection.propIdentifiers?.player;
+        const marketKey =
+          selection.marketKey || selection.propIdentifiers?.market;
+        const normalizedMarketKey = marketKey.replace("_alternate", "");
+
+        // Find and remove any existing legs for the same player and market type
+        // This ensures only one line per player per market type
+        const updatedLegs = selectedLegs.filter((leg) => {
+          if (leg.type !== "player-prop" || !leg.propData) return true;
+
+          // If this is the same player and same market type (normalized), remove it
+          const legMarketNormalized = leg.propData.market.replace(
+            "_alternate",
+            ""
+          );
+          return !(
+            leg.propData.player === playerName &&
+            legMarketNormalized === normalizedMarketKey
+          );
+        });
+
         // Add the leg with the player prop data
         const newLeg: ParlayLeg = {
           id: propId,
@@ -656,8 +699,8 @@ export function ParlayBuilder() {
           sid: selection.sid, // Add SID if available
           // Add additional data for odds comparison
           propData: {
-            player: selection.player || selection.propIdentifiers?.player,
-            market: selection.marketKey || selection.propIdentifiers?.market,
+            player: playerName,
+            market: marketKey,
             line: selection.line || selection.propIdentifiers?.line,
             betType: selection.betType || selection.propIdentifiers?.betType,
             sportId: game.sportId,
@@ -671,8 +714,6 @@ export function ParlayBuilder() {
         console.log("Player Prop Odds Comparison:");
 
         // Fetch player props data for all sportsbooks if we don't have it yet
-        const marketKey =
-          selection.marketKey || selection.propIdentifiers?.market;
         if (marketKey) {
           const propsData = await fetchPlayerPropsData(
             game.id,
@@ -719,7 +760,8 @@ export function ParlayBuilder() {
           }
         }
 
-        setSelectedLegs((prev) => [...prev, newLeg]);
+        // Set the updated legs with the new leg added
+        setSelectedLegs([...updatedLegs, newLeg]);
       } else {
         // Standard market handling (spreads, moneylines, totals)
         if (!market) return;
@@ -1028,6 +1070,8 @@ export function ParlayBuilder() {
                         ? "tomorrow"
                         : dateFilter === "week"
                         ? "this week"
+                        : dateFilter === "all"
+                        ? "all"
                         : dateFilter
                     }.`
                   : `There are no games available for ${

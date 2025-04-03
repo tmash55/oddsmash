@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -7,7 +8,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
@@ -34,6 +34,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { getMarketsForSport } from "@/lib/constants/markets";
 
 interface BetslipProps {
   open: boolean;
@@ -79,7 +81,7 @@ export function Betslip({
     return () => clearTimeout(timer);
   }, [wagerAmount]);
 
-  // Get odds for player props
+  // Update the getPlayerPropOdds function to search across both standard and alternate markets
   const getPlayerPropOdds = (
     leg: ParlayLeg,
     sportsbook: string
@@ -90,7 +92,43 @@ export function Betslip({
     const cacheKey = `${gameId}-${propData.market}`;
 
     // Check if we have data for this prop
-    if (!playerPropsData[cacheKey]) return undefined;
+    if (!playerPropsData[cacheKey]) {
+      // Try alternate market cache key if standard market not found
+      const baseMarket = propData.market.replace("_alternate", "");
+      const alternateMarket = propData.market.endsWith("_alternate")
+        ? baseMarket
+        : `${baseMarket}_alternate`;
+      const alternateCacheKey = `${gameId}-${alternateMarket}`;
+
+      // If neither standard nor alternate market data is available, return undefined
+      if (!playerPropsData[alternateCacheKey]) {
+        return undefined;
+      }
+
+      // Use the alternate market data if available
+      const data = playerPropsData[alternateCacheKey];
+
+      // Find the bookmaker
+      const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
+      if (!bookmaker) return undefined;
+
+      // Search through all markets for this bookmaker
+      for (const market of bookmaker.markets) {
+        // Find the outcome with EXACT line match regardless of market key
+        const outcome = market.outcomes.find((o: any) => {
+          return (
+            o.description === propData.player &&
+            o.name === propData.betType &&
+            o.point === propData.line
+          );
+        });
+
+        // If we found a matching outcome, return its price
+        if (outcome) return outcome.price;
+      }
+
+      return undefined;
+    }
 
     const data = playerPropsData[cacheKey];
 
@@ -98,29 +136,48 @@ export function Betslip({
     const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
     if (!bookmaker) return undefined;
 
-    // Find the market
-    const market = bookmaker.markets.find(
-      (m: any) => m.key === propData.market
-    );
-    if (!market) return undefined;
+    // Search through all markets for this bookmaker
+    for (const market of bookmaker.markets) {
+      // Find the outcome with EXACT line match
+      const outcome = market.outcomes.find((o: any) => {
+        return (
+          o.description === propData.player &&
+          o.name === propData.betType &&
+          o.point === propData.line
+        );
+      });
 
-    // Find the outcome with EXACT line match
-    const outcome = market.outcomes.find((o: any) => {
-      return (
-        o.description === propData.player &&
-        o.name === propData.betType &&
-        o.point === propData.line
-      );
-    });
+      // If we found a matching outcome, return its price
+      if (outcome) return outcome.price;
+    }
 
-    // If no exact line match, return undefined
-    if (!outcome) return undefined;
-
-    return outcome?.price;
+    return undefined;
   };
 
-  // Helper function to get market display name
+  // Helper function to get market display name from the markets file
   const getMarketDisplayName = (marketKey: string): string => {
+    // Remove _alternate suffix for display purposes
+    const baseMarketKey = marketKey.replace("_alternate", "");
+
+    // Check all sports for this market
+    const allSports = [
+      "basketball_nba",
+      "baseball_mlb",
+      "hockey_nhl",
+      "football_nfl",
+    ];
+
+    for (const sport of allSports) {
+      const markets = getMarketsForSport(sport);
+      const market = markets.find(
+        (m) => m.apiKey === baseMarketKey || m.value === baseMarketKey
+      );
+      if (market) {
+        return market.label;
+      }
+    }
+
+    // Fallback to a simple mapping if not found in markets file
     const marketNames: { [key: string]: string } = {
       player_points: "Points",
       player_rebounds: "Rebounds",
@@ -144,7 +201,7 @@ export function Betslip({
       player_touchdowns: "Touchdowns",
     };
 
-    return marketNames[marketKey] || marketKey;
+    return marketNames[baseMarketKey] || baseMarketKey;
   };
 
   // Check if a sportsbook has all the legs with exact line matches
@@ -347,7 +404,7 @@ export function Betslip({
     // For player props
     if (leg.type === "player-prop" && leg.propData) {
       const marketName = getMarketDisplayName(leg.propData.market);
-      return `${marketName} ${leg.line}`;
+      return marketName;
     }
 
     // For standard markets
@@ -366,6 +423,23 @@ export function Betslip({
     return leg.type;
   };
 
+  // Get the team abbreviations for a game
+  const getGameTeams = (gameId: string) => {
+    const game = getGameInfo(gameId);
+    if (!game) return "";
+    return `${game.awayTeam.name} @ ${game.homeTeam.name}`;
+  };
+
+  // Group legs by game for better organization
+  const groupedLegs = legs.reduce((acc, leg) => {
+    const gameId = leg.gameId;
+    if (!acc[gameId]) {
+      acc[gameId] = [];
+    }
+    acc[gameId].push(leg);
+    return acc;
+  }, {} as Record<string, ParlayLeg[]>);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -376,7 +450,7 @@ export function Betslip({
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
               <span className="flex items-center">
-                Betslip
+                Parlay Legs
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -389,14 +463,24 @@ export function Betslip({
                 </motion.div>
               </span>
             </SheetTitle>
+            {legs.length > 0 && (
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClearAll}
+                  className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                  title="Clear all legs"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            )}
             <SheetClose className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </SheetClose>
           </div>
-          <SheetDescription>
-            Build your parlay and compare odds across sportsbooks
-          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-hidden">
@@ -424,9 +508,7 @@ export function Betslip({
                       <Sparkles className="h-12 w-12 text-primary/50" />
                     </motion.div>
                   </div>
-                  <p className="text-muted-foreground mb-3">
-                    Your betslip is empty
-                  </p>
+                  <p className="text-gray-400 mb-3">Your betslip is empty</p>
                   <Button
                     variant="outline"
                     className="mt-2"
@@ -437,91 +519,77 @@ export function Betslip({
                 </motion.div>
               ) : (
                 <>
-                  {/* Parlay Legs */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Parlay Legs
-                      </h3>
-                      {legs.length > 0 && (
-                        <motion.div
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleClearAll}
-                            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                            title="Clear all legs"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      )}
-                    </div>
-
+                  {/* Parlay Legs - Grouped by Game */}
+                  <div className="space-y-6">
                     <AnimatePresence>
-                      {legs.map((leg) => {
-                        const game = getGameInfo(leg.gameId);
-                        const marketDisplay = formatMarketDisplay(leg);
+                      {Object.entries(groupedLegs).map(([gameId, gameLegs]) => (
+                        <motion.div
+                          key={gameId}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.3 }}
+                          className="space-y-2"
+                        >
+                          <div className="text-xs text-muted-foreground">
+                            {getGameTeams(gameId)}
+                          </div>
 
-                        return (
-                          <motion.div
-                            key={leg.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.2 }}
-                            layout
-                          >
-                            <div className="flex items-start justify-between p-4 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors">
-                              <div className="space-y-1 flex-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm font-medium">
-                                    {leg.selection}
+                          {gameLegs.map((leg) => (
+                            <motion.div
+                              key={leg.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 20 }}
+                              transition={{ duration: 0.2 }}
+                              layout
+                            >
+                              <div className="flex items-start justify-between p-4 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors">
+                                <div className="space-y-1 flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-base font-medium">
+                                      {leg.selection}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                      {formatMarketDisplay(leg)}
+                                    </span>
                                   </div>
-                                  <span className="text-xs text-muted-foreground">
-                                    {marketDisplay}
-                                  </span>
-                                </div>
-                                {game && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {game.awayTeam.abbreviation} @{" "}
-                                    {game.homeTeam.abbreviation}
-                                  </div>
-                                )}
-                                <div className="flex items-center mt-1">
-                                  <span
-                                    className={cn(
-                                      "text-xs font-medium",
-                                      leg.odds > 0
-                                        ? "text-green-500"
-                                        : "text-blue-500"
-                                    )}
-                                  >
-                                    {displayOdds(leg.odds)} ({leg.sportsbookId})
-                                  </span>
-                                </div>
-                              </div>
 
-                              <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                              >
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => onRemoveLeg(leg.id)}
-                                  className="h-10 w-10 ml-2 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                  <div className="flex items-center mt-2">
+                                    <span
+                                      className={cn(
+                                        "text-sm font-medium",
+                                        leg.odds > 0
+                                          ? "text-green-500"
+                                          : "text-blue-500"
+                                      )}
+                                    >
+                                      {displayOdds(leg.odds)} (
+                                      {leg.sportsbookId})
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <motion.div
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
                                 >
-                                  <Trash2 className="h-5 w-5" />
-                                </Button>
-                              </motion.div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => onRemoveLeg(leg.id)}
+                                    className="h-10 w-10 ml-2 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </Button>
+                                </motion.div>
+                              </div>
+                            </motion.div>
+                          ))}
+
+                          <Separator className="my-4" />
+                        </motion.div>
+                      ))}
                     </AnimatePresence>
                   </div>
 
@@ -613,7 +681,10 @@ export function Betslip({
                                         <img
                                           src={
                                             sportsbookInfo?.logo ||
-                                            "/placeholder.svg?height=24&width=24"
+                                            "/placeholder.svg?height=24&width=24" ||
+                                            "/placeholder.svg" ||
+                                            "/placeholder.svg" ||
+                                            "/placeholder.svg"
                                           }
                                           alt={
                                             sportsbookInfo?.name || sportsbook
@@ -627,12 +698,12 @@ export function Betslip({
                                         </div>
                                         <div
                                           className={cn(
-                                            "text-xs font-medium",
+                                            "text-sm font-medium",
                                             isAvailable
                                               ? odds! > 0
                                                 ? "text-green-500"
                                                 : "text-blue-500"
-                                              : "text-muted-foreground"
+                                              : "text-gray-500"
                                           )}
                                         >
                                           {isAvailable
@@ -646,7 +717,7 @@ export function Betslip({
                                       {isAvailable ? (
                                         <>
                                           <motion.div
-                                            className="text-sm font-medium"
+                                            className="text-lg font-bold"
                                             animate={
                                               animatePayouts
                                                 ? {
@@ -658,12 +729,12 @@ export function Betslip({
                                           >
                                             ${payout.toFixed(2)}
                                           </motion.div>
-                                          <div className="text-xs text-muted-foreground">
+                                          <div className="text-xs text-gray-400">
                                             Potential Payout
                                           </div>
                                         </>
                                       ) : (
-                                        <div className="flex items-center text-muted-foreground">
+                                        <div className="flex items-center text-gray-500">
                                           <AlertCircle className="h-4 w-4 mr-1" />
                                           <span className="text-xs">
                                             Different lines

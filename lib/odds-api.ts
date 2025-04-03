@@ -1,4 +1,10 @@
-import { getCachedData, setCachedData, generateCacheKey } from "./redis";
+import { sportsbooks } from "@/data/sportsbooks";
+import {
+  getCachedData,
+  setCachedData,
+  generateCacheKey,
+  filterCachedOddsBySelectedSportsbooks,
+} from "./redis";
 
 // API Types
 export interface Sport {
@@ -231,23 +237,27 @@ export async function getEvents(
   }
 }
 
-// Function to get odds for a sport (from old client)
+// Function to get odds for a sport (updated to fetch all bookmakers)
 export async function getOdds(
   sport: string,
-  bookmakers: string[] = [],
+  userSelectedBookmakers: string[] = [],
   markets: string[] = ["h2h", "spreads", "totals"],
   oddsFormat = "american"
 ): Promise<GameOdds[]> {
-  // Use the user's generateCacheKey function
-  const cacheKey = generateCacheKey(["odds", sport, ...bookmakers, ...markets]);
+  // Generate cache key without bookmakers
+  const cacheKey = generateCacheKey(["odds", sport, ...markets]);
 
   // Try to get from cache first
   const cachedData = await getCachedData<GameOdds[]>(cacheKey);
   if (cachedData) {
-    return cachedData;
+    // Filter the cached data to include only the user's selected bookmakers
+    return filterCachedOddsBySelectedSportsbooks(
+      cachedData,
+      userSelectedBookmakers
+    ) as GameOdds[];
   }
 
-  // If not in cache, fetch from API
+  // If not in cache, fetch from API with ALL bookmakers
   try {
     const params: Record<string, string> = {
       dateFormat: "iso",
@@ -258,77 +268,88 @@ export async function getOdds(
       params.markets = markets.join(",");
     }
 
-    if (bookmakers.length > 0) {
-      params.bookmakers = bookmakers.join(",");
-    }
+    // Get all available bookmakers
+    const allBookmakers = sportsbooks.map((sb) => sb.id);
+    params.bookmakers = allBookmakers.join(",");
 
     const response = await makeRequest<GameOdds[]>(
       `/sports/${sport}/odds`,
       params
     );
+
+    // Cache the complete response with all bookmakers
     await setCachedData(cacheKey, response);
-    return response;
+
+    // Filter the response to include only the user's selected bookmakers
+    return filterCachedOddsBySelectedSportsbooks(
+      response,
+      userSelectedBookmakers
+    ) as GameOdds[];
   } catch (error) {
     console.error("Error fetching odds:", error);
     throw error;
   }
 }
 
-// Function to fetch player props for a specific event with caching
+// Function to fetch player props for a specific event with caching (updated to fetch all bookmakers)
 export async function getEventPlayerProps(
   sportKey: string,
   eventId: string,
-  selectedBookmakers: string[],
+  userSelectedBookmakers: string[],
   markets: string[] = ["player_points", "player_rebounds", "player_assists"]
 ): Promise<GameOdds> {
+  // Generate cache key without bookmakers
   const cacheKey = generateCacheKey([
     "event-props",
     eventId,
-    ...selectedBookmakers,
+    sportKey,
     ...markets,
   ]);
 
   // Try to get from cache first
   const cachedData = await getCachedData<GameOdds>(cacheKey);
   if (cachedData) {
-    return cachedData;
+    // Filter the cached data to include only the user's selected bookmakers
+    return filterCachedOddsBySelectedSportsbooks(
+      cachedData,
+      userSelectedBookmakers
+    ) as GameOdds;
   }
 
-  // If not in cache, fetch from API
+  // If not in cache, fetch from API with ALL bookmakers
   try {
+    // Get all available bookmakers
+    const allBookmakers = sportsbooks.map((sb) => sb.id);
+
     const response = await makeRequest<GameOdds>(
       `/sports/${sportKey}/events/${eventId}/odds`,
       {
         markets: markets.join(","),
-        bookmakers: selectedBookmakers.join(","),
+        bookmakers: allBookmakers.join(","),
         oddsFormat: "american",
         includeSids: "true",
       }
     );
 
-    // Filter out bookmakers that weren't requested
-    const filteredData = {
-      ...response,
-      bookmakers: response.bookmakers.filter((b) =>
-        selectedBookmakers.includes(b.key)
-      ),
-    };
+    // Cache the complete response with all bookmakers
+    await setCachedData(cacheKey, response);
 
-    // Cache the filtered data
-    await setCachedData(cacheKey, filteredData);
-
-    return filteredData;
+    // Filter the response to include only the user's selected bookmakers
+    return filterCachedOddsBySelectedSportsbooks(
+      response,
+      userSelectedBookmakers
+    ) as GameOdds;
   } catch (error) {
     console.error("Error fetching event player props:", error);
     throw error;
   }
 }
 
-// Function to get player props for multiple events (from old client)
+// Function to get player props for multiple events (updated to use the new getEventPlayerProps)
 export async function getPlayerPropsForMultipleEvents(
   sportKey: string,
   eventIds: string[],
-  selectedBookmakers: string[],
+  userSelectedBookmakers: string[],
   markets: string[] = ["player_points", "player_rebounds", "player_assists"],
   delayMs = 1000
 ): Promise<GameOdds[]> {
@@ -346,7 +367,7 @@ export async function getPlayerPropsForMultipleEvents(
       const response = await getEventPlayerProps(
         sportKey,
         eventId,
-        selectedBookmakers,
+        userSelectedBookmakers,
         markets
       );
 
