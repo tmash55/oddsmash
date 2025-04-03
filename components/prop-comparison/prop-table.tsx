@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -19,7 +18,8 @@ import {
   ArrowRight,
   Search,
   SortAsc,
-  Star,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 import {
   Tooltip,
@@ -28,9 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -38,21 +36,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { sportsbooks } from "@/data/sportsbooks";
 import { GameSelector } from "./game-selector";
-import { GameOdds, Market, Outcome, PlayerProp, Bookmaker, findBestOdds, formatAmericanOdds } from "@/lib/odds-api";
+import {
+  type GameOdds,
+  type Market,
+  type Outcome,
+  type PlayerProp,
+  type Bookmaker,
+  findBestOdds,
+  formatAmericanOdds,
+} from "@/lib/odds-api";
 import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
 import { SportsbookSelector } from "@/components/sportsbook-selector";
-import { getMarketsForSport, getDefaultMarket, getMarketApiKey } from "@/lib/constants/markets";
+import {
+  getMarketsForSport,
+  getDefaultMarket,
+  getMarketApiKey,
+} from "@/lib/constants/markets";
 
-export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: string }) {
+export function PropComparisonTable({
+  sport = "basketball_nba",
+}: {
+  sport?: string;
+}) {
   const [statType, setStatType] = useState(getDefaultMarket(sport));
   const [showType, setShowType] = useState<"both" | "over" | "under">("both");
   const [playerType, setPlayerType] = useState<"batter" | "pitcher">("batter");
@@ -64,11 +72,18 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [gameData, setGameData] = useState<GameOdds | null>(null);
   const [loading, setLoading] = useState(false);
-  const [apiUsage, setApiUsage] = useState<{ remaining: number; used: number } | null>(null);
-  const [cacheStatus, setCacheStatus] = useState<{ hit: boolean; lastUpdated: string | null }>({
+  const [apiUsage, setApiUsage] = useState<{
+    remaining: number;
+    used: number;
+  } | null>(null);
+  const [cacheStatus, setCacheStatus] = useState<{
+    hit: boolean;
+    lastUpdated: string | null;
+  }>({
     hit: false,
-    lastUpdated: null
+    lastUpdated: null,
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   const { selectedSportsbooks } = useSportsbookPreferences();
 
@@ -77,20 +92,22 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
   // Get available stat types for the current sport and player type
   const statTypes = useMemo(() => {
     const markets = getMarketsForSport(sport);
-    
-    if (sport === 'baseball_mlb') {
-      return markets.filter(market => {
+
+    if (sport === "baseball_mlb") {
+      return markets.filter((market) => {
         const apiKey = market.apiKey.toLowerCase();
-        return playerType === 'pitcher' ? apiKey.startsWith('pitcher_') : apiKey.startsWith('batter_');
+        return playerType === "pitcher"
+          ? apiKey.startsWith("pitcher_")
+          : apiKey.startsWith("batter_");
       });
     }
-    
+
     return markets;
   }, [sport, playerType]);
 
   // Get current market
   const currentMarket = useMemo(() => {
-    return getMarketsForSport(sport).find(m => m.value === statType);
+    return getMarketsForSport(sport).find((m) => m.value === statType);
   }, [sport, statType]);
 
   // Determine if alternate lines are available
@@ -98,8 +115,8 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
 
   // Update stat type when player type changes
   useEffect(() => {
-    if (sport === 'baseball_mlb') {
-      const validMarket = statTypes.find(market => market.value === statType);
+    if (sport === "baseball_mlb") {
+      const validMarket = statTypes.find((market) => market.value === statType);
       if (!validMarket && statTypes.length > 0) {
         setStatType(statTypes[0].value);
       }
@@ -109,191 +126,175 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
   // Helper function to get default stat type for a sport
   function getDefaultStatType(sport: string) {
     switch (sport) {
-      case 'baseball_mlb':
-        return 'Strikeouts';
-      case 'hockey_nhl':
-        return 'Points';
+      case "baseball_mlb":
+        return "Strikeouts";
+      case "hockey_nhl":
+        return "Points";
       default:
-        return 'Points';
+        return "Points";
     }
   }
 
   // Fetch player props when event is selected
-  useEffect(() => {
-    const fetchPlayerProps = async () => {
-      if (!selectedEventId) return;
+  const fetchPlayerProps = async (refresh = false) => {
+    if (!selectedEventId) return;
 
-      try {
-        setLoading(true);
-        let data;
+    try {
+      setLoading(true);
+      if (refresh) setIsRefreshing(true);
+      let data;
 
-        const standardMarket = getMarketApiKey(sport, statType, false);
-        const shouldFetchAlternate = currentMarket?.hasAlternates || 
-          currentMarket?.alwaysFetchAlternate ||
-          statType === 'batter_hits' || 
-          statType === 'batter_home_runs';
-        
-        if (shouldFetchAlternate) {
-          // If market has alternates or should always fetch both, fetch both markets in a single call
-          const alternateMarket = getMarketApiKey(sport, statType, true);
-          const markets = `${standardMarket},${alternateMarket}`;
-          
-          console.log('Fetching markets:', {
-            markets,
-            sport,
-            selectedSportsbooks
+      const standardMarket = getMarketApiKey(sport, statType, false);
+      const shouldFetchAlternate =
+        currentMarket?.hasAlternates ||
+        currentMarket?.alwaysFetchAlternate ||
+        statType === "batter_hits" ||
+        statType === "batter_home_runs";
+
+      if (shouldFetchAlternate) {
+        // If market has alternates or should always fetch both, fetch both markets in a single call
+        const alternateMarket = getMarketApiKey(sport, statType, true);
+        const markets = `${standardMarket},${alternateMarket}`;
+
+        console.log("Fetching markets:", {
+          markets,
+          sport,
+          selectedSportsbooks,
+        });
+
+        const response = await fetch(
+          `/api/events/${selectedEventId}/props?sport=${sport}&markets=${markets}&bookmakers=${selectedSportsbooks.join(
+            ","
+          )}`
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch props");
+
+        const responseData = await response.json();
+
+        // Get cache and API usage from response
+        const cacheHit = response.headers.get("x-cache") === "HIT";
+        const lastUpdated = response.headers.get("x-last-updated");
+        setCacheStatus({
+          hit: cacheHit,
+          lastUpdated: lastUpdated,
+        });
+
+        const remaining = response.headers.get("x-requests-remaining");
+        const used = response.headers.get("x-requests-used");
+        if (remaining && used) {
+          setApiUsage({
+            remaining: Number.parseInt(remaining),
+            used: Number.parseInt(used),
           });
+        }
 
-          const response = await fetch(`/api/events/${selectedEventId}/props?sport=${sport}&markets=${markets}&bookmakers=${selectedSportsbooks.join(',')}`);
-          
-          if (!response.ok) throw new Error('Failed to fetch props');
-          
-          const responseData = await response.json();
+        // Combine markets for each bookmaker
+        data = {
+          ...responseData,
+          bookmakers: responseData.bookmakers.map((book: Bookmaker) => {
+            const standardMarkets = book.markets.filter(
+              (m) => !m.key.includes("alternate")
+            );
+            const alternateMarkets = book.markets.filter((m) =>
+              m.key.includes("alternate")
+            );
 
-          // Get cache and API usage from response
-          const cacheHit = response.headers.get('x-cache') === 'HIT';
-          const lastUpdated = response.headers.get('x-last-updated');
-          setCacheStatus({
-            hit: cacheHit,
-            lastUpdated: lastUpdated
-          });
-
-          const remaining = response.headers.get('x-requests-remaining');
-          const used = response.headers.get('x-requests-used');
-          if (remaining && used) {
-            setApiUsage({
-              remaining: parseInt(remaining),
-              used: parseInt(used)
-            });
-          }
-
-          // Combine markets for each bookmaker
-          data = {
-            ...responseData,
-            bookmakers: responseData.bookmakers.map((book: Bookmaker) => {
-              const standardMarkets = book.markets.filter(m => !m.key.includes('alternate'));
-              const alternateMarkets = book.markets.filter(m => m.key.includes('alternate'));
-
-              console.log(`Processing ${book.key} markets:`, {
-                standardMarkets: standardMarkets.map(m => ({
-                  key: m.key,
-                  numOutcomes: m.outcomes.length,
-                  uniqueLines: new Set(m.outcomes.map(o => o.point)).size,
-                  sampleLines: Array.from(new Set(m.outcomes.map(o => o.point))).slice(0, 5)
-                })),
-                alternateMarkets: alternateMarkets.map(m => ({
-                  key: m.key,
-                  numOutcomes: m.outcomes.length,
-                  uniqueLines: new Set(m.outcomes.map(o => o.point)).size,
-                  sampleLines: Array.from(new Set(m.outcomes.map(o => o.point))).slice(0, 5)
-                }))
-              });
-
-              // If there are no standard markets but there are alternate markets,
-              // use the alternate markets as the base
-              if (standardMarkets.length === 0 && alternateMarkets.length > 0) {
-                return {
-                  ...book,
-                  markets: alternateMarkets.map((alternateMarket: Market) => ({
-                    ...alternateMarket,
-                    key: alternateMarket.key.replace('_alternate', '') // Use standard key for consistency
-                  }))
-                };
-              }
-
-              // Otherwise, merge alternate markets into standard markets
+            // If there are no standard markets but there are alternate markets,
+            // use the alternate markets as the base
+            if (standardMarkets.length === 0 && alternateMarkets.length > 0) {
               return {
                 ...book,
-                markets: standardMarkets.map((standardMarket: Market) => {
-                  const alternateMarket = alternateMarkets.find(m => 
-                    m.key.replace('_alternate', '') === standardMarket.key
-                  );
-                  if (!alternateMarket) return standardMarket;
+                markets: alternateMarkets.map((alternateMarket: Market) => ({
+                  ...alternateMarket,
+                  key: alternateMarket.key.replace("_alternate", ""), // Use standard key for consistency
+                })),
+              };
+            }
 
-                  // Combine outcomes, removing duplicates
-                  const allOutcomes = [...standardMarket.outcomes];
-                  alternateMarket.outcomes.forEach((alternateOutcome: Outcome) => {
-                    const isDuplicate = allOutcomes.some(o => 
-                      o.name === alternateOutcome.name && 
-                      o.point === alternateOutcome.point &&
-                      o.description === alternateOutcome.description
+            // Otherwise, merge alternate markets into standard markets
+            return {
+              ...book,
+              markets: standardMarkets.map((standardMarket: Market) => {
+                const alternateMarket = alternateMarkets.find(
+                  (m) => m.key.replace("_alternate", "") === standardMarket.key
+                );
+                if (!alternateMarket) return standardMarket;
+
+                // Combine outcomes, removing duplicates
+                const allOutcomes = [...standardMarket.outcomes];
+                alternateMarket.outcomes.forEach(
+                  (alternateOutcome: Outcome) => {
+                    const isDuplicate = allOutcomes.some(
+                      (o) =>
+                        o.name === alternateOutcome.name &&
+                        o.point === alternateOutcome.point &&
+                        o.description === alternateOutcome.description
                     );
                     if (!isDuplicate) {
                       allOutcomes.push(alternateOutcome);
                     }
-                  });
+                  }
+                );
 
-                  // Sort outcomes by point value for consistent display
-                  allOutcomes.sort((a, b) => a.point - b.point);
+                // Sort outcomes by point value for consistent display
+                allOutcomes.sort((a, b) => a.point - b.point);
 
-                  console.log(`Combined outcomes for ${book.key} ${standardMarket.key}:`, {
-                    numOutcomes: allOutcomes.length,
-                    uniqueLines: new Set(allOutcomes.map(o => o.point)).size,
-                    allLines: Array.from(new Set(allOutcomes.map(o => o.point))).sort((a, b) => a - b)
-                  });
+                return {
+                  ...standardMarket,
+                  outcomes: allOutcomes,
+                };
+              }),
+            };
+          }),
+        };
+      } else {
+        // If no alternates, fetch only standard market
+        console.log("Fetching standard market:", {
+          market: standardMarket,
+          sport,
+          selectedSportsbooks,
+        });
 
-                  return {
-                    ...standardMarket,
-                    outcomes: allOutcomes
-                  };
-                })
-              };
-            })
-          };
+        const response = await fetch(
+          `/api/events/${selectedEventId}/props?sport=${sport}&markets=${standardMarket}&bookmakers=${selectedSportsbooks.join(
+            ","
+          )}`
+        );
 
-          console.log('Combined API Response:', {
-            markets,
-            numBookmakers: data.bookmakers.length,
-            sampleBookmaker: data.bookmakers[0] ? {
-              key: data.bookmakers[0].key,
-              numMarkets: data.bookmakers[0].markets.length,
-              sampleMarket: data.bookmakers[0].markets[0] ? {
-                key: data.bookmakers[0].markets[0].key,
-                numOutcomes: data.bookmakers[0].markets[0].outcomes.length,
-                uniqueLines: new Set(data.bookmakers[0].markets[0].outcomes.map((o: Outcome) => o.point)).size
-              } : null
-            } : null
+        if (!response.ok) throw new Error("Failed to fetch props");
+
+        data = await response.json();
+
+        // Get cache and API usage from response
+        const cacheHit = response.headers.get("x-cache") === "HIT";
+        const lastUpdated = response.headers.get("x-last-updated");
+        setCacheStatus({
+          hit: cacheHit,
+          lastUpdated: lastUpdated,
+        });
+
+        const remaining = response.headers.get("x-requests-remaining");
+        const used = response.headers.get("x-requests-used");
+        if (remaining && used) {
+          setApiUsage({
+            remaining: Number.parseInt(remaining),
+            used: Number.parseInt(used),
           });
-        } else {
-          // If no alternates, fetch only standard market
-          console.log('Fetching standard market:', {
-            market: standardMarket,
-            sport,
-            selectedSportsbooks
-          });
-
-          const response = await fetch(`/api/events/${selectedEventId}/props?sport=${sport}&markets=${standardMarket}&bookmakers=${selectedSportsbooks.join(',')}`);
-          
-          if (!response.ok) throw new Error('Failed to fetch props');
-          
-          data = await response.json();
-
-          // Get cache and API usage from response
-          const cacheHit = response.headers.get('x-cache') === 'HIT';
-          const lastUpdated = response.headers.get('x-last-updated');
-          setCacheStatus({
-            hit: cacheHit,
-            lastUpdated: lastUpdated
-          });
-
-          const remaining = response.headers.get('x-requests-remaining');
-          const used = response.headers.get('x-requests-used');
-          if (remaining && used) {
-            setApiUsage({
-              remaining: parseInt(remaining),
-              used: parseInt(used)
-            });
-          }
         }
-
-        setGameData(data);
-      } catch (error) {
-        console.error('Error fetching props:', error);
-      } finally {
-        setLoading(false);
       }
-    };
 
+      setGameData(data);
+    } catch (error) {
+      console.error("Error fetching props:", error);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  // Fetch player props when event is selected
+  useEffect(() => {
     fetchPlayerProps();
   }, [selectedEventId, statType, selectedSportsbooks, sport, currentMarket]);
 
@@ -304,67 +305,44 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
     const props: PlayerProp[] = [];
     const standardMarketKey = getMarketApiKey(sport, statType, false);
     const alternateMarketKey = getMarketApiKey(sport, statType, true);
-    
-    console.log('Transforming game data:', {
-      numBookmakers: gameData.bookmakers.length,
-      bookmakers: gameData.bookmakers.map(b => ({
-        key: b.key,
-        markets: b.markets.map(m => ({
-          key: m.key,
-          numOutcomes: m.outcomes.length,
-          uniqueLines: new Set(m.outcomes.map(o => o.point)).size,
-          allLines: Array.from(new Set(m.outcomes.map(o => o.point))).sort((a, b) => a - b)
-        }))
-      }))
-    });
 
-    gameData.bookmakers.forEach(bookmaker => {
+    gameData.bookmakers.forEach((bookmaker) => {
       // Find both standard and alternate markets
-      const standardMarket = bookmaker.markets.find(m => m.key === standardMarketKey);
-      const alternateMarket = bookmaker.markets.find(m => m.key === alternateMarketKey);
+      const standardMarket = bookmaker.markets.find(
+        (m) => m.key === standardMarketKey
+      );
+      const alternateMarket = bookmaker.markets.find(
+        (m) => m.key === alternateMarketKey
+      );
 
       if (!standardMarket && !alternateMarket) {
-        console.log(`No markets found for bookmaker ${bookmaker.key}`);
         return;
       }
 
       // Combine outcomes from both markets
       const allOutcomes = [
         ...(standardMarket?.outcomes || []),
-        ...(alternateMarket?.outcomes || [])
+        ...(alternateMarket?.outcomes || []),
       ];
 
       if (allOutcomes.length === 0) {
-        console.log(`No outcomes found for bookmaker ${bookmaker.key}`);
         return;
       }
 
-      // Log all outcomes before grouping
-      console.log(`All outcomes for ${bookmaker.key}:`, {
-        numOutcomes: allOutcomes.length,
-        uniqueLines: new Set(allOutcomes.map(o => o.point)).size,
-        allLines: Array.from(new Set(allOutcomes.map(o => o.point))).sort((a, b) => a - b),
-        sampleOutcomes: allOutcomes.slice(0, 2).map(o => ({
-          name: o.name,
-          point: o.point,
-          description: o.description
-        }))
-      });
-
       // Group outcomes by player
       const playerOutcomes = new Map<string, Outcome[]>();
-      allOutcomes.forEach(outcome => {
+      allOutcomes.forEach((outcome) => {
         if (!outcome.description) {
-          console.log(`Outcome missing description for ${bookmaker.key}:`, outcome);
           return;
         }
-        
+
         const outcomes = playerOutcomes.get(outcome.description) || [];
         // Only add if not a duplicate
-        const isDuplicate = outcomes.some(o => 
-          o.name === outcome.name && 
-          o.point === outcome.point &&
-          o.description === outcome.description
+        const isDuplicate = outcomes.some(
+          (o) =>
+            o.name === outcome.name &&
+            o.point === outcome.point &&
+            o.description === outcome.description
         );
         if (!isDuplicate) {
           outcomes.push(outcome);
@@ -377,18 +355,20 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
         // Sort outcomes by point value
         outcomes.sort((a, b) => a.point - b.point);
 
-        const existingProp = props.find(p => p.player === player);
-        const overOutcome = outcomes.find(o => o.name === "Over");
-        
+        const existingProp = props.find((p) => p.player === player);
+        const overOutcome = outcomes.find((o) => o.name === "Over");
+
         if (existingProp) {
           existingProp.bookmakers.push({
             key: bookmaker.key,
             title: bookmaker.title,
             last_update: bookmaker.last_update,
-            markets: [{
-              key: standardMarketKey, // Use standard key for consistency
-              outcomes: outcomes
-            }]
+            markets: [
+              {
+                key: standardMarketKey, // Use standard key for consistency
+                outcomes: outcomes,
+              },
+            ],
           });
         } else {
           props.push({
@@ -396,33 +376,22 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
             team: gameData.home_team,
             statType,
             line: overOutcome?.point || 0,
-            bookmakers: [{
-              key: bookmaker.key,
-              title: bookmaker.title,
-              last_update: bookmaker.last_update,
-              markets: [{
-                key: standardMarketKey, // Use standard key for consistency
-                outcomes: outcomes
-              }]
-            }]
+            bookmakers: [
+              {
+                key: bookmaker.key,
+                title: bookmaker.title,
+                last_update: bookmaker.last_update,
+                markets: [
+                  {
+                    key: standardMarketKey, // Use standard key for consistency
+                    outcomes: outcomes,
+                  },
+                ],
+              },
+            ],
           });
         }
       });
-    });
-
-    // Log final transformed props
-    console.log('Final transformed props:', {
-      numPlayers: props.length,
-      samplePlayer: props[0] ? {
-        player: props[0].player,
-        numBookmakers: props[0].bookmakers.length,
-        bookmakers: props[0].bookmakers.map(b => ({
-          key: b.key,
-          numOutcomes: b.markets[0].outcomes.length,
-          uniqueLines: new Set(b.markets[0].outcomes.map(o => o.point)).size,
-          allLines: Array.from(new Set(b.markets[0].outcomes.map(o => o.point))).sort((a, b) => a - b)
-        }))
-      } : null
     });
 
     return props;
@@ -481,21 +450,8 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
   // Find best odds for current player
   const getBestOddsInfo = (player: PlayerProp) => {
     const marketKey = getMarketApiKey(sport, statType);
-    console.log('Finding best odds for player:', {
-      player: player.player,
-      numBookmakers: player.bookmakers.length,
-      bookmakers: player.bookmakers.map(b => b.key),
-      marketKey
-    });
-
     const bestOver = findBestOdds(player, marketKey, "Over");
     const bestUnder = findBestOdds(player, marketKey, "Under");
-
-    console.log('Best odds found:', {
-      player: player.player,
-      over: bestOver,
-      under: bestUnder
-    });
 
     const overSportsbook = sportsbooks.find(
       (sb) => sb.id === bestOver?.bookmaker
@@ -539,7 +495,9 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
           </Button>
           <div className="text-center">
             <h3 className="font-bold">{currentPlayer.player}</h3>
-            <p className="text-sm text-gray-600">{currentPlayer.team}</p>
+            <p className="text-sm text-muted-foreground">
+              {currentPlayer.team}
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -552,8 +510,13 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
         </div>
 
         {/* Best Odds Summary */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-primary/5 rounded-lg">
+        <motion.div
+          className="grid grid-cols-2 gap-4 mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="p-4 bg-primary/5 rounded-lg border">
             <div className="flex items-center gap-1 mb-2">
               <ChevronUp className="h-4 w-4 text-green-500" />
               <span className="font-medium">Best Over</span>
@@ -564,8 +527,14 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
                   <>
                     <div className="w-4 h-4">
                       <img
-                        src={sportsbooks.find(sb => sb.id === bestOver.bookmaker)?.logo || "/placeholder.svg"}
-                        alt={sportsbooks.find(sb => sb.id === bestOver.bookmaker)?.name}
+                        src={
+                          sportsbooks.find((sb) => sb.id === bestOver.bookmaker)
+                            ?.logo || "/placeholder.svg"
+                        }
+                        alt={
+                          sportsbooks.find((sb) => sb.id === bestOver.bookmaker)
+                            ?.name
+                        }
                         className="w-full h-full object-contain"
                       />
                     </div>
@@ -573,16 +542,20 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
                   </>
                 )}
               </div>
-              <span className={cn(
-                "font-bold",
-                bestOver && bestOver.odds > 0 ? "text-green-500" : "text-red-500"
-              )}>
+              <span
+                className={cn(
+                  "font-bold",
+                  bestOver && bestOver.odds > 0
+                    ? "text-green-500"
+                    : "text-red-500"
+                )}
+              >
                 {bestOver ? formatAmericanOdds(bestOver.odds) : "-"}
               </span>
             </div>
           </div>
 
-          <div className="p-4 bg-primary/5 rounded-lg">
+          <div className="p-4 bg-primary/5 rounded-lg border">
             <div className="flex items-center gap-1 mb-2">
               <ChevronDown className="h-4 w-4 text-red-500" />
               <span className="font-medium">Best Under</span>
@@ -593,8 +566,16 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
                   <>
                     <div className="w-4 h-4">
                       <img
-                        src={sportsbooks.find(sb => sb.id === bestUnder.bookmaker)?.logo || "/placeholder.svg"}
-                        alt={sportsbooks.find(sb => sb.id === bestUnder.bookmaker)?.name}
+                        src={
+                          sportsbooks.find(
+                            (sb) => sb.id === bestUnder.bookmaker
+                          )?.logo || "/placeholder.svg"
+                        }
+                        alt={
+                          sportsbooks.find(
+                            (sb) => sb.id === bestUnder.bookmaker
+                          )?.name
+                        }
                         className="w-full h-full object-contain"
                       />
                     </div>
@@ -602,116 +583,152 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
                   </>
                 )}
               </div>
-              <span className={cn(
-                "font-bold",
-                bestUnder && bestUnder.odds > 0 ? "text-green-500" : "text-red-500"
-              )}>
+              <span
+                className={cn(
+                  "font-bold",
+                  bestUnder && bestUnder.odds > 0
+                    ? "text-green-500"
+                    : "text-red-500"
+                )}
+              >
                 {bestUnder ? formatAmericanOdds(bestUnder.odds) : "-"}
               </span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* All Sportsbook Odds */}
         <div className="space-y-4">
-          {selectedSportsbooks.map((bookmaker) => {
-            const bookmakerData = currentPlayer.bookmakers.find(b => b.key === bookmaker);
-            if (!bookmakerData) return null;
+          <AnimatePresence>
+            {selectedSportsbooks.map((bookmaker, index) => {
+              const bookmakerData = currentPlayer.bookmakers.find(
+                (b) => b.key === bookmaker
+              );
+              if (!bookmakerData) return null;
 
-            const market = bookmakerData.markets.find(m => m.key === marketKey);
-            if (!market) return null;
+              const market = bookmakerData.markets.find(
+                (m) => m.key === marketKey
+              );
+              if (!market) return null;
 
-            const outcomes = market.outcomes;
-            const overOutcomes = outcomes.filter(o => o.name === "Over");
-            const underOutcomes = outcomes.filter(o => o.name === "Under");
+              const outcomes = market.outcomes;
+              const overOutcomes = outcomes.filter((o) => o.name === "Over");
+              const underOutcomes = outcomes.filter((o) => o.name === "Under");
 
-            // Group outcomes by line for alternate markets
-            const lines = new Set(outcomes.map(o => o.point));
+              // Group outcomes by line for alternate markets
+              const lines = new Set(outcomes.map((o) => o.point));
 
-            const isOverBest = bestOver?.bookmaker === bookmaker && 
-              bestOver?.line === overOutcomes[0]?.point && 
-              bestOver?.odds === overOutcomes[0]?.price;
+              const isOverBest =
+                bestOver?.bookmaker === bookmaker &&
+                bestOver?.line === overOutcomes[0]?.point &&
+                bestOver?.odds === overOutcomes[0]?.price;
 
-            const isUnderBest = bestUnder?.bookmaker === bookmaker && 
-              bestUnder?.line === underOutcomes[0]?.point && 
-              bestUnder?.odds === underOutcomes[0]?.price;
+              const isUnderBest =
+                bestUnder?.bookmaker === bookmaker &&
+                bestUnder?.line === underOutcomes[0]?.point &&
+                bestUnder?.odds === underOutcomes[0]?.price;
 
-            const book = sportsbooks.find(sb => sb.id === bookmaker);
+              const book = sportsbooks.find((sb) => sb.id === bookmaker);
 
-            return (
-              <div key={bookmaker} className="border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6">
-                    <img
-                      src={book?.logo || "/placeholder.svg"}
-                      alt={book?.name}
-                      className="w-full h-full object-contain"
-                    />
+              return (
+                <motion.div
+                  key={bookmaker}
+                  className="border rounded-lg p-4 bg-card"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-6 h-6">
+                      <img
+                        src={book?.logo || "/placeholder.svg"}
+                        alt={book?.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span className="font-medium">{book?.name}</span>
                   </div>
-                  <span className="font-medium">{book?.name}</span>
-                </div>
 
-                <div className="space-y-3">
-                  {Array.from(lines).map(line => {
-                    const over = overOutcomes.find(o => o.point === line);
-                    const under = underOutcomes.find(o => o.point === line);
-                    const isOverBest = bestOver?.bookmaker === bookmaker && 
-                      bestOver?.line === over?.point && 
-                      bestOver?.odds === over?.price;
-                    const isUnderBest = bestUnder?.bookmaker === bookmaker && 
-                      bestUnder?.line === under?.point && 
-                      bestUnder?.odds === under?.price;
+                  <div className="space-y-3">
+                    {Array.from(lines).map((line) => {
+                      const over = overOutcomes.find((o) => o.point === line);
+                      const under = underOutcomes.find((o) => o.point === line);
+                      const isOverBest =
+                        bestOver?.bookmaker === bookmaker &&
+                        bestOver?.line === over?.point &&
+                        bestOver?.odds === over?.price;
+                      const isUnderBest =
+                        bestUnder?.bookmaker === bookmaker &&
+                        bestUnder?.line === under?.point &&
+                        bestUnder?.odds === under?.price;
 
-                    return (
-                      <div key={line} className="border-b last:border-0 py-1">
-                        {(showType === "both" || showType === "over") && (
-                          <div
-                            className={cn(
-                              "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                              isOverBest ? "bg-primary/10 border-primary" : "",
-                              !over && "opacity-40"
-                            )}
-                          >
-                            <div className="flex items-center gap-1">
-                              <ChevronUp className="h-3 w-3 text-green-500" />
-                              <span>{line}</span>
+                      return (
+                        <div key={line} className="border-b last:border-0 py-1">
+                          {(showType === "both" || showType === "over") && (
+                            <div
+                              className={cn(
+                                "flex items-center justify-between p-1.5 rounded-md border text-sm",
+                                isOverBest
+                                  ? "bg-primary/10 border-primary"
+                                  : "",
+                                !over && "opacity-40"
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                <ChevronUp className="h-3 w-3 text-green-500" />
+                                <span>{line}</span>
+                              </div>
+                              <span
+                                className={cn(
+                                  "font-medium",
+                                  over
+                                    ? over.price > 0
+                                      ? "text-green-500"
+                                      : "text-red-500"
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {over ? formatAmericanOdds(over.price) : "-"}
+                              </span>
                             </div>
-                            <span className={cn(
-                              "font-medium",
-                              over ? (over.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                            )}>
-                              {over ? formatAmericanOdds(over.price) : "-"}
-                            </span>
-                          </div>
-                        )}
+                          )}
 
-                        {(showType === "both" || showType === "under") && (
-                          <div
-                            className={cn(
-                              "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                              isUnderBest ? "bg-primary/10 border-primary" : "",
-                              !under && "opacity-40"
-                            )}
-                          >
-                            <div className="flex items-center gap-1">
-                              <ChevronDown className="h-3 w-3 text-red-500" />
-                              <span>{line}</span>
+                          {(showType === "both" || showType === "under") && (
+                            <div
+                              className={cn(
+                                "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
+                                isUnderBest
+                                  ? "bg-primary/10 border-primary"
+                                  : "",
+                                !under && "opacity-40"
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                <ChevronDown className="h-3 w-3 text-red-500" />
+                                <span>{line}</span>
+                              </div>
+                              <span
+                                className={cn(
+                                  "font-medium",
+                                  under
+                                    ? under.price > 0
+                                      ? "text-green-500"
+                                      : "text-red-500"
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {under ? formatAmericanOdds(under.price) : "-"}
+                              </span>
                             </div>
-                            <span className={cn(
-                              "font-medium",
-                              under ? (under.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                            )}>
-                              {under ? formatAmericanOdds(under.price) : "-"}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
     );
@@ -722,139 +739,210 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
     return (
       <div className="max-h-[90vh] overflow-auto">
         <div className="overflow-x-auto">
-        <table className="w-full relative">
-          <thead className="sticky top-0 z-10 bg-card border-b">
-            <tr>
-              <th className="text-left p-4 bg-card">Player</th>
-              {selectedSportsbooks.map((bookmaker) => {
-                const book = sportsbooks.find(sb => sb.id === bookmaker);
-                return (
-                  <th key={bookmaker} className="text-center p-4 bg-card">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-6 h-6">
-                        <img
-                          src={book?.logo || "/placeholder.svg"}
-                          alt={book?.name}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-xs">{book?.name}</span>
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProps.map((prop) => {
-              const marketKey = getMarketApiKey(sport, prop.statType);
-
-              // Get all unique lines across all bookmakers for this player
-              const allLines = new Set<number>();
-              prop.bookmakers.forEach(bookmaker => {
-                const market = bookmaker.markets.find(m => m.key === marketKey);
-                if (market) {
-                  market.outcomes.forEach(outcome => {
-                    allLines.add(outcome.point);
-                  });
-                }
-              });
-
-              // Sort lines in ascending order
-              const sortedLines = Array.from(allLines).sort((a, b) => a - b);
-
-              // Find best odds for each line
-              const bestOddsPerLine = new Map<number, { over: number; under: number }>();
-              sortedLines.forEach(line => {
-                let bestOver = -Infinity;
-                let bestUnder = -Infinity;
-
-                prop.bookmakers.forEach(bookmaker => {
-                  const market = bookmaker.markets.find(m => m.key === marketKey);
-                  if (market) {
-                    const over = market.outcomes.find(o => o.name === "Over" && o.point === line);
-                    const under = market.outcomes.find(o => o.name === "Under" && o.point === line);
-                    if (over) bestOver = Math.max(bestOver, over.price);
-                    if (under) bestUnder = Math.max(bestUnder, under.price);
-                  }
-                });
-
-                bestOddsPerLine.set(line, { over: bestOver, under: bestUnder });
-              });
-
-              return (
-                <tr key={prop.player} className="border-b hover:bg-accent/50">
-                  <td className="p-4">{prop.player}</td>
-                  {selectedSportsbooks.map((bookmaker) => {
-                    const bookmakerData = prop.bookmakers.find(b => b.key === bookmaker);
-                    const bookmakerMarket = bookmakerData?.markets.find(m => m.key === marketKey);
-
-                    return (
-                      <td key={bookmaker} className="text-center p-2">
-                        <div className="flex flex-col gap-1">
-                          {sortedLines.map(line => {
-                            const overOutcome = bookmakerMarket?.outcomes.find((o: Outcome) => o.name === "Over" && o.point === line);
-                            const underOutcome = bookmakerMarket?.outcomes.find((o: Outcome) => o.name === "Under" && o.point === line);
-                            const bestOdds = bestOddsPerLine.get(line);
-                            const isOverBest = overOutcome && bestOdds && overOutcome.price === bestOdds.over;
-                            const isUnderBest = underOutcome && bestOdds && underOutcome.price === bestOdds.under;
-
-                            return (
-                              <div key={line} className="border-b last:border-0 py-1">
-                                {(showType === "both" || showType === "over") && (
-                                  <div
-                                    className={cn(
-                                      "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                      isOverBest ? "bg-primary/10 border-primary" : "",
-                                      !overOutcome && "opacity-40"
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      <ChevronUp className="h-3 w-3 text-green-500" />
-                                      <span>{line}</span>
-                                    </div>
-                                    <span className={cn(
-                                      "font-medium",
-                                      overOutcome ? (overOutcome.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                                    )}>
-                                      {overOutcome ? formatAmericanOdds(overOutcome.price) : "-"}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {(showType === "both" || showType === "under") && (
-                                  <div
-                                    className={cn(
-                                      "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                      isUnderBest ? "bg-primary/10 border-primary" : "",
-                                      !underOutcome && "opacity-40"
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      <ChevronDown className="h-3 w-3 text-red-500" />
-                                      <span>{line}</span>
-                                    </div>
-                                    <span className={cn(
-                                      "font-medium",
-                                      underOutcome ? (underOutcome.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                                    )}>
-                                      {underOutcome ? formatAmericanOdds(underOutcome.price) : "-"}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+          <table className="w-full relative">
+            <thead className="sticky top-0 z-10 bg-card border-b">
+              <tr>
+                <th className="text-left p-4 bg-card">Player</th>
+                {selectedSportsbooks.map((bookmaker) => {
+                  const book = sportsbooks.find((sb) => sb.id === bookmaker);
+                  return (
+                    <th key={bookmaker} className="text-center p-4 bg-card">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-6 h-6">
+                          <img
+                            src={book?.logo || "/placeholder.svg"}
+                            alt={book?.name}
+                            className="w-full h-full object-contain"
+                          />
                         </div>
-                      </td>
+                        <span className="text-xs">{book?.name}</span>
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              <AnimatePresence>
+                {filteredProps.map((prop, index) => {
+                  const marketKey = getMarketApiKey(sport, prop.statType);
+
+                  // Get all unique lines across all bookmakers for this player
+                  const allLines = new Set<number>();
+                  prop.bookmakers.forEach((bookmaker) => {
+                    const market = bookmaker.markets.find(
+                      (m) => m.key === marketKey
                     );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    if (market) {
+                      market.outcomes.forEach((outcome) => {
+                        allLines.add(outcome.point);
+                      });
+                    }
+                  });
+
+                  // Sort lines in ascending order
+                  const sortedLines = Array.from(allLines).sort(
+                    (a, b) => a - b
+                  );
+
+                  // Find best odds for each line
+                  const bestOddsPerLine = new Map<
+                    number,
+                    { over: number; under: number }
+                  >();
+                  sortedLines.forEach((line) => {
+                    let bestOver = Number.NEGATIVE_INFINITY;
+                    let bestUnder = Number.NEGATIVE_INFINITY;
+
+                    prop.bookmakers.forEach((bookmaker) => {
+                      const market = bookmaker.markets.find(
+                        (m) => m.key === marketKey
+                      );
+                      if (market) {
+                        const over = market.outcomes.find(
+                          (o) => o.name === "Over" && o.point === line
+                        );
+                        const under = market.outcomes.find(
+                          (o) => o.name === "Under" && o.point === line
+                        );
+                        if (over) bestOver = Math.max(bestOver, over.price);
+                        if (under) bestUnder = Math.max(bestUnder, under.price);
+                      }
+                    });
+
+                    bestOddsPerLine.set(line, {
+                      over: bestOver,
+                      under: bestUnder,
+                    });
+                  });
+
+                  return (
+                    <motion.tr
+                      key={prop.player}
+                      className="border-b hover:bg-accent/50"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.03 }}
+                    >
+                      <td className="p-4">{prop.player}</td>
+                      {selectedSportsbooks.map((bookmaker) => {
+                        const bookmakerData = prop.bookmakers.find(
+                          (b) => b.key === bookmaker
+                        );
+                        const bookmakerMarket = bookmakerData?.markets.find(
+                          (m) => m.key === marketKey
+                        );
+
+                        return (
+                          <td key={bookmaker} className="text-center p-2">
+                            <div className="flex flex-col gap-1">
+                              {sortedLines.map((line) => {
+                                const overOutcome =
+                                  bookmakerMarket?.outcomes.find(
+                                    (o: Outcome) =>
+                                      o.name === "Over" && o.point === line
+                                  );
+                                const underOutcome =
+                                  bookmakerMarket?.outcomes.find(
+                                    (o: Outcome) =>
+                                      o.name === "Under" && o.point === line
+                                  );
+                                const bestOdds = bestOddsPerLine.get(line);
+                                const isOverBest =
+                                  overOutcome &&
+                                  bestOdds &&
+                                  overOutcome.price === bestOdds.over;
+                                const isUnderBest =
+                                  underOutcome &&
+                                  bestOdds &&
+                                  underOutcome.price === bestOdds.under;
+
+                                return (
+                                  <div
+                                    key={line}
+                                    className="border-b last:border-0 py-1"
+                                  >
+                                    {(showType === "both" ||
+                                      showType === "over") && (
+                                      <div
+                                        className={cn(
+                                          "flex items-center justify-between p-1.5 rounded-md border text-sm",
+                                          isOverBest
+                                            ? "bg-primary/10 border-primary"
+                                            : "",
+                                          !overOutcome && "opacity-40"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          <ChevronUp className="h-3 w-3 text-green-500" />
+                                          <span>{line}</span>
+                                        </div>
+                                        <span
+                                          className={cn(
+                                            "font-medium",
+                                            overOutcome
+                                              ? overOutcome.price > 0
+                                                ? "text-green-500"
+                                                : "text-red-500"
+                                              : "text-muted-foreground"
+                                          )}
+                                        >
+                                          {overOutcome
+                                            ? formatAmericanOdds(
+                                                overOutcome.price
+                                              )
+                                            : "-"}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {(showType === "both" ||
+                                      showType === "under") && (
+                                      <div
+                                        className={cn(
+                                          "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
+                                          isUnderBest
+                                            ? "bg-primary/10 border-primary"
+                                            : "",
+                                          !underOutcome && "opacity-40"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          <ChevronDown className="h-3 w-3 text-red-500" />
+                                          <span>{line}</span>
+                                        </div>
+                                        <span
+                                          className={cn(
+                                            "font-medium",
+                                            underOutcome
+                                              ? underOutcome.price > 0
+                                                ? "text-green-500"
+                                                : "text-red-500"
+                                              : "text-muted-foreground"
+                                          )}
+                                        >
+                                          {underOutcome
+                                            ? formatAmericanOdds(
+                                                underOutcome.price
+                                              )
+                                            : "-"}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };
@@ -868,7 +956,8 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
             <div className="flex items-center gap-4">
               {apiUsage && (
                 <div className="text-sm text-muted-foreground">
-                  API Calls: {apiUsage.used} / {apiUsage.used + apiUsage.remaining}
+                  API Calls: {apiUsage.used} /{" "}
+                  {apiUsage.used + apiUsage.remaining}
                 </div>
               )}
               {cacheStatus.lastUpdated && (
@@ -876,30 +965,52 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          cacheStatus.hit ? "bg-green-500" : "bg-yellow-500"
-                        )} />
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full",
+                            cacheStatus.hit ? "bg-green-500" : "bg-yellow-500"
+                          )}
+                        />
+                        <Clock className="h-3 w-3 mr-1" />
                         {new Date(cacheStatus.lastUpdated).toLocaleTimeString()}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Last updated at {new Date(cacheStatus.lastUpdated).toLocaleString()}</p>
-                      <p>Cache status: {cacheStatus.hit ? 'HIT' : 'MISS'}</p>
+                      <p>
+                        Last updated at{" "}
+                        {new Date(cacheStatus.lastUpdated).toLocaleString()}
+                      </p>
+                      <p>Cache status: {cacheStatus.hit ? "HIT" : "MISS"}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchPlayerProps(true)}
+                disabled={isRefreshing}
+              >
+                <RefreshCw
+                  className={cn("h-3 w-3 mr-1", isRefreshing && "animate-spin")}
+                />
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </Button>
               <SportsbookSelector />
             </div>
           </div>
 
           <GameSelector onGameSelect={setSelectedEventId} sport={sport} />
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
-            {sport === 'baseball_mlb' && (
+            {sport === "baseball_mlb" && (
               <div className="flex items-center gap-2">
-                <Tabs value={playerType} onValueChange={(value: "batter" | "pitcher") => setPlayerType(value)}>
+                <Tabs
+                  value={playerType}
+                  onValueChange={(value: "batter" | "pitcher") =>
+                    setPlayerType(value)
+                  }
+                >
                   <TabsList>
                     <TabsTrigger value="batter">Batter Props</TabsTrigger>
                     <TabsTrigger value="pitcher">Pitcher Props</TabsTrigger>
@@ -940,7 +1051,12 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
             </div>
 
             <div className="flex items-center gap-2">
-              <Tabs value={showType} onValueChange={(value: "both" | "over" | "under") => setShowType(value)}>
+              <Tabs
+                value={showType}
+                onValueChange={(value: "both" | "over" | "under") =>
+                  setShowType(value)
+                }
+              >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="both">Both</TabsTrigger>
                   <TabsTrigger value="over">Over</TabsTrigger>
@@ -950,12 +1066,15 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
             </div>
 
             <div className="flex gap-2">
-              <Input
-                placeholder="Search players..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-[200px]"
-              />
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full sm:w-[200px] pl-8"
+                />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon">
@@ -975,146 +1094,231 @@ export function PropComparisonTable({ sport = 'basketball_nba' }: { sport?: stri
           </div>
         </div>
 
-        {/* Sportsbook header row */}
-        <div className="border-b bg-card">
-          <div className="flex">
-            <div className="text-left p-4 min-w-[200px] font-medium">Player</div>
-            {selectedSportsbooks.map((bookmaker) => {
-              const book = sportsbooks.find(sb => sb.id === bookmaker);
-              return (
-                <div key={bookmaker} className="text-center p-4 flex-1">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-6 h-6">
-                      <img
-                        src={book?.logo || "/placeholder.svg"}
-                        alt={book?.name}
-                        className="w-full h-full object-contain"
-                      />
+        {/* Sportsbook header row - kept outside the scrollable area */}
+        {!isMobile && (
+          <div className="border-b bg-card sticky top-[201px] z-10">
+            <div className="flex">
+              <div className="text-left p-4 min-w-[200px] font-medium">
+                Player
+              </div>
+              {selectedSportsbooks.map((bookmaker) => {
+                const book = sportsbooks.find((sb) => sb.id === bookmaker);
+                return (
+                  <div key={bookmaker} className="text-center p-4 flex-1">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-6 h-6">
+                        <img
+                          src={book?.logo || "/placeholder.svg"}
+                          alt={book?.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-xs font-medium">{book?.name}</span>
                     </div>
-                    <span className="text-xs font-medium">{book?.name}</span>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {loading ? (
-        <div className="p-8 text-center">Loading player props...</div>
+        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+          <div className="w-8 h-8 border-4 border-t-primary border-muted rounded-full animate-spin mb-4"></div>
+          <p className="text-muted-foreground">Loading player props...</p>
+        </div>
+      ) : filteredProps.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground min-h-[300px] flex items-center justify-center">
+          <p>
+            No player props available. Select a game or try a different stat
+            type.
+          </p>
+        </div>
       ) : isMobile ? (
         renderMobileView()
       ) : (
         <div className="max-h-[calc(90vh-16rem)] overflow-auto">
           <div className="min-w-full">
-            {filteredProps.map((prop) => {
-              const marketKey = getMarketApiKey(sport, prop.statType);
-              const allLines = new Set<number>();
-              prop.bookmakers.forEach(bookmaker => {
-                const market = bookmaker.markets.find(m => m.key === marketKey);
-                if (market) {
-                  market.outcomes.forEach(outcome => {
-                    allLines.add(outcome.point);
-                  });
-                }
-              });
+            <AnimatePresence>
+              {filteredProps.map((prop, index) => {
+                const marketKey = getMarketApiKey(sport, prop.statType);
 
-              // Sort lines in ascending order
-              const sortedLines = Array.from(allLines).sort((a, b) => a - b);
-
-              // Find best odds for each line
-              const bestOddsPerLine = new Map<number, { over: number; under: number }>();
-              sortedLines.forEach(line => {
-                let bestOver = -Infinity;
-                let bestUnder = -Infinity;
-
-                prop.bookmakers.forEach(bookmaker => {
-                  const market = bookmaker.markets.find(m => m.key === marketKey);
+                // Get all unique lines across all bookmakers for this player
+                const allLines = new Set<number>();
+                prop.bookmakers.forEach((bookmaker) => {
+                  const market = bookmaker.markets.find(
+                    (m) => m.key === marketKey
+                  );
                   if (market) {
-                    const over = market.outcomes.find(o => o.name === "Over" && o.point === line);
-                    const under = market.outcomes.find(o => o.name === "Under" && o.point === line);
-                    if (over) bestOver = Math.max(bestOver, over.price);
-                    if (under) bestUnder = Math.max(bestUnder, under.price);
+                    market.outcomes.forEach((outcome) => {
+                      allLines.add(outcome.point);
+                    });
                   }
                 });
 
-                bestOddsPerLine.set(line, { over: bestOver, under: bestUnder });
-              });
+                // Sort lines in ascending order
+                const sortedLines = Array.from(allLines).sort((a, b) => a - b);
 
-              return (
-                <div key={prop.player} className="border-b hover:bg-accent/50">
-                  <div className="flex">
-                    <div className="text-left p-4 min-w-[200px]">
-                      <span className="font-medium">{prop.player}</span>
-                    </div>
-                    {selectedSportsbooks.map((bookmaker) => {
-                      const bookmakerData = prop.bookmakers.find(b => b.key === bookmaker);
-                      const bookmakerMarket = bookmakerData?.markets.find(m => m.key === marketKey);
+                // Find best odds for each line
+                const bestOddsPerLine = new Map<
+                  number,
+                  { over: number; under: number }
+                >();
+                sortedLines.forEach((line) => {
+                  let bestOver = Number.NEGATIVE_INFINITY;
+                  let bestUnder = Number.NEGATIVE_INFINITY;
 
-                      return (
-                        <div key={bookmaker} className="flex-1 p-4">
-                          <div className="space-y-2">
-                            {sortedLines.map(line => {
-                              const overOutcome = bookmakerMarket?.outcomes.find((o: Outcome) => o.name === "Over" && o.point === line);
-                              const underOutcome = bookmakerMarket?.outcomes.find((o: Outcome) => o.name === "Under" && o.point === line);
-                              const bestOdds = bestOddsPerLine.get(line);
-                              const isOverBest = overOutcome && bestOdds && overOutcome.price === bestOdds.over;
-                              const isUnderBest = underOutcome && bestOdds && underOutcome.price === bestOdds.under;
-
-                              return (
-                                <div key={line} className="border-b last:border-0 py-1">
-                                  {(showType === "both" || showType === "over") && (
-                                    <div
-                                      className={cn(
-                                        "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                        isOverBest ? "bg-primary/10 border-primary" : "",
-                                        !overOutcome && "opacity-40"
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-1">
-                                        <ChevronUp className="h-3 w-3 text-green-500" />
-                                        <span>{line}</span>
-                                      </div>
-                                      <span className={cn(
-                                        "font-medium",
-                                        overOutcome ? (overOutcome.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                                      )}>
-                                        {overOutcome ? formatAmericanOdds(overOutcome.price) : "-"}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {(showType === "both" || showType === "under") && (
-                                    <div
-                                      className={cn(
-                                        "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                        isUnderBest ? "bg-primary/10 border-primary" : "",
-                                        !underOutcome && "opacity-40"
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-1">
-                                        <ChevronDown className="h-3 w-3 text-red-500" />
-                                        <span>{line}</span>
-                                      </div>
-                                      <span className={cn(
-                                        "font-medium",
-                                        underOutcome ? (underOutcome.price > 0 ? "text-green-500" : "text-red-500") : "text-muted-foreground"
-                                      )}>
-                                        {underOutcome ? formatAmericanOdds(underOutcome.price) : "-"}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                  prop.bookmakers.forEach((bookmaker) => {
+                    const market = bookmaker.markets.find(
+                      (m) => m.key === marketKey
+                    );
+                    if (market) {
+                      const over = market.outcomes.find(
+                        (o) => o.name === "Over" && o.point === line
                       );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                      const under = market.outcomes.find(
+                        (o) => o.name === "Under" && o.point === line
+                      );
+                      if (over) bestOver = Math.max(bestOver, over.price);
+                      if (under) bestUnder = Math.max(bestUnder, under.price);
+                    }
+                  });
+
+                  bestOddsPerLine.set(line, {
+                    over: bestOver,
+                    under: bestUnder,
+                  });
+                });
+
+                return (
+                  <motion.div
+                    key={prop.player}
+                    className="border-b hover:bg-accent/50 transition-colors duration-200"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.03 }}
+                  >
+                    <div className="flex">
+                      <div className="text-left p-4 min-w-[200px]">
+                        <span className="font-medium">{prop.player}</span>
+                      </div>
+                      {selectedSportsbooks.map((bookmaker) => {
+                        const bookmakerData = prop.bookmakers.find(
+                          (b) => b.key === bookmaker
+                        );
+                        const bookmakerMarket = bookmakerData?.markets.find(
+                          (m) => m.key === marketKey
+                        );
+
+                        return (
+                          <div key={bookmaker} className="flex-1 p-4">
+                            <div className="space-y-2">
+                              {sortedLines.map((line) => {
+                                const overOutcome =
+                                  bookmakerMarket?.outcomes.find(
+                                    (o: Outcome) =>
+                                      o.name === "Over" && o.point === line
+                                  );
+                                const underOutcome =
+                                  bookmakerMarket?.outcomes.find(
+                                    (o: Outcome) =>
+                                      o.name === "Under" && o.point === line
+                                  );
+                                const bestOdds = bestOddsPerLine.get(line);
+                                const isOverBest =
+                                  overOutcome &&
+                                  bestOdds &&
+                                  overOutcome.price === bestOdds.over;
+                                const isUnderBest =
+                                  underOutcome &&
+                                  bestOdds &&
+                                  underOutcome.price === bestOdds.under;
+
+                                return (
+                                  <div
+                                    key={line}
+                                    className="border-b last:border-0 py-1"
+                                  >
+                                    {(showType === "both" ||
+                                      showType === "over") && (
+                                      <div
+                                        className={cn(
+                                          "flex items-center justify-between p-1.5 rounded-md border text-sm",
+                                          isOverBest
+                                            ? "bg-primary/10 border-primary"
+                                            : "",
+                                          !overOutcome && "opacity-40"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          <ChevronUp className="h-3 w-3 text-green-500" />
+                                          <span>{line}</span>
+                                        </div>
+                                        <span
+                                          className={cn(
+                                            "font-medium",
+                                            overOutcome
+                                              ? overOutcome.price > 0
+                                                ? "text-green-500"
+                                                : "text-red-500"
+                                              : "text-muted-foreground"
+                                          )}
+                                        >
+                                          {overOutcome
+                                            ? formatAmericanOdds(
+                                                overOutcome.price
+                                              )
+                                            : "-"}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {(showType === "both" ||
+                                      showType === "under") && (
+                                      <div
+                                        className={cn(
+                                          "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
+                                          isUnderBest
+                                            ? "bg-primary/10 border-primary"
+                                            : "",
+                                          !underOutcome && "opacity-40"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          <ChevronDown className="h-3 w-3 text-red-500" />
+                                          <span>{line}</span>
+                                        </div>
+                                        <span
+                                          className={cn(
+                                            "font-medium",
+                                            underOutcome
+                                              ? underOutcome.price > 0
+                                                ? "text-green-500"
+                                                : "text-red-500"
+                                              : "text-muted-foreground"
+                                          )}
+                                        >
+                                          {underOutcome
+                                            ? formatAmericanOdds(
+                                                underOutcome.price
+                                              )
+                                            : "-"}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       )}
