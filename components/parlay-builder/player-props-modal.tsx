@@ -17,6 +17,7 @@ import {
   User,
   Trophy,
   Plus,
+  ArrowRight,
 } from "lucide-react";
 import {
   SPORT_MARKETS,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PlayerPropsModalProps {
   open: boolean;
@@ -67,7 +69,6 @@ export function PlayerPropsModal({
   const [error, setError] = useState<string | null>(null);
   const [playerProps, setPlayerProps] = useState<any[]>([]);
   const [activeMarket, setActiveMarket] = useState<string>("");
-  const [hasFetched, setHasFetched] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [propData, setPropData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"player" | "game">("player");
@@ -92,12 +93,11 @@ export function PlayerPropsModal({
     }
   }, [sportId, availableMarkets]);
 
-  // Fetch player props when the modal opens
+  // Fetch player props when the modal opens or market changes
   useEffect(() => {
-    if (open && game && activeMarket && !hasFetched) {
+    if (open && game && activeMarket) {
       console.log("Fetching props for", { game, activeMarket });
       fetchPlayerProps();
-      setHasFetched(true);
     }
   }, [open, game, activeMarket]);
 
@@ -373,6 +373,9 @@ export function PlayerPropsModal({
     };
 
     console.log("Selected player prop:", selectedProp);
+
+    // Remove the success toast
+
     onSelectProp(selectedProp);
     // We're not closing the modal here anymore
   };
@@ -430,13 +433,6 @@ export function PlayerPropsModal({
     return { firstName, lastName };
   };
 
-  // Calculate average for a player (placeholder)
-  // const getPlayerAverage = (player: string) => {
-  //   // This would normally come from your data
-  //   // For now, just generate a random number between 10 and 30
-  //   return (Math.random() * 20 + 10).toFixed(1)
-  // }
-
   // Render a player row with horizontally scrollable options
   const renderPlayerRow = (player: string) => {
     const props = groupedProps[player];
@@ -456,7 +452,13 @@ export function PlayerPropsModal({
     const { firstName, lastName } = getPlayerNames(player);
 
     return (
-      <div key={player} className="py-2 border-b">
+      <motion.div
+        key={player}
+        className="py-2 border-b"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex items-center gap-2 mb-1.5">
           <Avatar className="h-8 w-8 border">
             <AvatarImage src={getPlayerAvatar(player)} alt={player} />
@@ -480,7 +482,7 @@ export function PlayerPropsModal({
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <div className="flex gap-1 min-w-max">
-              {overOptions.map(({ line, prop }) => {
+              {overOptions.map(({ line, prop }, index) => {
                 // Create a unique ID for this prop to check if it's selected
                 const propId = `${game.id}-${prop.market}-${player}-${line}-Over`;
                 const isSelected = isMarketSelected
@@ -488,7 +490,7 @@ export function PlayerPropsModal({
                   : false;
 
                 return (
-                  <button
+                  <motion.button
                     key={`${player}-${line}-over`}
                     onClick={() => handleSelectProp(prop, true)}
                     className={cn(
@@ -498,6 +500,11 @@ export function PlayerPropsModal({
                         : "bg-background/50 hover:bg-accent/50 transition-colors",
                       prop.isAlternate && !isSelected && "border-dashed"
                     )}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                    whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                   >
                     <div
                       className={cn(
@@ -519,29 +526,35 @@ export function PlayerPropsModal({
                     >
                       {displayOdds(prop.overOdds)}
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   };
+
+  // Content height to maintain consistent dialog size
+  const contentMinHeight = "min-h-[400px]";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="px-3 py-2 border-b">
+        <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-background to-muted/30">
           <div className="flex flex-col items-center space-y-1">
             <DialogTitle className="text-base">Player Props</DialogTitle>
-            <Badge variant="outline" className="text-xs py-0 h-5">
+            <Badge
+              variant="outline"
+              className="text-xs py-0 h-5 bg-background/50 backdrop-blur-sm"
+            >
               {game?.homeTeam?.name} vs {game?.awayTeam?.name}
             </Badge>
           </div>
         </DialogHeader>
 
-        <div className="px-3 py-2 border-b">
+        <div className="px-3 py-2 border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
           <Tabs
             value={activeTab}
             onValueChange={(value: any) => setActiveTab(value)}
@@ -588,7 +601,16 @@ export function PlayerPropsModal({
               )}
             </div>
 
-            <Select value={activeMarket} onValueChange={setActiveMarket}>
+            <Select
+              value={activeMarket}
+              onValueChange={(value) => {
+                console.log("Market changed to:", value);
+                setActiveMarket(value);
+                setPlayerProps([]);
+                setLoading(true);
+                setPropData(null);
+              }}
+            >
               <SelectTrigger className="w-[130px] h-8 text-xs">
                 <SelectValue placeholder="Select prop type" />
               </SelectTrigger>
@@ -608,98 +630,158 @@ export function PlayerPropsModal({
         </div>
 
         {/* Main content area with native scrolling */}
-        <div className="flex-1 overflow-y-auto px-3 py-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2 text-sm">Loading props...</span>
-            </div>
-          ) : error ? (
-            <div className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-3 text-center">
-              <p className="font-medium text-sm">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 text-xs h-7"
-                onClick={fetchPlayerProps}
+        <div className={`flex-1 overflow-y-auto px-3 py-2 ${contentMinHeight}`}>
+          <AnimatePresence mode="wait">
+            {loading ? (
+              <motion.div
+                key="loading"
+                className="flex flex-col items-center justify-center h-full py-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                Retry
-              </Button>
-            </div>
-          ) : activeTab === "player" ? (
-            <div>
-              {filteredPlayers.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground text-sm">
-                    {searchQuery
-                      ? "No matching players found"
-                      : "No props available"}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-1">
-                    <h3 className="text-sm font-medium">
-                      {getCurrentMarketName()} Over Lines
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Swipe horizontally to see more options
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "linear",
+                  }}
+                >
+                  <Loader2 className="h-8 w-8 text-primary" />
+                </motion.div>
+                <motion.span
+                  className="mt-3 text-sm text-muted-foreground"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Loading {getCurrentMarketName()} props...
+                </motion.span>
+              </motion.div>
+            ) : error ? (
+              <motion.div
+                key="error"
+                className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-4 text-center my-8"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="font-medium text-sm">{error}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs h-7"
+                  onClick={fetchPlayerProps}
+                >
+                  Retry
+                </Button>
+              </motion.div>
+            ) : activeTab === "player" ? (
+              <motion.div
+                key="player-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {filteredPlayers.length === 0 ? (
+                  <motion.div
+                    className="text-center py-12"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <p className="text-muted-foreground text-sm">
+                      {searchQuery
+                        ? "No matching players found"
+                        : "No props available"}
                     </p>
-                  </div>
+                  </motion.div>
+                ) : (
+                  <>
+                    <motion.div
+                      className="mb-3 bg-muted/30 p-2 rounded-lg"
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <h3 className="text-sm font-medium flex items-center">
+                        <span className="bg-primary/10 text-primary rounded-full w-5 h-5 inline-flex items-center justify-center mr-1.5">
+                          <ArrowRight className="h-3 w-3" />
+                        </span>
+                        {getCurrentMarketName()} Over Lines
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Swipe horizontally to see more options
+                      </p>
+                    </motion.div>
 
-                  {/* Show initial players or all if searching */}
-                  {(searchQuery
-                    ? filteredPlayers
-                    : filteredPlayers.slice(0, initialPlayersToShow)
-                  ).map((player) => renderPlayerRow(player))}
+                    {/* Show initial players or all if searching */}
+                    <AnimatePresence>
+                      {(searchQuery
+                        ? filteredPlayers
+                        : expandedPlayers.size > 0
+                        ? filteredPlayers
+                        : filteredPlayers.slice(0, initialPlayersToShow)
+                      ).map((player) => renderPlayerRow(player))}
+                    </AnimatePresence>
 
-                  {/* View more button */}
-                  {!searchQuery &&
-                    filteredPlayers.length > initialPlayersToShow && (
-                      <Button
-                        variant="outline"
-                        className="w-full mt-2 h-7 text-xs"
-                        onClick={() =>
-                          setExpandedPlayers(new Set(filteredPlayers))
-                        }
+                    {/* View more/less button */}
+                    {!searchQuery && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
                       >
-                        <Plus className="h-3 w-3 mr-1" />
-                        View {filteredPlayers.length -
-                          initialPlayersToShow}{" "}
-                        More Players
-                      </Button>
+                        {expandedPlayers.size > 0 ? (
+                          <Button
+                            variant="outline"
+                            className="w-full mt-4 h-9 text-xs"
+                            onClick={() => setExpandedPlayers(new Set())}
+                          >
+                            <ChevronUp className="h-3 w-3 mr-1.5" />
+                            Show Less
+                          </Button>
+                        ) : (
+                          filteredPlayers.length > initialPlayersToShow && (
+                            <Button
+                              variant="outline"
+                              className="w-full mt-4 h-9 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
+                              onClick={() =>
+                                setExpandedPlayers(new Set(filteredPlayers))
+                              }
+                            >
+                              <Plus className="h-3 w-3 mr-1.5" />
+                              View{" "}
+                              {filteredPlayers.length -
+                                initialPlayersToShow}{" "}
+                              More Players
+                            </Button>
+                          )
+                        )}
+                      </motion.div>
                     )}
-
-                  {/* Show expanded players */}
-                  {!searchQuery && expandedPlayers.size > 0 && (
-                    <div className="mt-2">
-                      {filteredPlayers
-                        .slice(initialPlayersToShow)
-                        .filter((player) => expandedPlayers.has(player))
-                        .map((player) => renderPlayerRow(player))}
-
-                      {expandedPlayers.size > 0 && (
-                        <Button
-                          variant="outline"
-                          className="w-full mt-2 h-7 text-xs"
-                          onClick={() => setExpandedPlayers(new Set())}
-                        >
-                          <ChevronUp className="h-3 w-3 mr-1" />
-                          Show Less
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground text-sm">
-                Game props coming soon
-              </p>
-            </div>
-          )}
+                  </>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="game-content"
+                className="text-center py-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-muted-foreground text-sm">
+                  Game props coming soon
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>
