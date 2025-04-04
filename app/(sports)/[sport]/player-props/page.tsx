@@ -23,8 +23,6 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="relative">
-        <GradientBackground />
-
         {/* Add the SportsSubNav component */}
         <SportsSubNav baseRoute="player-props" />
 

@@ -128,7 +128,7 @@ export function PropComparisonTable({
     switch (sport) {
       case "baseball_mlb":
         return "Strikeouts";
-      case "icehockey_nhl":
+      case "hockey_nhl":
         return "Points";
       default:
         return "Points";

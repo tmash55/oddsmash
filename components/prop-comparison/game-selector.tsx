@@ -20,11 +20,13 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 interface GameSelectorProps {
   onGameSelect: (eventId: string) => void;
   sport?: string;
+  isLoading?: boolean;
 }
 
 export function GameSelector({
   onGameSelect,
   sport = "basketball_nba",
+  isLoading = false,
 }: GameSelectorProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,10 +149,16 @@ export function GameSelector({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <Select value={selectedEventId || ""} onValueChange={handleGameSelect}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a game">
-            {selectedEvent && (
+      <Select
+        value={selectedEventId || ""}
+        onValueChange={handleGameSelect}
+        disabled={isLoading || loading}
+      >
+        <SelectTrigger className={cn("w-full", isLoading && "opacity-70")}>
+          <SelectValue
+            placeholder={isLoading ? "Loading games..." : "Select a game"}
+          >
+            {selectedEvent && !isLoading && (
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-1">
                   <span className="font-medium">{selectedEvent.away_team}</span>
