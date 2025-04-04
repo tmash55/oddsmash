@@ -69,6 +69,22 @@ export function ParlayBuilder() {
     );
   }, [selectedSportsbooks]);
 
+  // Add this effect to ensure we always have an active sport selected
+  useEffect(() => {
+    // Check if the currently selected sport is active
+    const currentSport = sports.find((s) => s.id === selectedSport);
+    if (currentSport && currentSport.active === false) {
+      // Find the first active sport
+      const firstActiveSport = sports.find((s) => s.active !== false);
+      if (firstActiveSport) {
+        console.log(
+          `Selected sport ${selectedSport} is inactive, switching to ${firstActiveSport.id}`
+        );
+        setSelectedSport(firstActiveSport.id);
+      }
+    }
+  }, [selectedSport, sports]);
+
   // Handle sport selection
   const handleSportSelect = (sportId: string) => {
     console.log(`Selected sport: ${sportId}`);
@@ -337,7 +353,7 @@ export function ParlayBuilder() {
           awayMoneyline.odds[key] = awayOutcome.price;
           // Store SID if available
           if (awayOutcome.sid) {
-            awayMoneyline.sids[key] = awayOutcome.sid;
+            awayMoneyline.sids[key] = homeOutcome.sid;
           } else if (bookmaker.markets.h2h.sid) {
             awayMoneyline.sids[key] = bookmaker.markets.h2h.sid;
           } else if (bookmaker.sid) {
@@ -1092,6 +1108,8 @@ export function ParlayBuilder() {
                 formatGameTime={formatGameTime}
                 formatGameDate={formatGameDate}
                 displayOdds={displayOdds}
+                onSelectSportsbook={setActiveSportsbook}
+                selectedSportsbooks={selectedSportsbooks}
               />
             ))
           )}

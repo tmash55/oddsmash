@@ -21,6 +21,8 @@ interface GameCardProps {
   formatGameTime: (dateString: string) => string;
   formatGameDate: (dateString: string) => string;
   displayOdds: (odds: number | undefined | null) => string;
+  onSelectSportsbook: (id: string) => void;
+  selectedSportsbooks: string[];
 }
 
 export function GameCard({
@@ -31,6 +33,8 @@ export function GameCard({
   formatGameTime,
   formatGameDate,
   displayOdds,
+  onSelectSportsbook,
+  selectedSportsbooks,
 }: GameCardProps) {
   const [showPlayerProps, setShowPlayerProps] = useState(false);
 
@@ -324,6 +328,8 @@ export function GameCard({
         onSelectProp={handleSelectPropWrapper}
         displayOdds={displayOdds}
         isMarketSelected={isMarketSelected}
+        onSelectSportsbook={onSelectSportsbook}
+        selectedSportsbooks={selectedSportsbooks}
       />
     </>
   );

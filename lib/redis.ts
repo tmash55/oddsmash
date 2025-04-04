@@ -6,8 +6,8 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Cache TTL in seconds (10 minutes)
-export const CACHE_TTL = 600;
+// Cache TTL in seconds (20 minutes)
+export const CACHE_TTL = 1200;
 
 // Type for cached odds data
 export interface CachedOddsData {

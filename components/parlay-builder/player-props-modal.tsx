@@ -38,7 +38,11 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+// First, add the import for the ActiveSportsbookSelector component
+import { ActiveSportsbookSelector } from "./active-sportsbook-selector";
+import { sportsbooks } from "@/data/sportsbooks";
 
+// Update the PlayerPropsModalProps interface to include onSelectSportsbook
 interface PlayerPropsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,8 +56,11 @@ interface PlayerPropsModalProps {
     marketType: string
   ) => boolean;
   isMarketSelected?: (gameId: string, marketId: string) => boolean;
+  onSelectSportsbook: (id: string) => void;
+  selectedSportsbooks: string[];
 }
 
+// Update the function parameters to include the new props
 export function PlayerPropsModal({
   open,
   onOpenChange,
@@ -64,6 +71,8 @@ export function PlayerPropsModal({
   displayOdds,
   onCheckExistingSelection,
   isMarketSelected,
+  onSelectSportsbook,
+  selectedSportsbooks,
 }: PlayerPropsModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +86,8 @@ export function PlayerPropsModal({
     new Set()
   );
   const isMobile = useMediaQuery("(max-width: 640px)");
+  const [lastActiveSportsbook, setLastActiveSportsbook] =
+    useState<string>(activeSportsbook);
 
   // Initial number of players to show
   const initialPlayersToShow = 8;
@@ -93,25 +104,115 @@ export function PlayerPropsModal({
     }
   }, [sportId, availableMarkets]);
 
+  // Track sportsbook changes
+  useEffect(() => {
+    // If the sportsbook has changed, we need to refresh the data
+    if (activeSportsbook !== lastActiveSportsbook) {
+      console.log(
+        `Sportsbook changed from ${lastActiveSportsbook} to ${activeSportsbook}, refreshing data`
+      );
+
+      // Clear existing data
+      setPropData(null);
+      setPlayerProps([]);
+      setError(null); // Clear any previous errors
+
+      // Update the last active sportsbook immediately
+      setLastActiveSportsbook(activeSportsbook);
+
+      // If the modal is open, fetch new data
+      if (open && game && activeMarket) {
+        setLoading(true);
+
+        // Fetch immediately instead of using setTimeout
+        console.log("Fetching new data for changed sportsbook");
+        fetchPlayerProps().catch((err) => {
+          console.error("Error fetching props after sportsbook change:", err);
+          setError("Failed to load props for this sportsbook");
+          setLoading(false);
+        });
+      }
+    }
+  }, [activeSportsbook, lastActiveSportsbook, open, game, activeMarket]);
+
   // Fetch player props when the modal opens or market changes
   useEffect(() => {
     if (open && game && activeMarket) {
-      console.log("Fetching props for", { game, activeMarket });
-      fetchPlayerProps();
+      console.log("Fetching props for", {
+        game,
+        activeMarket,
+        activeSportsbook,
+      });
+
+      // Reset state before fetching new data
+      setPlayerProps([]);
+      setError(null);
+
+      // Add a small delay to ensure state is reset before fetching
+      // This helps prevent stale data issues
+      const timer = setTimeout(() => {
+        fetchPlayerProps();
+      }, 50);
+
+      return () => clearTimeout(timer);
     }
   }, [open, game, activeMarket]);
 
+  // Add this new useEffect after the other useEffects to force a refresh when sportId changes
+  // This will help with NCAAB specifically
+  useEffect(() => {
+    // This effect specifically handles sport changes (like NBA to NCAAB)
+    if (open && sportId && sportId.includes("ncaab")) {
+      console.log("NCAAB detected, ensuring fresh data load");
+
+      // Clear any cached data for NCAAB to ensure fresh load
+      setPropData(null);
+
+      // If we already have an active market, trigger a fresh fetch
+      if (activeMarket) {
+        setLoading(true);
+        setPlayerProps([]);
+
+        // Small delay to ensure state updates before fetch
+        const timer = setTimeout(() => {
+          console.log("Forcing fresh NCAAB data fetch");
+          fetchPlayerProps();
+        }, 100);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [open, sportId]);
+
   // Fetch player props from the API
   const fetchPlayerProps = async () => {
-    if (!game || !sportId) return;
+    if (!game || !sportId) {
+      setLoading(false);
+      return;
+    }
 
-    setLoading(true);
-    setError(null);
+    console.log(
+      `Starting fetch for ${activeSportsbook}, market: ${activeMarket}`
+    );
+
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log("Fetch timeout reached");
+      setLoading(false);
+      setError("Request timed out. Please try again.");
+    }, 15000);
 
     try {
+      setLoading(true);
+      setError(null);
+
+      // Clear existing player props to avoid showing stale data
+      setPlayerProps([]);
+
       // Find the market API key
       const market = availableMarkets.find((m) => m.value === activeMarket);
       if (!market) {
+        clearTimeout(timeoutId);
         throw new Error("Market not found");
       }
 
@@ -126,11 +227,15 @@ export function PlayerPropsModal({
       console.log(
         `Fetching player props for game ${
           game.id
-        }, markets ${marketsToFetch.join(",")}`
+        }, sport: ${sportId}, markets: ${marketsToFetch.join(
+          ","
+        )}, sportsbook: ${activeSportsbook}`
       );
 
-      // Add a cache key to prevent redundant API calls
-      const cacheKey = `${game.id}-${marketsToFetch.join("-")}`;
+      // Add a cache key to prevent redundant API calls - include the sportsbook in the cache key
+      const cacheKey = `${game.id}-${marketsToFetch.join(
+        "-"
+      )}-${activeSportsbook}`;
 
       // Check if we already have this data in memory
       if (propData && propData._cacheKey === cacheKey) {
@@ -138,18 +243,22 @@ export function PlayerPropsModal({
         // Process the data to extract player props
         const processedProps = processPlayerProps(propData, marketsToFetch);
         setPlayerProps(processedProps);
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
 
       // Fetch player props from your existing API
-      const response = await fetch(
-        `/api/events/${
-          game.id
-        }/props?sport=${sportId}&markets=${marketsToFetch.join(
-          ","
-        )}&bookmakers=${activeSportsbook}`
-      );
+      const apiUrl = `/api/events/${
+        game.id
+      }/props?sport=${sportId}&markets=${marketsToFetch.join(
+        ","
+      )}&bookmakers=${activeSportsbook}`;
+      console.log("API URL:", apiUrl);
+
+      const response = await fetch(apiUrl);
+
+      clearTimeout(timeoutId); // Clear timeout once we get a response
 
       if (!response.ok) {
         throw new Error(`Failed to fetch player props: ${response.statusText}`);
@@ -157,6 +266,14 @@ export function PlayerPropsModal({
 
       const data = await response.json();
       console.log("Received player props data:", data);
+
+      // Log the structure of the data to help debug
+      console.log("Data structure:", {
+        hasBookmakers: !!data.bookmakers,
+        bookmakerCount: data.bookmakers?.length || 0,
+        firstBookmaker: data.bookmakers?.[0]?.key || "none",
+        marketsInFirstBookmaker: data.bookmakers?.[0]?.markets?.length || 0,
+      });
 
       // Add cache key to the data
       data._cacheKey = cacheKey;
@@ -166,19 +283,32 @@ export function PlayerPropsModal({
 
       // Process the data to extract player props
       const processedProps = processPlayerProps(data, marketsToFetch);
+      console.log(`Processed ${processedProps.length} player props`);
       setPlayerProps(processedProps);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error("Error fetching player props:", err);
       setError(err.message || "Failed to load player props");
       setPlayerProps([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
+      console.log(`Fetch completed for ${activeSportsbook}`);
     }
   };
 
   // Process the API response to extract player props
   const processPlayerProps = (data: any, marketKeys: string[]) => {
+    console.log("Processing player props data:", {
+      hasData: !!data,
+      hasBookmakers: data?.bookmakers?.length > 0,
+      marketKeys,
+      sportId, // Log the sport ID to help debug NCAAB issues
+      activeSportsbook, // Log the active sportsbook
+    });
+
     if (!data || !data.bookmakers || data.bookmakers.length === 0) {
+      console.log("No bookmakers data found");
       return [];
     }
 
@@ -188,10 +318,34 @@ export function PlayerPropsModal({
     const bookmaker = data.bookmakers.find(
       (b: any) => b.key === activeSportsbook
     );
-    if (!bookmaker) return [];
+    if (!bookmaker) {
+      console.log(
+        `Active sportsbook ${activeSportsbook} not found in data. Available bookmakers:`,
+        data.bookmakers.map((b: any) => b.key).join(", ")
+      );
+      return [];
+    }
+
+    console.log(
+      `Found bookmaker ${bookmaker.key} with ${
+        bookmaker.markets?.length || 0
+      } markets`
+    );
+
+    // Special handling for empty markets
+    if (!bookmaker.markets || bookmaker.markets.length === 0) {
+      console.log(`No markets found for ${activeSportsbook}`);
+      return [];
+    }
 
     // Process each market
     bookmaker.markets.forEach((market: any) => {
+      console.log(
+        `Processing market: ${market.key}, outcomes: ${
+          market.outcomes?.length || 0
+        }`
+      );
+
       if (marketKeys.includes(market.key)) {
         // Group outcomes by player and line
         const playerOutcomes = new Map<string, any[]>();
@@ -199,6 +353,9 @@ export function PlayerPropsModal({
         market.outcomes.forEach((outcome: any) => {
           // Extract player name
           const playerName = outcome.description || outcome.name;
+          console.log(
+            `Found outcome for player: ${playerName}, type: ${outcome.name}, point: ${outcome.point}`
+          );
 
           if (!playerOutcomes.has(playerName)) {
             playerOutcomes.set(playerName, []);
@@ -210,10 +367,14 @@ export function PlayerPropsModal({
           });
         });
 
+        // Log the number of players found
+        console.log(`Found ${playerOutcomes.size} players with outcomes`);
+
         // Create prop objects for each player
         playerOutcomes.forEach((outcomes, player) => {
           // Find over/under outcomes for each line
           const lines = new Set(outcomes.map((o) => o.point));
+          console.log(`Player ${player} has ${lines.size} different lines`);
 
           lines.forEach((line) => {
             const overOutcome = outcomes.find(
@@ -248,9 +409,18 @@ export function PlayerPropsModal({
             }
           });
         });
+      } else {
+        console.log(
+          `Market ${market.key} not in requested markets: ${marketKeys.join(
+            ", "
+          )}`
+        );
       }
     });
 
+    console.log(
+      `Returning ${props.length} processed props for ${activeSportsbook}`
+    );
     return props;
   };
 
@@ -370,6 +540,8 @@ export function PlayerPropsModal({
       },
       // Add a flag to indicate this prop already has data loaded
       dataLoaded: true,
+      // Add the sportsbook ID
+      sportsbookId: activeSportsbook,
     };
 
     console.log("Selected player prop:", selectedProp);
@@ -542,6 +714,7 @@ export function PlayerPropsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Update the DialogHeader section to use the ActiveSportsbookSelector */}
         <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-background to-muted/30">
           <div className="flex flex-col items-center space-y-1">
             <DialogTitle className="text-base">Player Props</DialogTitle>
@@ -551,6 +724,13 @@ export function PlayerPropsModal({
             >
               {game?.homeTeam?.name} vs {game?.awayTeam?.name}
             </Badge>
+            <div className="mt-1">
+              <ActiveSportsbookSelector
+                selectedSportsbooks={selectedSportsbooks}
+                activeSportsbook={activeSportsbook}
+                onSelectSportsbook={onSelectSportsbook}
+              />
+            </div>
           </div>
         </DialogHeader>
 
@@ -606,9 +786,15 @@ export function PlayerPropsModal({
               onValueChange={(value) => {
                 console.log("Market changed to:", value);
                 setActiveMarket(value);
+
+                // Clear existing data when changing markets
                 setPlayerProps([]);
                 setLoading(true);
                 setPropData(null);
+
+                // Force a re-fetch by adding a timestamp to break cache
+                const timestamp = Date.now();
+                console.log(`Forcing re-fetch at ${timestamp}`);
               }}
             >
               <SelectTrigger className="w-[130px] h-8 text-xs">
@@ -651,14 +837,35 @@ export function PlayerPropsModal({
                 >
                   <Loader2 className="h-8 w-8 text-primary" />
                 </motion.div>
+                {/* Update the loading text to use the sportsbook name */}
                 <motion.span
                   className="mt-3 text-sm text-muted-foreground"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  Loading {getCurrentMarketName()} props...
+                  {(() => {
+                    const sb = sportsbooks.find(
+                      (s) => s.id === activeSportsbook
+                    );
+                    return `Loading ${getCurrentMarketName()} props for ${
+                      sb?.name || activeSportsbook
+                    }...`;
+                  })()}
                 </motion.span>
+
+                {/* Add a cancel button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    setLoading(false);
+                    setError("Request cancelled");
+                  }}
+                >
+                  Cancel
+                </Button>
               </motion.div>
             ) : error ? (
               <motion.div
@@ -689,16 +896,97 @@ export function PlayerPropsModal({
               >
                 {filteredPlayers.length === 0 ? (
                   <motion.div
-                    className="text-center py-12"
+                    className="text-center py-8"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <p className="text-muted-foreground text-sm">
-                      {searchQuery
-                        ? "No matching players found"
-                        : "No props available"}
-                    </p>
+                    {searchQuery ? (
+                      <p className="text-muted-foreground text-sm">
+                        No matching players found
+                      </p>
+                    ) : loading ? (
+                      <p className="text-muted-foreground text-sm">
+                        Loading props...
+                      </p>
+                    ) : error ? (
+                      <div className="space-y-2">
+                        <p className="text-destructive text-sm">{error}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchPlayerProps()}
+                          className="mt-2"
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-muted-foreground text-sm">
+                          {(() => {
+                            const sb = sportsbooks.find(
+                              (s) => s.id === activeSportsbook
+                            );
+                            return `No ${getCurrentMarketName()} props available from ${
+                              sb?.name || activeSportsbook
+                            }`;
+                          })()}
+                        </p>
+
+                        {/* Show alternative sportsbooks if available */}
+                        {selectedSportsbooks.length > 1 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium mb-2">
+                              Try another sportsbook:
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {selectedSportsbooks
+                                .filter((id) => id !== activeSportsbook)
+                                .map((sbId) => {
+                                  const sb = sportsbooks.find(
+                                    (s) => s.id === sbId
+                                  );
+                                  if (!sb) return null;
+
+                                  return (
+                                    <Button
+                                      key={sb.id}
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex items-center gap-1.5"
+                                      onClick={() => {
+                                        console.log(
+                                          `Switching to sportsbook: ${sb.id}`
+                                        );
+                                        // Clear any existing data and errors before switching
+                                        setPropData(null);
+                                        setPlayerProps([]);
+                                        setError(null);
+                                        // Set loading state before switching
+                                        setLoading(true);
+                                        // Switch the sportsbook - this will trigger the useEffect
+                                        onSelectSportsbook(sb.id);
+                                      }}
+                                    >
+                                      <div className="w-4 h-4 relative">
+                                        {sb.logo && (
+                                          <img
+                                            src={sb.logo || "/placeholder.svg"}
+                                            alt={sb.name}
+                                            className="w-full h-full object-contain"
+                                          />
+                                        )}
+                                      </div>
+                                      <span>{sb.name}</span>
+                                    </Button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 ) : (
                   <>
