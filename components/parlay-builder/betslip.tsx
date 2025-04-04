@@ -577,11 +577,11 @@ export function Betslip({
                               className="flex items-center justify-between cursor-pointer p-3 hover:bg-muted/30 transition-colors"
                               onClick={toggleExpanded}
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 mr-1"
+                                  className="h-6 w-6 p-0 flex-shrink-0"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleExpanded();
@@ -593,21 +593,40 @@ export function Betslip({
                                     <ChevronRight className="h-4 w-4" />
                                   )}
                                 </Button>
-                                <div className="text-sm font-medium">
+                                <div className="text-sm font-medium truncate">
                                   {getGameTeams(gameId)}
                                 </div>
                                 {isSGP && (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-primary/10 text-primary text-xs"
-                                  >
-                                    SGP
-                                  </Badge>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-primary/10 text-primary text-xs cursor-help"
+                                        >
+                                          SGP
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        align="center"
+                                        className="max-w-[250px] text-center"
+                                      >
+                                        <p className="text-xs">
+                                          Same Game Parlay odds may vary between
+                                          sportsbooks as each uses different
+                                          correlation calculations.
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {gameLegs.length}{" "}
-                                {gameLegs.length === 1 ? "leg" : "legs"}
+                              <div className="text-xs text-muted-foreground flex-shrink-0 ml-1">
+                                <span className="whitespace-nowrap">
+                                  {gameLegs.length}{" "}
+                                  {gameLegs.length === 1 ? "leg" : "legs"}
+                                </span>
                               </div>
                             </div>
 
@@ -712,13 +731,23 @@ export function Betslip({
 
                   {/* Odds Comparison */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Odds Comparison
-                      </h3>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <span>Based on ${wagerAmount} wager</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Odds Comparison
+                        </h3>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <span>Based on ${wagerAmount} wager</span>
+                        </div>
                       </div>
+                      {Object.values(groupedLegs).some(
+                        (legs) => legs.length > 1
+                      ) && (
+                        <p className="text-xs text-muted-foreground italic">
+                          Note: Actual SGP odds may vary as each sportsbook uses
+                          different correlation calculations.
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-3">
@@ -878,8 +907,12 @@ export function Betslip({
                                   </motion.div>
                                 </TooltipTrigger>
                                 {!isAvailable && (
-                                  <TooltipContent side="top">
-                                    <p className="text-sm">
+                                  <TooltipContent
+                                    side="top"
+                                    align="center"
+                                    className="max-w-[200px] text-center"
+                                  >
+                                    <p className="text-xs sm:text-sm">
                                       This sportsbook has different lines for
                                       one or more of your selections.
                                     </p>
@@ -921,7 +954,7 @@ export function Betslip({
                     ? {
                         scale: { type: "spring", stiffness: 400, damping: 17 },
                         boxShadow: {
-                          repeat: Infinity,
+                          repeat: Number.POSITIVE_INFINITY,
                           duration: 2,
                         },
                       }

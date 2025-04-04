@@ -52,7 +52,7 @@ export const sportsbooks: Sportsbook[] = [
     logo_long: "/images/sports-books/caesars_long.png",
     regions: ["us"],
     isActive: true,
-    url: "https://www.williamhill.com/us/",
+    url: "https://www.caesars.com/sportsbook-and-casino",
   },
   {
     id: "espnbet",
