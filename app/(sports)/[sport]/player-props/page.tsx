@@ -1,5 +1,6 @@
 import { PropComparisonTable } from "@/components/prop-comparison/prop-table";
 import { GradientBackground } from "@/components/ui/gradient-background";
+import { SportsSubNav } from "@/components/sports-sub-nav";
 
 interface PlayerPropsPageProps {
   params: {
@@ -13,7 +14,7 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
     nba: "basketball_nba",
     ncaab: "basketball_ncaab",
     mlb: "baseball_mlb",
-    nhl: "hockey_nhl",
+    nhl: "icehockey_nhl",
     nfl: "americanfootball_nfl",
   };
 
@@ -23,6 +24,9 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
     <div className="flex min-h-screen flex-col">
       <div className="relative">
         <GradientBackground />
+
+        {/* Add the SportsSubNav component */}
+        <SportsSubNav baseRoute="player-props" />
 
         <main className="container py-8 md:py-12">
           <div className="mx-auto max-w-6xl space-y-8">

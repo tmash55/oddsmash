@@ -46,7 +46,7 @@ export function SportSelector({
       americanfootball_nfl:
         "text-green-500 bg-green-500/10 border-green-500/20",
       nfl: "text-green-500 bg-green-500/10 border-green-500/20",
-      hockey_nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      _nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
       nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
       icehockey_nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
       golf_pga: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",

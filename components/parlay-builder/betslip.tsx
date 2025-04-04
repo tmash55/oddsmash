@@ -162,9 +162,10 @@ export function Betslip({
     // Check all sports for this market
     const allSports = [
       "basketball_nba",
+      "basketball_ncaab",
       "baseball_mlb",
-      "hockey_nhl",
-      "football_nfl",
+      "icehockey_nhl",
+      "americanfootball_nfl",
     ];
 
     for (const sport of allSports) {
