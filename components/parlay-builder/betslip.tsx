@@ -172,6 +172,120 @@ export function Betslip({
     return undefined;
   };
 
+  // Calculate SGP (Same Game Parlay) odds with correlation factors
+  const calculateSGPOdds = (
+    legs: ParlayLeg[],
+    sportsbook: string
+  ): number | null => {
+    if (legs.length === 0) return null;
+    if (legs.length === 1) {
+      // If only one leg, just return its odds directly
+      const leg = legs[0];
+
+      if (leg.type === "player-prop" && leg.propData) {
+        return getPlayerPropOdds(leg, sportsbook) || null;
+      }
+
+      const game = games.find((g) => g.id === leg.gameId);
+      if (!game) return null;
+
+      let market: any;
+      Object.values(game.markets).forEach((marketGroup) => {
+        if (Array.isArray(marketGroup)) {
+          const found = marketGroup.find((m) => m.id === leg.marketId);
+          if (found) market = found;
+        }
+      });
+
+      if (!market) return null;
+      return market.odds?.[sportsbook] || null;
+    }
+
+    // Get individual leg odds
+    const legOdds = legs.map((leg) => {
+      if (leg.type === "player-prop" && leg.propData) {
+        return getPlayerPropOdds(leg, sportsbook) || 0;
+      }
+
+      const game = games.find((g) => g.id === leg.gameId);
+      if (!game) return 0;
+
+      let market: any;
+      Object.values(game.markets).forEach((marketGroup) => {
+        if (Array.isArray(marketGroup)) {
+          const found = marketGroup.find((m) => m.id === leg.marketId);
+          if (found) market = found;
+        }
+      });
+
+      if (!market) return 0;
+      return market.odds?.[sportsbook] || 0;
+    });
+
+    // Check if we have odds for all legs
+    if (legOdds.some((odds) => odds === 0)) return null;
+
+    // Convert to decimal odds
+    const decimalOdds = legOdds.map((odds) => {
+      if (odds > 0) {
+        return odds / 100 + 1;
+      } else {
+        return 100 / Math.abs(odds) + 1;
+      }
+    });
+
+    // Analyze the leg types to determine correlation approach
+    const marketTypes = legs.map((leg) => leg.type);
+
+    // Check for specific market combinations
+    const hasSpread = marketTypes.includes("spread");
+    const hasTotal = marketTypes.includes("total");
+    const hasMoneyline = marketTypes.includes("moneyline");
+    const hasPlayerProps = marketTypes.includes("player-prop");
+
+    // Initialize correlation adjustment
+    let correlationAdjustment = 1.0;
+
+    // Different correlation scenarios based on market combinations
+    if (hasMoneyline && hasPlayerProps) {
+      // Moneyline + Player Props often have positive correlation
+      // (e.g., if a team wins, their star player likely scored more)
+      correlationAdjustment = 1.15; // 15% boost
+    } else if (hasSpread && hasTotal) {
+      // Spread + Total often have negative correlation
+      correlationAdjustment = 0.85; // 15% reduction
+    } else if (
+      hasPlayerProps &&
+      legs.filter((l) => l.type === "player-prop").length > 1
+    ) {
+      // Multiple player props from same game often have positive correlation
+      correlationAdjustment = 1.1; // 10% boost
+    }
+
+    // Calculate the combined decimal odds with correlation adjustment
+    // For positive correlation (>1.0), we boost the odds
+    // For negative correlation (<1.0), we reduce the odds
+    let combinedDecimalOdds = 1;
+
+    // Multiply all decimal odds
+    for (const odds of decimalOdds) {
+      combinedDecimalOdds *= odds;
+    }
+
+    // Apply correlation adjustment
+    combinedDecimalOdds = Math.pow(combinedDecimalOdds, correlationAdjustment);
+
+    // Convert back to American odds
+    let americanOdds;
+    if (combinedDecimalOdds >= 2) {
+      americanOdds = Math.round((combinedDecimalOdds - 1) * 100);
+    } else {
+      americanOdds = Math.round(-100 / (combinedDecimalOdds - 1));
+    }
+
+    return americanOdds;
+  };
+
   // Helper function to get market display name from the markets file
   const getMarketDisplayName = (marketKey: string): string => {
     // Remove _alternate suffix for display purposes
@@ -274,35 +388,63 @@ export function Betslip({
         return;
       }
 
-      // For each leg, get the odds for this sportsbook
-      const legOdds = legs.map((leg) => {
-        // If this is a player prop, get odds from player props data
-        if (leg.type === "player-prop" && leg.propData) {
-          return getPlayerPropOdds(leg, sportsbook) || 0;
+      // Group legs by game for SGP calculations
+      const legsByGame = legs.reduce((acc, leg) => {
+        const gameId = leg.gameId;
+        if (!acc[gameId]) {
+          acc[gameId] = [];
         }
+        acc[gameId].push(leg);
+        return acc;
+      }, {} as Record<string, ParlayLeg[]>);
 
-        // Otherwise, find the game and market
-        const game = games.find((g) => g.id === leg.gameId);
-        if (!game) return 0;
+      // Calculate odds for each game group (applying SGP logic for multiple legs per game)
+      const gameGroupOdds: number[] = [];
 
-        let market: any;
-        Object.values(game.markets).forEach((marketGroup) => {
-          if (Array.isArray(marketGroup)) {
-            const found = marketGroup.find((m) => m.id === leg.marketId);
-            if (found) market = found;
+      for (const gameId in legsByGame) {
+        const gameLegs = legsByGame[gameId];
+
+        // If multiple legs from same game, use SGP calculation
+        if (gameLegs.length > 1) {
+          const sgpOdds = calculateSGPOdds(gameLegs, sportsbook);
+          if (sgpOdds === null) return; // If SGP odds can't be calculated, skip this sportsbook
+          gameGroupOdds.push(sgpOdds);
+        } else {
+          // For single legs, calculate normally
+          const leg = gameLegs[0];
+
+          // If this is a player prop, get odds from player props data
+          if (leg.type === "player-prop" && leg.propData) {
+            const odds = getPlayerPropOdds(leg, sportsbook);
+            if (odds === undefined) return; // If odds not available, skip this sportsbook
+            gameGroupOdds.push(odds);
+          } else {
+            // Otherwise, find the game and market
+            const game = games.find((g) => g.id === leg.gameId);
+            if (!game) return;
+
+            let market: any;
+            Object.values(game.markets).forEach((marketGroup) => {
+              if (Array.isArray(marketGroup)) {
+                const found = marketGroup.find((m) => m.id === leg.marketId);
+                if (found) market = found;
+              }
+            });
+
+            if (!market) return;
+
+            // Get the odds for this sportsbook
+            const odds = market.odds?.[sportsbook];
+            if (odds === undefined) return; // If odds not available, skip this sportsbook
+            gameGroupOdds.push(odds);
           }
-        });
+        }
+      }
 
-        if (!market) return 0;
-
-        // Get the odds for this sportsbook
-        return market.odds?.[sportsbook] || 0;
-      });
-
-      // Only calculate if we have odds for all legs
-      if (legOdds.every((odds) => odds !== 0)) {
+      // Only calculate if we have odds for all game groups
+      if (gameGroupOdds.length > 0) {
         // Convert to decimal odds for multiplication
-        const decimalOdds = legOdds.map((odds) => {
+        const decimalOdds = gameGroupOdds.map((odds) => {
           if (odds > 0) {
             return odds / 100 + 1;
           } else {
@@ -573,11 +715,41 @@ export function Betslip({
                             transition={{ duration: 0.3 }}
                             className="border rounded-md overflow-hidden"
                           >
+                            {/* SGP Badge - Now on its own line at the top */}
+                            {isSGP && (
+                              <div className="flex justify-end px-3 pt-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-primary/10 text-primary text-xs cursor-help"
+                                      >
+                                        Same Game Parlay
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="top"
+                                      align="center"
+                                      className="max-w-[250px] text-center"
+                                    >
+                                      <p className="text-xs">
+                                        Same Game Parlay odds may vary between
+                                        sportsbooks as each uses different
+                                        correlation calculations.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            )}
+
+                            {/* Game Header */}
                             <div
                               className="flex items-center justify-between cursor-pointer p-3 hover:bg-muted/30 transition-colors"
                               onClick={toggleExpanded}
                             >
-                              <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -596,31 +768,6 @@ export function Betslip({
                                 <div className="text-sm font-medium truncate">
                                   {getGameTeams(gameId)}
                                 </div>
-                                {isSGP && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge
-                                          variant="outline"
-                                          className="bg-primary/10 text-primary text-xs cursor-help"
-                                        >
-                                          SGP
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent
-                                        side="top"
-                                        align="center"
-                                        className="max-w-[250px] text-center"
-                                      >
-                                        <p className="text-xs">
-                                          Same Game Parlay odds may vary between
-                                          sportsbooks as each uses different
-                                          correlation calculations.
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
                               </div>
                               <div className="text-xs text-muted-foreground flex-shrink-0 ml-1">
                                 <span className="whitespace-nowrap">
@@ -639,7 +786,7 @@ export function Betslip({
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="p-3 pt-0 space-y-2">
+                                  <div className="p-3 pt-0 space-y-2 w-full mx-auto">
                                     {gameLegs.map((leg) => (
                                       <motion.div
                                         key={leg.id}
@@ -648,7 +795,7 @@ export function Betslip({
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.2 }}
                                       >
-                                        <div className="flex items-start justify-between p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-start justify-between p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full max-w-full overflow-hidden">
                                           <div className="space-y-1 flex-1">
                                             <div className="flex items-center justify-between">
                                               <div className="text-base font-medium">
@@ -744,8 +891,10 @@ export function Betslip({
                         (legs) => legs.length > 1
                       ) && (
                         <p className="text-xs text-muted-foreground italic">
-                          Note: Actual SGP odds may vary as each sportsbook uses
-                          different correlation calculations.
+                          Note: Same Game Parlay (SGP) odds account for
+                          correlations between bets. Some combinations (like
+                          player props) may receive odds boosts, while others
+                          (like spread + total) may have reduced odds.
                         </p>
                       )}
                     </div>
@@ -805,7 +954,7 @@ export function Betslip({
                                         setSelectedSportsbook(sportsbook)
                                       }
                                       className={cn(
-                                        "w-full flex items-center justify-between p-4 rounded-md border transition-all duration-200 relative",
+                                        "w-full flex items-center justify-between p-3 sm:p-4 rounded-md border transition-all duration-200 relative",
                                         "backdrop-blur-sm bg-white/5",
                                         isSelected
                                           ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
@@ -820,16 +969,12 @@ export function Betslip({
                                       )}
                                       disabled={!isAvailable}
                                     >
-                                      <div className="flex flex-col items-center">
-                                        <div className="w-8 h-8 mb-1 relative">
+                                      <div className="flex flex-col items-center min-w-[80px]">
+                                        <div className="w-6 h-6 sm:w-8 sm:h-8 mb-1 relative">
                                           <img
                                             src={
                                               sportsbookInfo?.logo ||
                                               "/placeholder.svg?height=32&width=32" ||
-                                              "/placeholder.svg" ||
-                                              "/placeholder.svg" ||
-                                              "/placeholder.svg" ||
-                                              "/placeholder.svg" ||
                                               "/placeholder.svg"
                                             }
                                             alt={
@@ -861,7 +1006,7 @@ export function Betslip({
                                         {isAvailable ? (
                                           <>
                                             <motion.div
-                                              className="text-lg font-bold"
+                                              className="text-base sm:text-lg font-bold"
                                               animate={
                                                 animatePayouts
                                                   ? {
@@ -930,10 +1075,9 @@ export function Betslip({
           </ScrollArea>
         </div>
 
-        {legs.length > 0 &&
-          selectedSportsbook &&
-          parlayOdds[selectedSportsbook] !== null && (
-            <SheetFooter className="p-6 border-t">
+        {legs.length > 0 && (
+          <SheetFooter className="p-6 border-t">
+            {selectedSportsbook && parlayOdds[selectedSportsbook] !== null ? (
               <motion.div
                 className="w-full"
                 whileHover={{ scale: 1.02 }}
@@ -985,8 +1129,19 @@ export function Betslip({
                   <ExternalLink className="ml-2 h-5 w-5" />
                 </Button>
               </motion.div>
-            </SheetFooter>
-          )}
+            ) : (
+              <div className="w-full text-center p-4 bg-muted/20 rounded-md">
+                <p className="text-muted-foreground mb-2">
+                  No sportsbook available for these selections
+                </p>
+                <p className="text-xs">
+                  Try different selections or check if you have sportsbooks
+                  enabled
+                </p>
+              </div>
+            )}
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );
