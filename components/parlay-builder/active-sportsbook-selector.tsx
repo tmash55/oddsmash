@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import type React from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { Check, ChevronDown, Info, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,39 +26,57 @@ interface ActiveSportsbookSelectorProps {
   selectedSportsbooks: string[];
   activeSportsbook: string;
   onSelectSportsbook: (id: string) => void;
+  className?: string;
 }
 
 export function ActiveSportsbookSelector({
   selectedSportsbooks,
   activeSportsbook,
   onSelectSportsbook,
+  className,
 }: ActiveSportsbookSelectorProps) {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const isMobile = useMediaQuery("(max-width: 640px)");
+  const tooltipButtonRef = useRef<HTMLButtonElement>(null);
 
   // Find the active sportsbook details
   const activeSportsbookDetails = sportsbooks.find(
     (sb) => sb.id === activeSportsbook
   );
 
-  // Close tooltip when clicking outside on mobile
+  // Handle tooltip click for mobile
+  const handleTooltipClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isMobile) {
+      setIsTooltipOpen((prev) => !prev);
+    }
+  };
+
+  // Auto-close tooltip after 5 seconds on mobile
+  useEffect(() => {
+    if (isMobile && isTooltipOpen) {
+      const timer = setTimeout(() => {
+        setIsTooltipOpen(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, isTooltipOpen]);
+
+  // Close tooltip when clicking outside
   useEffect(() => {
     if (isMobile && isTooltipOpen) {
       const handleClickOutside = (e: MouseEvent) => {
-        // Don't close if clicking the button itself
-        const target = e.target as HTMLElement;
-        const infoButton = document.getElementById("info-tooltip-button");
         if (
-          infoButton &&
-          (infoButton === target || infoButton.contains(target))
+          tooltipButtonRef.current &&
+          !tooltipButtonRef.current.contains(e.target as Node)
         ) {
-          return;
+          setIsTooltipOpen(false);
         }
-        setIsTooltipOpen(false);
       };
 
-      document.addEventListener("click", handleClickOutside);
-      return () => document.removeEventListener("click", handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isMobile, isTooltipOpen]);
 
@@ -70,16 +89,16 @@ export function ActiveSportsbookSelector({
               variant="outline"
               className={cn(
                 "flex items-center gap-2 border-border/60 bg-background/80 hover:bg-background/90 hover:border-primary/30 transition-all duration-200",
-                isMobile ? "h-10 px-3 w-full justify-between" : "h-9 px-3"
+                isMobile ? "h-10 px-3 w-full justify-between" : "h-9 px-3",
+                className
               )}
             >
               <div className="w-5 h-5 relative">
                 {activeSportsbookDetails?.logo && (
-                  <Image
+                  <img
                     src={activeSportsbookDetails.logo || "/placeholder.svg"}
                     alt={activeSportsbookDetails.name}
-                    fill
-                    className="object-contain"
+                    className="w-full h-full object-contain"
                   />
                 )}
               </div>
@@ -133,11 +152,10 @@ export function ActiveSportsbookSelector({
                   >
                     <div className="w-5 h-5 relative">
                       {sb.logo && (
-                        <Image
+                        <img
                           src={sb.logo || "/placeholder.svg"}
                           alt={sb.name}
-                          fill
-                          className="object-contain"
+                          className="w-full h-full object-contain"
                         />
                       )}
                     </div>
@@ -171,7 +189,7 @@ export function ActiveSportsbookSelector({
               whileTap={{ scale: 0.9 }}
             >
               <Button
-                id="info-tooltip-button"
+                ref={tooltipButtonRef}
                 variant="ghost"
                 size="icon"
                 className={cn(
@@ -180,10 +198,7 @@ export function ActiveSportsbookSelector({
                     ? "h-10 w-10 bg-primary/10 active:bg-primary/20"
                     : "h-8 w-8 bg-primary/5 hover:bg-primary/10"
                 )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsTooltipOpen(!isTooltipOpen);
-                }}
+                onClick={handleTooltipClick}
               >
                 <Info
                   className={cn(

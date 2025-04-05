@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { SportIcon } from "../sport-icon";
+
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { SportLogo } from "../sport-logo";
 
 interface Sport {
   id: string;
@@ -46,15 +48,16 @@ export function SportSelector({
       americanfootball_nfl:
         "text-green-500 bg-green-500/10 border-green-500/20",
       nfl: "text-green-500 bg-green-500/10 border-green-500/20",
-      _nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-      nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
       icehockey_nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      nhl: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      basketball_ncaab: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+      ncaab: "text-purple-500 bg-purple-500/10 border-purple-500/20",
       golf_pga: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
       pga: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-      soccer_epl: "text-purple-500 bg-purple-500/10 border-purple-500/20",
-      epl: "text-purple-500 bg-purple-500/10 border-purple-500/20",
-      tennis_atp: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
-      atp: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
+      soccer_epl: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
+      epl: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
+      tennis_atp: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+      atp: "text-pink-500 bg-pink-500/10 border-pink-500/20",
     };
 
     return colorMap[sportId] || "text-primary bg-primary/10 border-primary/20";
@@ -133,8 +136,11 @@ export function SportSelector({
   }, [selectedSport, sports]);
 
   // Render sport button with optional off-season indicator
-  const renderSportButton = (sport: Sport, isMobile: boolean = false) => {
+  const renderSportButton = (sport: Sport, isMobile = false) => {
     const isOffSeason = sport.isOffSeason;
+    const isSelected = selectedSport === sport.id;
+    const sportColor = getSportColor(sport.id);
+
     const buttonContent = (
       <motion.button
         key={sport.id}
@@ -143,9 +149,10 @@ export function SportSelector({
           "flex flex-col items-center justify-center",
           isMobile ? "min-w-[80px] px-3 py-3 mx-1" : "p-3",
           "rounded-xl transition-all relative",
-          selectedSport === sport.id
-            ? getSportColor(sport.id)
-            : "hover:bg-muted/70 border border-transparent"
+          "border",
+          isSelected
+            ? `${sportColor} shadow-sm`
+            : "hover:bg-muted/70 border-transparent hover:border-muted-foreground/10"
         )}
         onClick={() => onSelectSport(sport.id)}
         whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
@@ -154,42 +161,63 @@ export function SportSelector({
             ? { y: -2, transition: { duration: 0.15 } }
             : {
                 y: -3,
-                backgroundColor:
-                  selectedSport === sport.id ? undefined : "rgba(0,0,0,0.05)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                 transition: { duration: 0.15 },
               }
         }
       >
-        <div
-          className={cn(
-            "relative",
-            selectedSport === sport.id &&
-              `after:content-[''] after:absolute after:-bottom-2 after:left-1/2 after:-translate-x-1/2 after:w-${
-                isMobile ? "1" : "1.5"
-              } after:h-${isMobile ? "1" : "1.5"} after:rounded-full ${
-                getSportColor(sport.id).split(" ")[0]
-              }`
-          )}
-        >
-          <SportIcon
-            sport={sport.id}
-            size={isMobile ? "md" : "lg"}
-            className={
-              selectedSport === sport.id
-                ? getSportColor(sport.id).split(" ")[0]
-                : ""
-            }
-          />
+        <div className="relative">
+          {/* Sport Logo/Icon */}
+          <div
+            className={cn(
+              "flex items-center justify-center",
+              "rounded-full p-2",
+              "w-10 h-10", // Add fixed dimensions
+              isSelected ? sportColor : "bg-muted/30"
+            )}
+          >
+            <SportLogo
+              sport={sport.id}
+              size={isMobile ? "sm" : "md"}
+              className={
+                isSelected ? sportColor.split(" ")[0] : "text-foreground/80"
+              }
+            />
+          </div>
+
+          {/* Off-season indicator */}
           {isOffSeason && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border border-background" />
+            <div className="absolute -top-1 -right-1">
+              <Badge
+                variant="outline"
+                className="h-5 w-5 p-0 flex items-center justify-center rounded-full bg-amber-500 border-amber-500"
+              >
+                <Info className="h-3 w-3 text-white" />
+              </Badge>
+            </div>
+          )}
+
+          {/* Selected indicator dot */}
+          {isSelected && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full"
+              style={{
+                backgroundColor: `var(--${
+                  sportColor.split("-")[1].split("/")[0]
+                })`,
+              }}
+            />
           )}
         </div>
+
         <span
           className={cn(
             "mt-2",
             isMobile ? "text-xs truncate max-w-[70px] text-center" : "text-sm",
             "font-medium",
-            selectedSport === sport.id ? "font-semibold" : ""
+            isSelected ? "font-semibold" : ""
           )}
         >
           {sport.name}
@@ -220,7 +248,11 @@ export function SportSelector({
     <div className="relative">
       {/* Off-season message when a sport in off-season is selected */}
       {isSelectedSportOffSeason() && (
-        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2"
+        >
           <Calendar className="h-5 w-5 text-amber-500 flex-shrink-0" />
           <div>
             <p className="font-medium text-amber-700 dark:text-amber-400">
@@ -232,7 +264,7 @@ export function SportSelector({
               regular season or select another sport.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Mobile View - Horizontal Scrollable List */}
@@ -306,7 +338,7 @@ export function SportSelector({
       </div>
 
       {/* Desktop View - Grid Layout */}
-      <div className="hidden sm:grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 p-1">
+      <div className="hidden sm:grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 p-1">
         {sports
           .filter((sport) => sport.active !== false)
           .map((sport) => renderSportButton(sport))}

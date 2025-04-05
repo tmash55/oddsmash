@@ -27,18 +27,21 @@ import {
   BarChart3,
   LineChart,
   Calendar,
-  Settings,
 } from "lucide-react";
 
 import { useSportsbooks } from "@/contexts/sportsbook-context";
 import { ThemeToggle } from "./theme-toggle";
-import { SportIcon } from "./sport-icon";
+import { SportLogo } from "./sport-logo";
+import { sports } from "@/data/sports-data";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const pathname = usePathname();
   const { openSportsbookSelector } = useSportsbooks();
+
+  // Filter active sports
+  const activeSports = sports.filter((sport) => sport.active);
 
   // Handle scroll effect
   React.useEffect(() => {
@@ -54,33 +57,32 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Player Props dropdown items
-  const playerPropsItems = [
-    {
-      title: "NBA Basketball",
-      description: "Points, rebounds, assists and more",
-      href: "/nba/player-props",
-      icon: <SportIcon sport="nba" size="xs" />,
-    },
-    {
-      title: "NFL Football",
-      description: "Passing, rushing, receiving yards",
-      href: "/nfl/player-props",
-      icon: <SportIcon sport="nfl" size="xs" />,
-    },
-    {
-      title: "MLB Baseball",
-      description: "Home runs, hits, strikeouts",
-      href: "/mlb/player-props",
-      icon: <SportIcon sport="mlb" size="xs" />,
-    },
-    {
-      title: "NHL Hockey",
-      description: "Goals, assists, saves",
-      href: "/nhl/player-props",
-      icon: <SportIcon sport="nhl" size="xs" />,
-    },
-  ];
+  // Generate player props items from active sports
+  const playerPropsItems = activeSports.map((sport) => {
+    // Create description based on sport type
+    let description = "";
+    if (sport.id.includes("basketball")) {
+      description = "Points, rebounds, assists and more";
+    } else if (sport.id.includes("football") || sport.id.includes("nfl")) {
+      description = "Passing, rushing, receiving yards";
+    } else if (sport.id.includes("baseball")) {
+      description = "Home runs, hits, strikeouts";
+    } else if (sport.id.includes("hockey")) {
+      description = "Goals, assists, saves";
+    } else {
+      description = "Player statistics and props";
+    }
+
+    // Create URL path from sport ID
+    const sportPath = sport.id.split("_").pop() || sport.id;
+
+    return {
+      title: sport.name,
+      description,
+      href: `/${sportPath.toLowerCase()}/player-props`,
+      icon: <SportLogo sport={sport.id} size="xs" />,
+    };
+  });
 
   return (
     <header

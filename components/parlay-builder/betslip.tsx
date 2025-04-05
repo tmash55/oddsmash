@@ -692,8 +692,238 @@ export function Betslip({
                 </motion.div>
               ) : (
                 <>
-                  {/* Parlay Legs - Grouped by Game */}
+                  {/* Odds Comparison - Now first */}
                   <div className="space-y-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Odds Comparison
+                        </h3>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <span>Based on ${wagerAmount} wager</span>
+                        </div>
+                      </div>
+                      {Object.values(groupedLegs).some(
+                        (legs) => legs.length > 1
+                      ) && (
+                        <p className="text-xs text-muted-foreground italic">
+                          Note: Same Game Parlay (SGP) odds account for
+                          correlations between bets. Some combinations (like
+                          player props) may receive odds boosts, while others
+                          (like spread + total) may have reduced odds.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {userSportsbooks
+                        .slice()
+                        .sort((a, b) => {
+                          const oddsA = parlayOdds[a];
+                          const oddsB = parlayOdds[b];
+
+                          // Handle null values (place them at the end)
+                          if (oddsA === null && oddsB === null) return 0;
+                          if (oddsA === null) return 1;
+                          if (oddsB === null) return -1;
+
+                          // Sort by highest odds (best value) first
+                          return oddsB - oddsA;
+                        })
+                        .map((sportsbook) => {
+                          const odds = parlayOdds[sportsbook];
+                          const isBest =
+                            odds !== null && bestOdds.sportsbook === sportsbook;
+                          const isSelected = sportsbook === selectedSportsbook;
+                          const payout = calculatePayout(
+                            odds,
+                            Number.parseFloat(wagerAmount) || 0
+                          );
+                          const sportsbookInfo = sportsbooks.find(
+                            (sb) => sb.id === sportsbook
+                          );
+                          const isAvailable = odds !== null;
+
+                          return (
+                            <TooltipProvider key={sportsbook}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <motion.div
+                                    whileHover={
+                                      isAvailable
+                                        ? {
+                                            scale: 1.01,
+                                            y: -1,
+                                            boxShadow:
+                                              "0 10px 30px -10px rgba(0, 0, 0, 0.2)",
+                                          }
+                                        : {}
+                                    }
+                                    whileTap={
+                                      isAvailable ? { scale: 0.99 } : {}
+                                    }
+                                    layout
+                                  >
+                                    <button
+                                      onClick={() =>
+                                        isAvailable &&
+                                        setSelectedSportsbook(sportsbook)
+                                      }
+                                      className={cn(
+                                        "w-full flex items-center justify-between p-3 sm:p-4 rounded-md border transition-all duration-200 relative",
+                                        "backdrop-blur-sm bg-white/5",
+                                        isSelected
+                                          ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                                          : "shadow-sm hover:shadow-md",
+                                        isBest && !isSelected
+                                          ? "border-primary/30 bg-primary/5"
+                                          : "",
+                                        !isAvailable
+                                          ? "border-primary/30 bg-primary/5"
+                                          : "",
+                                        !isAvailable
+                                          ? "opacity-60 cursor-not-allowed"
+                                          : "hover:border-primary/50 hover:border-glow",
+                                        "after:absolute after:inset-0 after:rounded-md after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:pointer-events-none after:border after:border-primary/30 after:glow-sm"
+                                      )}
+                                      disabled={!isAvailable}
+                                    >
+                                      <div className="flex flex-col items-center min-w-[80px]">
+                                        <div className="w-6 h-6 sm:w-8 sm:h-8 mb-1 relative">
+                                          <img
+                                            src={
+                                              sportsbookInfo?.logo ||
+                                              "/placeholder.svg?height=32&width=32" ||
+                                              "/placeholder.svg"
+                                            }
+                                            alt={
+                                              sportsbookInfo?.name || sportsbook
+                                            }
+                                            className="w-full h-full object-contain"
+                                          />
+                                        </div>
+                                        <div className="text-sm font-medium text-center">
+                                          {sportsbookInfo?.name || sportsbook}
+                                        </div>
+                                        <div
+                                          className={cn(
+                                            "text-sm font-medium mt-1",
+                                            isAvailable
+                                              ? odds! > 0
+                                                ? "text-green-500"
+                                                : "text-blue-500"
+                                              : "text-gray-500"
+                                          )}
+                                        >
+                                          {isAvailable
+                                            ? displayOdds(odds!)
+                                            : "N/A"}
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right">
+                                        {isAvailable ? (
+                                          <>
+                                            <motion.div
+                                              className="text-base sm:text-lg font-bold"
+                                              animate={
+                                                animatePayouts
+                                                  ? {
+                                                      scale: [1, 1.1, 1],
+                                                    }
+                                                  : {}
+                                              }
+                                              transition={{ duration: 0.5 }}
+                                            >
+                                              ${payout.toFixed(2)}
+                                            </motion.div>
+                                            <div className="text-xs text-gray-400">
+                                              Potential Payout
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <div className="flex items-center text-gray-500">
+                                            <AlertCircle className="h-4 w-4 mr-1" />
+                                            <span className="text-xs">
+                                              Different lines
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {isBest && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          transition={{
+                                            type: "spring",
+                                            stiffness: 500,
+                                            damping: 15,
+                                            delay: 0.1,
+                                          }}
+                                        >
+                                          <Badge className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] sm:text-xs px-1.5 py-0 whitespace-nowrap">
+                                            Best Odds
+                                          </Badge>
+                                        </motion.div>
+                                      )}
+                                    </button>
+                                  </motion.div>
+                                </TooltipTrigger>
+                                {!isAvailable && (
+                                  <TooltipContent
+                                    side="top"
+                                    align="center"
+                                    className="max-w-[200px] text-center"
+                                  >
+                                    <p className="text-xs sm:text-sm">
+                                      This sportsbook has different lines for
+                                      one or more of your selections.
+                                    </p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Wager Amount - Now second */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="wager">Wager Amount</Label>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calculator className="h-3 w-3 mr-1" />
+                        <span>For calculation only</span>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        $
+                      </span>
+                      <Input
+                        id="wager"
+                        type="number"
+                        value={wagerAmount}
+                        onChange={(e) => setWagerAmount(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This is for visualization purposes only. Actual wager
+                      amount will be set at the sportsbook.
+                    </p>
+                  </div>
+
+                  {/* Parlay Legs - Now third */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">Your Selections</h3>
+                      <span className="text-xs text-muted-foreground">
+                        {legs.length} {legs.length === 1 ? "leg" : "legs"}
+                      </span>
+                    </div>
                     <AnimatePresence>
                       {Object.entries(groupedLegs).map(([gameId, gameLegs]) => {
                         const isExpanded = expandedGames[gameId] !== false;
@@ -847,227 +1077,6 @@ export function Betslip({
                         );
                       })}
                     </AnimatePresence>
-                  </div>
-
-                  {/* Wager Amount */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="wager">Wager Amount</Label>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calculator className="h-3 w-3 mr-1" />
-                        <span>For calculation only</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                        $
-                      </span>
-                      <Input
-                        id="wager"
-                        type="number"
-                        value={wagerAmount}
-                        onChange={(e) => setWagerAmount(e.target.value)}
-                        className="pl-8"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This is for visualization purposes only. Actual wager
-                      amount will be set at the sportsbook.
-                    </p>
-                  </div>
-
-                  {/* Odds Comparison */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-muted-foreground">
-                          Odds Comparison
-                        </h3>
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <span>Based on ${wagerAmount} wager</span>
-                        </div>
-                      </div>
-                      {Object.values(groupedLegs).some(
-                        (legs) => legs.length > 1
-                      ) && (
-                        <p className="text-xs text-muted-foreground italic">
-                          Note: Same Game Parlay (SGP) odds account for
-                          correlations between bets. Some combinations (like
-                          player props) may receive odds boosts, while others
-                          (like spread + total) may have reduced odds.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      {userSportsbooks
-                        .slice()
-                        .sort((a, b) => {
-                          const oddsA = parlayOdds[a];
-                          const oddsB = parlayOdds[b];
-
-                          // Handle null values (place them at the end)
-                          if (oddsA === null && oddsB === null) return 0;
-                          if (oddsA === null) return 1;
-                          if (oddsB === null) return -1;
-
-                          // Sort by highest odds (best value) first
-                          return oddsB - oddsA;
-                        })
-                        .map((sportsbook) => {
-                          const odds = parlayOdds[sportsbook];
-                          const isBest =
-                            odds !== null && bestOdds.sportsbook === sportsbook;
-                          const isSelected = sportsbook === selectedSportsbook;
-                          const payout = calculatePayout(
-                            odds,
-                            Number.parseFloat(wagerAmount) || 0
-                          );
-                          const sportsbookInfo = sportsbooks.find(
-                            (sb) => sb.id === sportsbook
-                          );
-                          const isAvailable = odds !== null;
-
-                          return (
-                            <TooltipProvider key={sportsbook}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <motion.div
-                                    whileHover={
-                                      isAvailable
-                                        ? {
-                                            scale: 1.01,
-                                            y: -1,
-                                            boxShadow:
-                                              "0 10px 30px -10px rgba(0, 0, 0, 0.2)",
-                                          }
-                                        : {}
-                                    }
-                                    whileTap={
-                                      isAvailable ? { scale: 0.99 } : {}
-                                    }
-                                    layout
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        isAvailable &&
-                                        setSelectedSportsbook(sportsbook)
-                                      }
-                                      className={cn(
-                                        "w-full flex items-center justify-between p-3 sm:p-4 rounded-md border transition-all duration-200 relative",
-                                        "backdrop-blur-sm bg-white/5",
-                                        isSelected
-                                          ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
-                                          : "shadow-sm hover:shadow-md",
-                                        isBest && !isSelected
-                                          ? "border-primary/30 bg-primary/5"
-                                          : "",
-                                        !isAvailable
-                                          ? "opacity-60 cursor-not-allowed"
-                                          : "hover:border-primary/50 hover:border-glow",
-                                        "after:absolute after:inset-0 after:rounded-md after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:pointer-events-none after:border after:border-primary/30 after:glow-sm"
-                                      )}
-                                      disabled={!isAvailable}
-                                    >
-                                      <div className="flex flex-col items-center min-w-[80px]">
-                                        <div className="w-6 h-6 sm:w-8 sm:h-8 mb-1 relative">
-                                          <img
-                                            src={
-                                              sportsbookInfo?.logo ||
-                                              "/placeholder.svg?height=32&width=32" ||
-                                              "/placeholder.svg"
-                                            }
-                                            alt={
-                                              sportsbookInfo?.name || sportsbook
-                                            }
-                                            className="w-full h-full object-contain"
-                                          />
-                                        </div>
-                                        <div className="text-sm font-medium text-center">
-                                          {sportsbookInfo?.name || sportsbook}
-                                        </div>
-                                        <div
-                                          className={cn(
-                                            "text-sm font-medium mt-1",
-                                            isAvailable
-                                              ? odds! > 0
-                                                ? "text-green-500"
-                                                : "text-blue-500"
-                                              : "text-gray-500"
-                                          )}
-                                        >
-                                          {isAvailable
-                                            ? displayOdds(odds!)
-                                            : "N/A"}
-                                        </div>
-                                      </div>
-
-                                      <div className="text-right">
-                                        {isAvailable ? (
-                                          <>
-                                            <motion.div
-                                              className="text-base sm:text-lg font-bold"
-                                              animate={
-                                                animatePayouts
-                                                  ? {
-                                                      scale: [1, 1.1, 1],
-                                                    }
-                                                  : {}
-                                              }
-                                              transition={{ duration: 0.5 }}
-                                            >
-                                              ${payout.toFixed(2)}
-                                            </motion.div>
-                                            <div className="text-xs text-gray-400">
-                                              Potential Payout
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <div className="flex items-center text-gray-500">
-                                            <AlertCircle className="h-4 w-4 mr-1" />
-                                            <span className="text-xs">
-                                              Different lines
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {isBest && (
-                                        <motion.div
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          transition={{
-                                            type: "spring",
-                                            stiffness: 500,
-                                            damping: 15,
-                                            delay: 0.1,
-                                          }}
-                                        >
-                                          <Badge className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] sm:text-xs px-1.5 py-0 whitespace-nowrap">
-                                            Best Odds
-                                          </Badge>
-                                        </motion.div>
-                                      )}
-                                    </button>
-                                  </motion.div>
-                                </TooltipTrigger>
-                                {!isAvailable && (
-                                  <TooltipContent
-                                    side="top"
-                                    align="center"
-                                    className="max-w-[200px] text-center"
-                                  >
-                                    <p className="text-xs sm:text-sm">
-                                      This sportsbook has different lines for
-                                      one or more of your selections.
-                                    </p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
-                          );
-                        })}
-                    </div>
                   </div>
                 </>
               )}

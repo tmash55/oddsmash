@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { SportIcon } from "@/components/sport-icon";
+import { SportLogo } from "@/components/sport-logo";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState, useEffect } from "react";
@@ -166,7 +166,7 @@ export function SportsSubNav({ baseRoute, className }: SportsSubNavProps) {
                 )}
               >
                 <div className="w-5 h-5 flex items-center justify-center">
-                  <SportIcon
+                  <SportLogo
                     sport={sport.id}
                     size="xs"
                     className={isActive ? sportColor : ""}

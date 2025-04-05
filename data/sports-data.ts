@@ -1,9 +1,10 @@
 export type Sport = {
   id: string;
   name: string;
-  icon: string;
+  icon?: string; // Optional icon path for image-based icons
   active: boolean;
   apiKey?: string; // Optional API key if different from id
+  useImage?: boolean; // Flag to determine if we should use an image or the SportIcon component
 };
 
 export type Team = {
@@ -72,32 +73,37 @@ export const sports: Sport[] = [
   {
     id: "baseball_mlb",
     name: "MLB",
-    icon: "/baseball.svg",
+    icon: "/images/sport-league/mlb-logo.png",
     active: true,
+    useImage: true,
   },
   {
     id: "basketball_nba",
     name: "NBA",
-    icon: "/basketball.svg",
+    icon: "/images/sport-league/nba-logo.png",
     active: true,
+    useImage: true,
   },
   {
     id: "basketball_ncaab",
     name: "NCAAB",
-    icon: "/basketball.svg",
+    icon: "", // Will use the SportIcon component
     active: true,
+    useImage: false,
   },
   {
     id: "icehockey_nhl",
     name: "NHL",
-    icon: "/hockey.svg",
+    icon: "/images/sport-league/nhl-logo.png", // Will use the SportIcon component
     active: true,
+    useImage: true,
   },
   {
     id: "americanfootball_nfl",
     name: "NFL",
-    icon: "/football.svg",
+    icon: "/images/sport-league/nfl-logo.png",
     active: false,
+    useImage: true,
   },
 ];
 
