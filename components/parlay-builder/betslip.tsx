@@ -979,10 +979,7 @@ export function Betslip({
                             )}
 
                             {/* Game Header */}
-                            <div
-                              className="flex items-center justify-between cursor-pointer p-3 hover:bg-muted/30 transition-colors w-full"
-                              onClick={toggleExpanded}
-                            >
+                            <div className="flex items-center justify-between flex-wrap sm:flex-nowrap gap-2 p-3 hover:bg-muted/30 transition-colors w-full">
                               <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 overflow-hidden">
                                 <Button
                                   variant="ghost"
@@ -999,15 +996,24 @@ export function Betslip({
                                     <ChevronRight className="h-4 w-4" />
                                   )}
                                 </Button>
-                                <div className="text-sm font-medium truncate max-w-[calc(100%-30px)]">
-                                  {getGameTeams(gameId)}
-                                </div>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="truncate min-w-0 text-sm font-medium cursor-help">
+                                        {getGameTeams(gameId)}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {getGameTeams(gameId)}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
-                              <div className="text-xs text-muted-foreground flex-shrink-0 ml-1">
-                                <span className="whitespace-nowrap">
-                                  {gameLegs.length}{" "}
-                                  {gameLegs.length === 1 ? "leg" : "legs"}
-                                </span>
+
+                              <div className="text-xs text-muted-foreground flex-shrink-0 ml-auto sm:ml-1 whitespace-nowrap">
+                                {gameLegs.length}{" "}
+                                {gameLegs.length === 1 ? "leg" : "legs"}
                               </div>
                             </div>
 

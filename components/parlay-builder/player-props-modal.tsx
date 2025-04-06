@@ -13,6 +13,7 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
   Search,
   X,
   User,
@@ -21,6 +22,7 @@ import {
   TrendingUp,
   Zap,
   ArrowRight,
+  Receipt,
 } from "lucide-react";
 import {
   SPORT_MARKETS,
@@ -30,7 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   Select,
   SelectContent,
@@ -41,9 +42,9 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-// First, add the import for the ActiveSportsbookSelector component
 import { ActiveSportsbookSelector } from "./active-sportsbook-selector";
 import { sportsbooks } from "@/data/sportsbooks";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 // Update the PlayerPropsModalProps interface to include onSelectSportsbook
 interface PlayerPropsModalProps {
@@ -61,6 +62,9 @@ interface PlayerPropsModalProps {
   isMarketSelected?: (gameId: string, marketId: string) => boolean;
   onSelectSportsbook: (id: string) => void;
   selectedSportsbooks: string[];
+  // Add these new props
+  betslipCount?: number;
+  onOpenBetslip?: () => void;
 }
 
 // Update the function parameters to include the new props
@@ -76,6 +80,8 @@ export function PlayerPropsModal({
   isMarketSelected,
   onSelectSportsbook,
   selectedSportsbooks,
+  betslipCount = 0,
+  onOpenBetslip,
 }: PlayerPropsModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,9 +96,21 @@ export function PlayerPropsModal({
   const [overLinesExpanded, setOverLinesExpanded] = useState(false);
   const [overUnderExpanded, setOverUnderExpanded] = useState(false);
 
+  // Add this near the top of the component with other state variables
   const isMobile = useMediaQuery("(max-width: 640px)");
   const [lastActiveSportsbook, setLastActiveSportsbook] =
     useState<string>(activeSportsbook);
+
+  // Add this near the top of the component, after the state declarations
+  useEffect(() => {
+    // Log props for debugging betslipCount
+    console.log("PlayerPropsModal mounted/updated with props:", {
+      betslipCount,
+      hasOpenBetslipFn: !!onOpenBetslip,
+      isMobile:
+        typeof window !== "undefined" ? window.innerWidth <= 640 : false,
+    });
+  }, [betslipCount, onOpenBetslip]);
 
   // Initial number of players to show
   const initialPlayersToShow = 5;
@@ -581,10 +599,7 @@ export function PlayerPropsModal({
 
     console.log("Selected player prop:", selectedProp);
 
-    // Remove the success toast
-
     onSelectProp(selectedProp);
-    // We're not closing the modal here anymore
   };
 
   // Add this function to check for existing selections
@@ -596,11 +611,6 @@ export function PlayerPropsModal({
     // Since we're now allowing multiple lines for the same player and market type,
     // we'll always return false to allow the selection
     return false;
-  };
-
-  // Clear search query
-  const clearSearch = () => {
-    setSearchQuery("");
   };
 
   // Get unique line values for a player
@@ -857,500 +867,596 @@ export function PlayerPropsModal({
   // Content height to maintain consistent dialog size
   const contentMinHeight = "min-h-[400px]";
 
+  // Add logging in the main component to verify props are being passed correctly
+  // Add this right before the isMobile conditional return
+
+  console.log("Player Props Modal:", {
+    betslipCount,
+    onOpenBetslip: !!onOpenBetslip,
+    isMobile,
+  });
+
+  // Make sure we're explicitly passing the betslip props to the mobile component
+  // Update the PlayerPropsModalMobile component props to ensure betslip props are passed correctly
+
+  // Log props for debugging
+  console.log("Player Props Modal:", {
+    betslipCount,
+    onOpenBetslip: !!onOpenBetslip,
+    isMobile,
+  });
+
+  // Add a floating betslip button for mobile
+  const FloatingBetslipButton = () => {
+    // Add more logging to debug the betslipCount
+    console.log("FloatingBetslipButton rendering with:", {
+      isMobile,
+      betslipCount,
+      hasOpenBetslipFn: !!onOpenBetslip,
+    });
+
+    // Only show on mobile and when onOpenBetslip is available
+    if (!isMobile || !onOpenBetslip) return null;
+
+    // Always show the button when the modal is open on mobile
+    return (
+      <motion.div
+        className="fixed bottom-4 right-4 z-50"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+      >
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
+          onClick={() => {
+            console.log("Floating betslip button clicked");
+            onOpenChange(false); // Close the dialog
+            setTimeout(() => {
+              if (onOpenBetslip) onOpenBetslip(); // Open the betslip
+            }, 100);
+          }}
+        >
+          <Receipt className="h-6 w-6" />
+          {betslipCount > 0 ? (
+            <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+              {betslipCount}
+            </span>
+          ) : (
+            <span className="sr-only">View Betslip</span>
+          )}
+        </Button>
+      </motion.div>
+    );
+  };
+
+  // Desktop view
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col overflow-hidden rounded-xl">
-        {/* Update the DialogHeader section to use the ActiveSportsbookSelector */}
-        <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <div className="flex flex-col items-center space-y-1">
-            <DialogTitle className="text-base flex items-center gap-1.5">
-              <Zap className="h-4 w-4 text-primary" />
-              Player Props
-            </DialogTitle>
-            <Badge
-              variant="outline"
-              className="text-xs py-0 h-5 bg-background/50 backdrop-blur-sm"
-            >
-              {game?.homeTeam?.name} vs {game?.awayTeam?.name}
-            </Badge>
-            <div className="mt-1">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="w-[95vw] sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col overflow-hidden rounded-xl">
+          {/* DialogHeader */}
+          <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+            <div className="flex items-center justify-between w-full">
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">Back</span>
+                </Button>
+              )}
+
+              <div className="flex flex-col items-center space-y-1 mx-auto">
+                <DialogTitle className="text-base flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Player Props
+                </DialogTitle>
+                <Badge
+                  variant="outline"
+                  className="text-xs py-0 h-5 bg-background/50 backdrop-blur-sm"
+                >
+                  {game?.homeTeam?.name} vs {game?.awayTeam?.name}
+                </Badge>
+              </div>
+
+              {isMobile ? (
+                <div className="w-8 h-8"></div> // Empty div for alignment
+              ) : null}
+            </div>
+
+            <div className="mt-1 justify-center">
               <ActiveSportsbookSelector
                 selectedSportsbooks={selectedSportsbooks}
                 activeSportsbook={activeSportsbook}
                 onSelectSportsbook={onSelectSportsbook}
               />
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <div className="px-3 py-1.5 border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-          <Tabs
-            value={activeTab}
-            onValueChange={(value: any) => setActiveTab(value)}
-            className="mb-1.5"
-          >
-            <TabsList className="grid w-full grid-cols-2 h-7">
-              <TabsTrigger
-                value="player"
-                className="flex items-center gap-1 text-xs py-0.5"
-              >
-                <User className="h-3 w-3" />
-                <span>Player Props</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="game"
-                className="flex items-center gap-1 text-xs py-0.5"
-              >
-                <Trophy className="h-3 w-3" />
-                <span>Game Props</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex gap-1.5 mb-1.5">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
-                <Search className="h-3 w-3 text-muted-foreground" />
-              </div>
-              <Input
-                placeholder="Search players..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-6 pr-6 w-full h-7 text-xs"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute inset-y-0 right-0 flex items-center pr-2 h-full"
-                  onClick={clearSearch}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-
-            <Select
-              value={activeMarket}
-              onValueChange={(value) => {
-                console.log("Market changed to:", value);
-                setActiveMarket(value);
-
-                // Clear existing data when changing markets
-                setPlayerProps([]);
-                setLoading(true);
-                setPropData(null);
-
-                // Force a re-fetch by adding a timestamp to break cache
-                const timestamp = Date.now();
-                console.log(`Forcing re-fetch at ${timestamp}`);
-              }}
+          {/* Rest of the dialog content remains the same */}
+          <div className="px-3 py-1.5 border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+            {/* Tabs and search content */}
+            <Tabs
+              value={activeTab}
+              onValueChange={(value: any) => setActiveTab(value)}
+              className="mb-1.5"
             >
-              <SelectTrigger className="w-[130px] h-7 text-xs">
-                <SelectValue placeholder="Select prop type" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableMarkets.map((market) => (
-                  <SelectItem
-                    key={market.value}
-                    value={market.value}
-                    className="text-xs"
+              <TabsList className="grid w-full grid-cols-2 h-7">
+                <TabsTrigger
+                  value="player"
+                  className="flex items-center gap-1 text-xs py-0.5"
+                >
+                  <User className="h-3 w-3" />
+                  <span>Player Props</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="game"
+                  className="flex items-center gap-1 text-xs py-0.5"
+                >
+                  <Trophy className="h-3 w-3" />
+                  <span>Game Props</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="flex gap-1.5 mb-1.5">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
+                  <Search className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <Input
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-6 pr-6 w-full h-7 text-xs"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2 h-full"
+                    onClick={() => setSearchQuery("")}
                   >
-                    {market.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Main content area with native scrolling */}
-        <div
-          className={`flex-1 overflow-y-auto px-2 py-1.5 ${contentMinHeight}`}
-        >
-          <AnimatePresence mode="wait">
-            {loading ? (
-              <motion.div
-                key="loading"
-                className="flex flex-col items-center justify-center h-full py-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "linear",
-                  }}
-                >
-                  <Loader2 className="h-8 w-8 text-primary" />
-                </motion.div>
-                {/* Update the loading text to use the sportsbook name */}
-                <motion.span
-                  className="mt-3 text-sm text-muted-foreground"
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {(() => {
-                    const sb = sportsbooks.find(
-                      (s) => s.id === activeSportsbook
-                    );
-                    return `Loading ${getCurrentMarketName()} props for ${
-                      sb?.name || activeSportsbook
-                    }...`;
-                  })()}
-                </motion.span>
-
-                {/* Add a cancel button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => {
-                    setLoading(false);
-                    setError("Request cancelled");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </motion.div>
-            ) : error ? (
-              <motion.div
-                key="error"
-                className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-4 text-center my-8"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-              >
-                <p className="font-medium text-sm">{error}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 text-xs h-7"
-                  onClick={fetchPlayerProps}
-                >
-                  Retry
-                </Button>
-              </motion.div>
-            ) : activeTab === "player" ? (
-              <motion.div
-                key="player-content"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {filteredPlayers.length === 0 ? (
-                  <motion.div
-                    className="text-center py-8"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {searchQuery ? (
-                      <p className="text-muted-foreground text-sm">
-                        No matching players found
-                      </p>
-                    ) : loading ? (
-                      <p className="text-muted-foreground text-sm">
-                        Loading props...
-                      </p>
-                    ) : error ? (
-                      <div className="space-y-2">
-                        <p className="text-destructive text-sm">{error}</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fetchPlayerProps()}
-                          className="mt-2"
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                          {(() => {
-                            const sb = sportsbooks.find(
-                              (s) => s.id === activeSportsbook
-                            );
-                            return `No ${getCurrentMarketName()} props available from ${
-                              sb?.name || activeSportsbook
-                            }`;
-                          })()}
-                        </p>
-
-                        {/* Show alternative sportsbooks if available */}
-                        {selectedSportsbooks.length > 1 && (
-                          <div className="mt-4">
-                            <p className="text-sm font-medium mb-2">
-                              Try another sportsbook:
-                            </p>
-                            <div className="flex flex-wrap justify-center gap-2">
-                              {selectedSportsbooks
-                                .filter((id) => id !== activeSportsbook)
-                                .map((sbId) => {
-                                  const sb = sportsbooks.find(
-                                    (s) => s.id === sbId
-                                  );
-                                  if (!sb) return null;
-
-                                  return (
-                                    <Button
-                                      key={sb.id}
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex items-center gap-1.5"
-                                      onClick={() => {
-                                        console.log(
-                                          `Switching to sportsbook: ${sb.id}`
-                                        );
-                                        // Clear any existing data and errors before switching
-                                        setPropData(null);
-                                        setPlayerProps([]);
-                                        setError(null);
-                                        // Set loading state before switching
-                                        setLoading(true);
-                                        // Switch the sportsbook - this will trigger the useEffect
-                                        onSelectSportsbook(sb.id);
-                                      }}
-                                    >
-                                      <div className="w-4 h-4 relative">
-                                        {sb.logo && (
-                                          <img
-                                            src={sb.logo || "/placeholder.svg"}
-                                            alt={sb.name}
-                                            className="w-full h-full object-contain"
-                                          />
-                                        )}
-                                      </div>
-                                      <span>{sb.name}</span>
-                                    </Button>
-                                  );
-                                })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                ) : (
-                  <>
-                    {/* Over Lines Section with its own expand/collapse */}
-                    <div className="mb-4">
-                      <motion.div
-                        className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div>
-                          <h3 className="text-xs font-medium flex items-center">
-                            <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
-                              <TrendingUp className="h-2.5 w-2.5" />
-                            </span>
-                            {getCurrentMarketName()} Over Lines
-                          </h3>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Swipe horizontally to see more options
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() =>
-                            setOverLinesExpanded(!overLinesExpanded)
-                          }
-                        >
-                          {overLinesExpanded ? (
-                            <ChevronUp className="h-3 w-3 mr-1" />
-                          ) : (
-                            <Plus className="h-3 w-3 mr-1" />
-                          )}
-                          {overLinesExpanded ? "Collapse" : "Expand"}
-                        </Button>
-                      </motion.div>
-
-                      <div className="space-y-0.5">
-                        <AnimatePresence>
-                          {(() => {
-                            // If searching, show all matching players
-                            if (searchQuery) {
-                              return filteredPlayers.map((player, index) =>
-                                renderPlayerRow(player, index)
-                              );
-                            }
-
-                            // If expanded, show all players (in the same order)
-                            if (overLinesExpanded) {
-                              return filteredPlayers.map((player, index) =>
-                                renderPlayerRow(player, index)
-                              );
-                            }
-
-                            // Otherwise, show only top players (first N players in the same order)
-                            return getTopPlayers(filteredPlayers).map(
-                              (player, index) => renderPlayerRow(player, index)
-                            );
-                          })()}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* View more/less button for Over Lines */}
-                      {!searchQuery &&
-                        filteredPlayers.length > initialPlayersToShow && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: 0.2 }}
-                          >
-                            <Button
-                              variant="outline"
-                              className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
-                              onClick={() =>
-                                setOverLinesExpanded(!overLinesExpanded)
-                              }
-                            >
-                              {overLinesExpanded ? (
-                                <>
-                                  <ChevronUp className="h-3 w-3 mr-1.5" />
-                                  Show Less
-                                </>
-                              ) : (
-                                <>
-                                  <Plus className="h-3 w-3 mr-1.5" />
-                                  View{" "}
-                                  {filteredPlayers.length -
-                                    getTopPlayers(filteredPlayers).length}{" "}
-                                  More Players
-                                </>
-                              )}
-                            </Button>
-                          </motion.div>
-                        )}
-                    </div>
-
-                    {/* Over/Under Section with its own expand/collapse */}
-                    <div>
-                      <motion.div
-                        className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                      >
-                        <div>
-                          <h3 className="text-xs font-medium flex items-center">
-                            <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
-                              <ArrowRight className="h-2.5 w-2.5" />
-                            </span>
-                            {getCurrentMarketName()} Over/Under
-                          </h3>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Standard lines with both over and under odds
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() =>
-                            setOverUnderExpanded(!overUnderExpanded)
-                          }
-                        >
-                          {overUnderExpanded ? (
-                            <ChevronUp className="h-3 w-3 mr-1" />
-                          ) : (
-                            <Plus className="h-3 w-3 mr-1" />
-                          )}
-                          {overUnderExpanded ? "Collapse" : "Expand"}
-                        </Button>
-                      </motion.div>
-
-                      <div className="space-y-0.5">
-                        <AnimatePresence>
-                          {(() => {
-                            // If searching, show all matching players
-                            if (searchQuery) {
-                              return filteredPlayers.map((player, index) =>
-                                renderPlayerOverUnderRow(player, index)
-                              );
-                            }
-
-                            // If expanded, show all players (in the same order)
-                            if (overUnderExpanded) {
-                              return filteredPlayers.map((player, index) =>
-                                renderPlayerOverUnderRow(player, index)
-                              );
-                            }
-
-                            // Otherwise, show only top players (first N players in the same order)
-                            return getTopPlayers(filteredPlayers).map(
-                              (player, index) =>
-                                renderPlayerOverUnderRow(player, index)
-                            );
-                          })()}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* View more/less button for Over/Under */}
-                      {!searchQuery &&
-                        filteredPlayers.length > initialPlayersToShow && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: 0.2 }}
-                          >
-                            <Button
-                              variant="outline"
-                              className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
-                              onClick={() =>
-                                setOverUnderExpanded(!overUnderExpanded)
-                              }
-                            >
-                              {overUnderExpanded ? (
-                                <>
-                                  <ChevronUp className="h-3 w-3 mr-1.5" />
-                                  Show Less
-                                </>
-                              ) : (
-                                <>
-                                  <Plus className="h-3 w-3 mr-1.5" />
-                                  View{" "}
-                                  {filteredPlayers.length -
-                                    getTopPlayers(filteredPlayers).length}{" "}
-                                  More Players
-                                </>
-                              )}
-                            </Button>
-                          </motion.div>
-                        )}
-                    </div>
-                  </>
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="game-content"
-                className="text-center py-12"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+              </div>
+
+              <Select
+                value={activeMarket}
+                onValueChange={(value) => {
+                  console.log("Market changed to:", value);
+                  setActiveMarket(value);
+
+                  // Clear existing data when changing markets
+                  setPlayerProps([]);
+                  setLoading(true);
+                  setPropData(null);
+
+                  // Force a re-fetch by adding a timestamp to break cache
+                  const timestamp = Date.now();
+                  console.log(`Forcing re-fetch at ${timestamp}`);
+                }}
               >
-                <p className="text-muted-foreground text-sm">
-                  Game props coming soon
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </DialogContent>
-    </Dialog>
+                <SelectTrigger className="w-[130px] h-7 text-xs">
+                  <SelectValue placeholder="Select prop type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMarkets.map((market) => (
+                    <SelectItem
+                      key={market.value}
+                      value={market.value}
+                      className="text-xs"
+                    >
+                      {market.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Main content area with native scrolling */}
+          <div
+            className={`flex-1 overflow-y-auto px-2 py-1.5 ${contentMinHeight}`}
+          >
+            {/* Same content as in the mobile view */}
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading"
+                  className="flex flex-col items-center justify-center h-full py-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "linear",
+                    }}
+                  >
+                    <Loader2 className="h-8 w-8 text-primary" />
+                  </motion.div>
+                  {/* Update the loading text to use the sportsbook name */}
+                  <motion.span
+                    className="mt-3 text-sm text-muted-foreground"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {(() => {
+                      const sb = sportsbooks.find(
+                        (s) => s.id === activeSportsbook
+                      );
+                      return `Loading ${getCurrentMarketName()} props for ${
+                        sb?.name || activeSportsbook
+                      }...`;
+                    })()}
+                  </motion.span>
+
+                  {/* Add a cancel button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setLoading(false);
+                      setError("Request cancelled");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </motion.div>
+              ) : error ? (
+                <motion.div
+                  key="error"
+                  className="bg-destructive/10 text-destructive rounded-lg border border-destructive p-4 text-center my-8"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <p className="font-medium text-sm">{error}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs h-7"
+                    onClick={fetchPlayerProps}
+                  >
+                    Retry
+                  </Button>
+                </motion.div>
+              ) : activeTab === "player" ? (
+                <motion.div
+                  key="player-content"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {filteredPlayers.length === 0 ? (
+                    <motion.div
+                      className="text-center py-8"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {searchQuery ? (
+                        <p className="text-muted-foreground text-sm">
+                          No matching players found
+                        </p>
+                      ) : loading ? (
+                        <p className="text-muted-foreground text-sm">
+                          Loading props...
+                        </p>
+                      ) : error ? (
+                        <div className="space-y-2">
+                          <p className="text-destructive text-sm">{error}</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fetchPlayerProps()}
+                            className="mt-2"
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <p className="text-muted-foreground text-sm">
+                            {(() => {
+                              const sb = sportsbooks.find(
+                                (s) => s.id === activeSportsbook
+                              );
+                              return `No ${getCurrentMarketName()} props available from ${
+                                sb?.name || activeSportsbook
+                              }`;
+                            })()}
+                          </p>
+
+                          {/* Show alternative sportsbooks if available */}
+                          {selectedSportsbooks.length > 1 && (
+                            <div className="mt-4">
+                              <p className="text-sm font-medium mb-2">
+                                Try another sportsbook:
+                              </p>
+                              <div className="flex flex-wrap justify-center gap-2">
+                                {selectedSportsbooks
+                                  .filter((id) => id !== activeSportsbook)
+                                  .map((sbId) => {
+                                    const sb = sportsbooks.find(
+                                      (s) => s.id === sbId
+                                    );
+                                    if (!sb) return null;
+
+                                    return (
+                                      <Button
+                                        key={sb.id}
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-1.5"
+                                        onClick={() => {
+                                          console.log(
+                                            `Switching to sportsbook: ${sb.id}`
+                                          );
+                                          // Clear any existing data and errors before switching
+                                          setPropData(null);
+                                          setPlayerProps([]);
+                                          setError(null);
+                                          // Set loading state before switching
+                                          setLoading(true);
+                                          // Switch the sportsbook - this will trigger the useEffect
+                                          onSelectSportsbook(sb.id);
+                                        }}
+                                      >
+                                        <div className="w-4 h-4 relative">
+                                          {sb.logo && (
+                                            <img
+                                              src={
+                                                sb.logo || "/placeholder.svg"
+                                              }
+                                              alt={sb.name}
+                                              className="w-full h-full object-contain"
+                                            />
+                                          )}
+                                        </div>
+                                        <span>{sb.name}</span>
+                                      </Button>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <>
+                      {/* Over Lines Section with its own expand/collapse */}
+                      <div className="mb-4">
+                        <motion.div
+                          className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div>
+                            <h3 className="text-xs font-medium flex items-center">
+                              <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
+                                <TrendingUp className="h-2.5 w-2.5" />
+                              </span>
+                              {getCurrentMarketName()} Over Lines
+                            </h3>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Swipe horizontally to see more options
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() =>
+                              setOverLinesExpanded(!overLinesExpanded)
+                            }
+                          >
+                            {overLinesExpanded ? (
+                              <ChevronUp className="h-3 w-3 mr-1" />
+                            ) : (
+                              <Plus className="h-3 w-3 mr-1" />
+                            )}
+                            {overLinesExpanded ? "Collapse" : "Expand"}
+                          </Button>
+                        </motion.div>
+
+                        <div className="space-y-0.5">
+                          <AnimatePresence>
+                            {(() => {
+                              // If searching, show all matching players
+                              if (searchQuery) {
+                                return filteredPlayers.map((player, index) =>
+                                  renderPlayerRow(player, index)
+                                );
+                              }
+
+                              // If expanded, show all players (in the same order)
+                              if (overLinesExpanded) {
+                                return filteredPlayers.map((player, index) =>
+                                  renderPlayerRow(player, index)
+                                );
+                              }
+
+                              // Otherwise, show only top players (first N players in the same order)
+                              return getTopPlayers(filteredPlayers).map(
+                                (player, index) =>
+                                  renderPlayerRow(player, index)
+                              );
+                            })()}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* View more/less button for Over Lines */}
+                        {!searchQuery &&
+                          filteredPlayers.length > initialPlayersToShow && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: 0.2 }}
+                            >
+                              <Button
+                                variant="outline"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
+                                onClick={() =>
+                                  setOverLinesExpanded(!overLinesExpanded)
+                                }
+                              >
+                                {overLinesExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3 mr-1.5" />
+                                    Show Less
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="h-3 w-3 mr-1.5" />
+                                    View{" "}
+                                    {filteredPlayers.length -
+                                      getTopPlayers(filteredPlayers)
+                                        .length}{" "}
+                                    More Players
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                      </div>
+
+                      {/* Over/Under Section with its own expand/collapse */}
+                      <div>
+                        <motion.div
+                          className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                        >
+                          <div>
+                            <h3 className="text-xs font-medium flex items-center">
+                              <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
+                                <ArrowRight className="h-2.5 w-2.5" />
+                              </span>
+                              {getCurrentMarketName()} Over/Under
+                            </h3>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Standard lines with both over and under odds
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() =>
+                              setOverUnderExpanded(!overUnderExpanded)
+                            }
+                          >
+                            {overUnderExpanded ? (
+                              <ChevronUp className="h-3 w-3 mr-1" />
+                            ) : (
+                              <Plus className="h-3 w-3 mr-1" />
+                            )}
+                            {overUnderExpanded ? "Collapse" : "Expand"}
+                          </Button>
+                        </motion.div>
+
+                        <div className="space-y-0.5">
+                          <AnimatePresence>
+                            {(() => {
+                              // If searching, show all matching players
+                              if (searchQuery) {
+                                return filteredPlayers.map((player, index) =>
+                                  renderPlayerOverUnderRow(player, index)
+                                );
+                              }
+
+                              // If expanded, show all players (in the same order)
+                              if (overUnderExpanded) {
+                                return filteredPlayers.map((player, index) =>
+                                  renderPlayerOverUnderRow(player, index)
+                                );
+                              }
+
+                              // Otherwise, show only top players (first N players in the same order)
+                              return getTopPlayers(filteredPlayers).map(
+                                (player, index) =>
+                                  renderPlayerOverUnderRow(player, index)
+                              );
+                            })()}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* View more/less button for Over/Under */}
+                        {!searchQuery &&
+                          filteredPlayers.length > initialPlayersToShow && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: 0.2 }}
+                            >
+                              <Button
+                                variant="outline"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
+                                onClick={() =>
+                                  setOverUnderExpanded(!overUnderExpanded)
+                                }
+                              >
+                                {overUnderExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3 mr-1.5" />
+                                    Show Less
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="h-3 w-3 mr-1.5" />
+                                    View{" "}
+                                    {filteredPlayers.length -
+                                      getTopPlayers(filteredPlayers)
+                                        .length}{" "}
+                                    More Players
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="game-content"
+                  className="text-center py-12"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <p className="text-muted-foreground text-sm">
+                    Game props coming soon
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating betslip button for mobile */}
+      <FloatingBetslipButton />
+    </>
   );
 }
