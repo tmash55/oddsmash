@@ -968,7 +968,7 @@ export function PlayerPropsModal({
               ) : null}
             </div>
 
-            <div className="mt-1 justify-center">
+            <div className="mt-1 flex justify-center md:justify-end">
               <ActiveSportsbookSelector
                 selectedSportsbooks={selectedSportsbooks}
                 activeSportsbook={activeSportsbook}
