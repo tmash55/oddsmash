@@ -616,10 +616,10 @@ export function Betslip({
         {glowStyles}
       </style>
       <SheetContent
-        className="sm:max-w-md w-full p-0 flex flex-col h-[100vh] sm:h-full"
+        className="sm:max-w-md w-full max-w-full p-0 flex flex-col h-[100vh] sm:h-full overflow-x-hidden"
         side="right"
       >
-        <SheetHeader className="p-6 border-b relative">
+        <SheetHeader className="p-4 sm:p-6 border-b relative">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
               <span className="flex items-center">
@@ -658,7 +658,7 @@ export function Betslip({
 
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-6">
               {legs.length === 0 ? (
                 <motion.div
                   className="text-center py-12"
@@ -763,6 +763,7 @@ export function Betslip({
                                       isAvailable ? { scale: 0.99 } : {}
                                     }
                                     layout
+                                    className="w-full"
                                   >
                                     <button
                                       onClick={() =>
@@ -794,6 +795,9 @@ export function Betslip({
                                             src={
                                               sportsbookInfo?.logo ||
                                               "/placeholder.svg?height=32&width=32" ||
+                                              "/placeholder.svg" ||
+                                              "/placeholder.svg" ||
+                                              "/placeholder.svg" ||
                                               "/placeholder.svg"
                                             }
                                             alt={
@@ -825,7 +829,7 @@ export function Betslip({
                                         {isAvailable ? (
                                           <>
                                             <motion.div
-                                              className="text-base sm:text-lg font-bold"
+                                              className="text-base sm:text-lg font-bold whitespace-nowrap"
                                               animate={
                                                 animatePayouts
                                                   ? {
@@ -943,7 +947,7 @@ export function Betslip({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
-                            className="border rounded-md overflow-hidden"
+                            className="border rounded-md overflow-hidden w-full max-w-full"
                           >
                             {/* SGP Badge - Now on its own line at the top */}
                             {isSGP && (
@@ -976,10 +980,10 @@ export function Betslip({
 
                             {/* Game Header */}
                             <div
-                              className="flex items-center justify-between cursor-pointer p-3 hover:bg-muted/30 transition-colors"
+                              className="flex items-center justify-between cursor-pointer p-3 hover:bg-muted/30 transition-colors w-full"
                               onClick={toggleExpanded}
                             >
-                              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                              <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 overflow-hidden">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -995,7 +999,7 @@ export function Betslip({
                                     <ChevronRight className="h-4 w-4" />
                                   )}
                                 </Button>
-                                <div className="text-sm font-medium truncate">
+                                <div className="text-sm font-medium truncate max-w-[calc(100%-30px)]">
                                   {getGameTeams(gameId)}
                                 </div>
                               </div>
@@ -1016,7 +1020,7 @@ export function Betslip({
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="p-3 pt-0 space-y-2 w-full mx-auto">
+                                  <div className="px-2 sm:px-3 pt-0 space-y-2 w-full">
                                     {gameLegs.map((leg) => (
                                       <motion.div
                                         key={leg.id}
@@ -1024,14 +1028,15 @@ export function Betslip({
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.2 }}
+                                        className="w-full"
                                       >
-                                        <div className="flex items-start justify-between p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full max-w-full overflow-hidden">
-                                          <div className="space-y-1 flex-1">
-                                            <div className="flex items-center justify-between">
-                                              <div className="text-base font-medium">
+                                        <div className="flex items-start justify-between p-2 sm:p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full overflow-hidden">
+                                          <div className="space-y-1 flex-1 min-w-0 mr-2 overflow-hidden">
+                                            <div className="flex items-center justify-between flex-wrap gap-1 w-full">
+                                              <div className="text-base font-medium truncate max-w-[calc(100%-80px)]">
                                                 {leg.selection}
                                               </div>
-                                              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
                                                 {formatMarketDisplay(leg)}
                                               </span>
                                             </div>
@@ -1054,6 +1059,7 @@ export function Betslip({
                                           <motion.div
                                             whileHover={{ scale: 1.1 }}
                                             whileTap={{ scale: 0.9 }}
+                                            className="flex-shrink-0 ml-auto"
                                           >
                                             <Button
                                               variant="ghost"
@@ -1061,9 +1067,9 @@ export function Betslip({
                                               onClick={() =>
                                                 onRemoveLeg(leg.id)
                                               }
-                                              className="h-10 w-10 ml-2 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
                                             >
-                                              <Trash2 className="h-5 w-5" />
+                                              <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
                                             </Button>
                                           </motion.div>
                                         </div>
@@ -1085,7 +1091,7 @@ export function Betslip({
         </div>
 
         {legs.length > 0 && (
-          <SheetFooter className="p-6 border-t">
+          <SheetFooter className="p-4 sm:p-6 border-t">
             {selectedSportsbook && parlayOdds[selectedSportsbook] !== null ? (
               <motion.div
                 className="w-full"

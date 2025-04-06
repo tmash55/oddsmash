@@ -18,6 +18,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +29,9 @@ import {
   BarChart3,
   LineChart,
   Calendar,
+  Settings,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 import { useSportsbooks } from "@/contexts/sportsbook-context";
@@ -117,21 +122,23 @@ export function Header() {
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
-                    "px-3 transition-all duration-300",
+                    "px-3 transition-all duration-300 group",
                     pathname?.startsWith("/player-props") && "bg-muted"
                   )}
                 >
-                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <BarChart3 className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                   Player Props
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    <li className="row-span-5 rounded-md bg-gradient-to-b from-primary to-primary/80 shadow-lg">
+                    <li className="row-span-5 rounded-md bg-gradient-to-b from-primary to-primary/80 shadow-lg overflow-hidden group relative">
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <NavigationMenuLink asChild>
                         <a
                           className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
                           href="/player-props"
                         >
+                          <Sparkles className="h-6 w-6 text-white/90 mb-2" />
                           <div className="mt-4 mb-2 text-lg font-medium text-white">
                             Player Props
                           </div>
@@ -161,11 +168,11 @@ export function Header() {
                   <NavigationMenuLink
                     className={cn(
                       navigationMenuTriggerStyle(),
-                      "px-3 transition-all duration-300",
+                      "px-3 transition-all duration-300 group",
                       pathname?.startsWith("/parlay-builder") && "bg-muted"
                     )}
                   >
-                    <LineChart className="mr-2 h-4 w-4" />
+                    <LineChart className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                     Parlay Builder
                   </NavigationMenuLink>
                 </Link>
@@ -176,11 +183,11 @@ export function Header() {
                   <NavigationMenuLink
                     className={cn(
                       navigationMenuTriggerStyle(),
-                      "px-3 transition-all duration-300",
+                      "px-3 transition-all duration-300 group",
                       pathname?.startsWith("/promo-calendar") && "bg-muted"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <Calendar className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                     Promo Calendar
                   </NavigationMenuLink>
                 </Link>
@@ -190,13 +197,21 @@ export function Header() {
         </div>
 
         {/* Right column - Theme toggle and Sportsbooks button */}
-        <div className="hidden md:flex justify-end items-center space-x-2">
+        <div className="hidden md:flex justify-end items-center space-x-3">
           <ThemeToggle />
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20"
+            onClick={openSportsbookSelector}
+          >
+            <Zap className="mr-1.5 h-3.5 w-3.5 text-primary" />
+            Sportsbooks
+          </Button>
         </div>
 
         {/* Mobile Menu Button */}
         <div className="flex justify-end md:hidden col-span-2 space-x-2">
-          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
@@ -217,7 +232,7 @@ export function Header() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur-sm">
           <div className="container py-4">
-            <nav className="flex flex-col space-y-4">
+            <nav className="flex flex-col space-y-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -281,6 +296,41 @@ export function Header() {
                 <Calendar className="mr-2 h-5 w-5 text-primary" />
                 Promo Calendar
               </Link>
+
+              <Button
+                variant="outline"
+                className="justify-start px-3 py-2 h-auto text-base font-medium border border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20"
+                onClick={() => {
+                  openSportsbookSelector();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <Zap className="mr-2 h-5 w-5 text-primary" />
+                Sportsbooks
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start px-3 py-2 h-auto font-medium text-base border border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20"
+                  >
+                    <Settings className="mr-2 h-5 w-5 text-primary" />
+                    Settings
+                    <ChevronDown className="ml-auto h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="p-0 focus:bg-transparent">
+                    <div className="flex items-center justify-between w-full px-2 py-1.5">
+                      <span>Theme</span>
+                      <ThemeToggle />
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
         </div>

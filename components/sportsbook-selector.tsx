@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 export function SportsbookSelector() {
   const {
@@ -40,6 +41,7 @@ export function SportsbookSelector() {
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
   // Reset temp selections when dialog opens
   const handleOpenChange = (open: boolean) => {
@@ -129,8 +131,15 @@ export function SportsbookSelector() {
           </Button>
         </motion.div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent
+        className={cn(
+          "p-0 overflow-hidden",
+          isMobile
+            ? "w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] rounded-lg"
+            : "sm:max-w-[450px]"
+        )}
+      >
+        <DialogHeader className={cn("px-4 sm:px-6 pt-4 sm:pt-6 pb-2")}>
           <DialogTitle className="text-xl">Select Sportsbooks</DialogTitle>
           <DialogDescription className="flex items-center gap-1.5">
             <span>
@@ -141,7 +150,10 @@ export function SportsbookSelector() {
                 <TooltipTrigger asChild onClick={(e) => e.preventDefault()}>
                   <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[300px] p-3">
+                <TooltipContent
+                  side={isMobile ? "bottom" : "right"}
+                  className="max-w-[300px] p-3"
+                >
                   <p className="text-sm">
                     Selecting more sportsbooks allows you to compare more odds,
                     but may affect performance.
@@ -152,7 +164,7 @@ export function SportsbookSelector() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 py-2">
+        <div className={cn("px-4 sm:px-6 py-2")}>
           <div className="flex items-center justify-between mb-1">
             <div className="text-sm text-muted-foreground">
               {tempSelections.length} of {maxSelections} selected
@@ -162,7 +174,10 @@ export function SportsbookSelector() {
                 variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
-                className="h-8 text-xs font-medium"
+                className={cn(
+                  "h-8 font-medium",
+                  isMobile ? "text-[11px] px-2" : "text-xs"
+                )}
                 disabled={tempSelections.length === maxSelections}
               >
                 Select First {maxSelections}
@@ -171,7 +186,10 @@ export function SportsbookSelector() {
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAll}
-                className="h-8 text-xs font-medium"
+                className={cn(
+                  "h-8 font-medium",
+                  isMobile ? "text-[11px] px-2" : "text-xs"
+                )}
                 disabled={tempSelections.length <= 1}
               >
                 Clear All
@@ -182,7 +200,9 @@ export function SportsbookSelector() {
           <Progress value={selectionPercentage} className="h-1.5" />
         </div>
 
-        <ScrollArea className="h-[400px] px-6 py-4">
+        <ScrollArea
+          className={cn("px-4 sm:px-6 py-4", isMobile ? "flex-1" : "h-[400px]")}
+        >
           <div className="space-y-2">
             <AnimatePresence initial={false}>
               {sportsbooks.map((sportsbook) => {
@@ -205,19 +225,29 @@ export function SportsbookSelector() {
                           : "hover:bg-accent/50",
                         disabled
                           ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer"
+                          : "cursor-pointer",
+                        isMobile && "p-4" // Larger touch target on mobile
                       )}
                       onClick={() => !disabled && handleToggle(sportsbook.id)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 relative flex-shrink-0">
+                        <div
+                          className={cn(
+                            "relative flex-shrink-0",
+                            isMobile ? "w-7 h-7" : "w-6 h-6"
+                          )}
+                        >
                           <img
                             src={sportsbook.logo || "/placeholder.svg"}
                             alt={sportsbook.name}
                             className="w-full h-full object-contain"
                           />
                         </div>
-                        <span className="font-medium">{sportsbook.name}</span>
+                        <span
+                          className={cn("font-medium", isMobile && "text-base")}
+                        >
+                          {sportsbook.name}
+                        </span>
                       </div>
 
                       <div className="flex items-center">
@@ -226,12 +256,25 @@ export function SportsbookSelector() {
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.5, opacity: 0 }}
-                            className="h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                            className={cn(
+                              "rounded-full bg-primary flex items-center justify-center",
+                              isMobile ? "h-6 w-6" : "h-5 w-5"
+                            )}
                           >
-                            <Check className="h-3 w-3 text-white" />
+                            <Check
+                              className={cn(
+                                "text-white",
+                                isMobile ? "h-4 w-4" : "h-3 w-3"
+                              )}
+                            />
                           </motion.div>
                         ) : (
-                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                          <div
+                            className={cn(
+                              "rounded-full border-2 border-muted-foreground/30",
+                              isMobile ? "h-6 w-6" : "h-5 w-5"
+                            )}
+                          />
                         )}
                       </div>
                     </div>
@@ -243,7 +286,12 @@ export function SportsbookSelector() {
         </ScrollArea>
 
         {tempSelections.length === maxSelections && (
-          <div className="px-6 py-2 bg-green-500/10 border-t border-green-500/20 flex items-center gap-2">
+          <div
+            className={cn(
+              "px-4 sm:px-6 py-2 bg-green-500/10 border-t border-green-500/20 flex items-center gap-2",
+              isMobile && "py-3"
+            )}
+          >
             <AlertCircle className="h-4 w-4 text-green-500" />
             <span className="text-sm text-green-600 dark:text-green-400">
               Maximum number of sportsbooks selected
@@ -251,28 +299,61 @@ export function SportsbookSelector() {
           </div>
         )}
 
-        <DialogFooter className="px-6 py-4 border-t">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={isSaving}
-            className="border-border/60"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={cn(
-              "relative overflow-hidden transition-all",
-              isSaving ? "pl-10" : ""
-            )}
-          >
-            {isSaving && (
-              <Loader2 className="absolute left-3 h-4 w-4 animate-spin" />
-            )}
-            {isSaving ? "Saving Changes..." : "Save Changes"}
-          </Button>
+        <DialogFooter
+          className={cn(
+            "px-4 sm:px-6 py-4 border-t",
+            isMobile && "flex-col gap-2"
+          )}
+        >
+          {isMobile ? (
+            <>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={cn(
+                  "w-full relative overflow-hidden transition-all h-12 text-base",
+                  isSaving ? "pl-10" : ""
+                )}
+              >
+                {isSaving && (
+                  <Loader2 className="absolute left-3 h-5 w-5 animate-spin" />
+                )}
+                {isSaving ? "Saving Changes..." : "Save Changes"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isSaving}
+                className="w-full h-11 text-base border-border/60"
+              >
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isSaving}
+                className="border-border/60"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={cn(
+                  "relative overflow-hidden transition-all",
+                  isSaving ? "pl-10" : ""
+                )}
+              >
+                {isSaving && (
+                  <Loader2 className="absolute left-3 h-4 w-4 animate-spin" />
+                )}
+                {isSaving ? "Saving Changes..." : "Save Changes"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

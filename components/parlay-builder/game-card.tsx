@@ -44,8 +44,18 @@ export function GameCard({
   };
 
   // Get the spread, moneyline, and total markets
-  const awaySpread = game.markets.spread?.[1] || null;
-  const homeSpread = game.markets.spread?.[0] || null;
+  const spreads = game.markets.spread || [];
+
+  const awaySpread =
+    spreads.find(
+      (s: any) => s.team?.toLowerCase() === game.awayTeam.name.toLowerCase()
+    ) || null;
+
+  const homeSpread =
+    spreads.find(
+      (s: any) => s.team?.toLowerCase() === game.homeTeam.name.toLowerCase()
+    ) || null;
+
   const awayMoneyline = game.markets.moneyline?.[1] || null;
   const homeMoneyline = game.markets.moneyline?.[0] || null;
   const overTotal = game.markets.total?.[0] || null;
@@ -63,14 +73,15 @@ export function GameCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="overflow-hidden mb-3 border-0 shadow-sm border-l-2 border-l-primary/30 border-r-2 border-r-primary/30 bg-card/50 hover:bg-card/70 transition-colors duration-200 mx-1">
+        <Card className="overflow-hidden mb-3 border-0 shadow-md rounded-xl bg-gradient-to-br from-background to-muted/30 hover:shadow-lg transition-all duration-200 mx-1">
           <CardContent className="p-0">
             {/* Desktop View - Improved Sportsbook Style */}
             <div className="hidden sm:block">
-              <div className="p-4 bg-muted/30 border-b hover:bg-muted/50 transition-all duration-200">
+              <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-b hover:from-primary/10 hover:to-primary/15 transition-all duration-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-base">
+                    <div className="font-medium text-base flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
                       {game.awayTeam.name} @ {game.homeTeam.name}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
@@ -86,17 +97,17 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-3 mb-2 px-1">
                   <div className="col-span-1"></div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
                       Spread
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
                       Moneyline
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
                       Total
                     </span>
                   </div>
@@ -105,7 +116,7 @@ export function GameCard({
                 {/* Away Team Row */}
                 <div className="grid grid-cols-4 gap-3 items-center mb-3">
                   <div className="col-span-1 flex items-center">
-                    <div className="font-bold text-lg">
+                    <div className="font-bold text-lg flex items-center gap-2">
                       {game.awayTeam.name}
                     </div>
                   </div>
@@ -147,7 +158,7 @@ export function GameCard({
                 {/* Home Team Row */}
                 <div className="grid grid-cols-4 gap-3 items-center">
                   <div className="col-span-1 flex items-center">
-                    <div className="font-bold text-lg">
+                    <div className="font-bold text-lg flex items-center gap-2">
                       {game.homeTeam.name}
                     </div>
                   </div>
@@ -192,10 +203,13 @@ export function GameCard({
                 <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/5 border border-border/50 text-sm transition-all duration-200 group"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/10 border border-primary/20 text-sm transition-all duration-200 group rounded-lg"
                     onClick={() => setShowPlayerProps(true)}
                   >
-                    <span>More wagers</span>
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 bg-primary rounded-full"></span>
+                      More wagers
+                    </span>
                     <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
                   </Button>
                 </motion.div>
@@ -205,18 +219,19 @@ export function GameCard({
             {/* Mobile View - Redesigned Compact Grid Layout */}
             <div className="sm:hidden">
               {/* Game Header */}
-              <div className="p-2 bg-muted/30 border-b">
-                <div className="text-xs text-muted-foreground">
+              <div className="p-2 bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
                   {formatGameDate(game.startTime)} •{" "}
                   {formatGameTime(game.startTime)}
                 </div>
               </div>
 
-              <div className="p-2">
+              <div className="p-1.5">
                 {/* Away Team Row */}
-                <div className="grid grid-cols-4 gap-1 items-center mb-1">
+                <div className="grid grid-cols-4 gap-0.5 items-center mb-1">
                   <div className="col-span-1">
-                    <div className="text-xs font-bold truncate">
+                    <div className="text-xs font-bold truncate flex items-center gap-1">
                       {game.awayTeam.name}
                     </div>
                   </div>
@@ -257,9 +272,9 @@ export function GameCard({
                 </div>
 
                 {/* Home Team Row */}
-                <div className="grid grid-cols-4 gap-1 items-center">
+                <div className="grid grid-cols-4 gap-0.5 items-center">
                   <div className="col-span-1">
-                    <div className="text-xs font-bold truncate">
+                    <div className="text-xs font-bold truncate flex items-center gap-1">
                       {game.homeTeam.name}
                     </div>
                   </div>
@@ -301,14 +316,17 @@ export function GameCard({
               </div>
 
               {/* More Wagers Button */}
-              <div className="px-2 pb-2">
+              <div className="px-1.5 pb-1.5">
                 <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/5 border border-border/50 h-7 text-xs transition-all duration-200 group"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-primary/10 border border-primary/20 h-6 text-xs transition-all duration-200 group rounded-md"
                     onClick={() => setShowPlayerProps(true)}
                   >
-                    <span>More wagers</span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 bg-primary rounded-full"></span>
+                      More wagers
+                    </span>
                     <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform duration-200" />
                   </Button>
                 </motion.div>
@@ -360,7 +378,7 @@ function MarketButton({
 }) {
   if (!market) {
     return (
-      <Button variant="outline" className="w-full h-10" disabled>
+      <Button variant="outline" className="w-full h-10 opacity-50" disabled>
         <span className="text-muted-foreground">N/A</span>
       </Button>
     );
@@ -378,9 +396,9 @@ function MarketButton({
       <Button
         variant={selected ? "default" : "outline"}
         className={cn(
-          "w-full justify-between h-10 px-3 transition-all duration-200",
+          "w-full justify-between h-10 px-3 transition-all duration-200 rounded-lg",
           selected
-            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20"
             : "bg-background hover:border-primary/50"
         )}
         onClick={() =>
@@ -447,7 +465,7 @@ function MobileMarketButton({
 }) {
   if (!market) {
     return (
-      <div className="h-9 bg-muted/30 rounded flex items-center justify-center">
+      <div className="h-8 bg-muted/20 rounded-md flex items-center justify-center">
         <span className="text-muted-foreground text-[10px]">N/A</span>
       </div>
     );
@@ -463,7 +481,7 @@ function MobileMarketButton({
 
   if (!hasOdds && !selected) {
     return (
-      <div className="h-9 bg-muted/30 rounded flex items-center justify-center opacity-50">
+      <div className="h-8 bg-muted/20 rounded-md flex items-center justify-center opacity-50">
         <span className="text-muted-foreground text-[10px]">N/A</span>
       </div>
     );
@@ -473,10 +491,10 @@ function MobileMarketButton({
     <motion.div whileTap={{ scale: 0.95 }}>
       <button
         className={cn(
-          "h-9 rounded flex flex-col items-center justify-center transition-all duration-200 w-full px-1",
+          "h-8 rounded-md flex flex-col items-center justify-center transition-all duration-200 w-full px-0.5",
           selected
-            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-            : "bg-muted/30 hover:bg-muted/50"
+            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/20"
+            : "bg-muted/20 hover:bg-muted/30"
         )}
         onClick={() =>
           onSelect(game, market.id, market.selection, activeSportsbook)
@@ -485,19 +503,19 @@ function MobileMarketButton({
       >
         <div className="flex flex-col items-center">
           {market.line !== undefined && market.type === "total" && (
-            <div className="text-[10px] uppercase font-medium leading-tight">
+            <div className="text-[9px] uppercase font-medium leading-tight">
               {prefix || (market.selection === "Over" ? "O " : "U ")}
               {Math.abs(market.line)}
             </div>
           )}
           {market.line !== undefined && market.type !== "total" && (
-            <div className="text-[10px] font-medium leading-tight">
+            <div className="text-[9px] font-medium leading-tight">
               {(market.line > 0 ? "+" : "") + market.line}
             </div>
           )}
           <div
             className={cn(
-              "text-xs font-mono tracking-tight",
+              "text-[10px] font-mono tracking-tight",
               !selected && isPositiveOdds
                 ? "text-green-500 font-bold"
                 : !selected && hasOdds

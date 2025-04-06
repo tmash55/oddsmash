@@ -195,8 +195,8 @@ export function ActiveSportsbookSelector({
                 className={cn(
                   "rounded-full transition-colors duration-200",
                   isMobile
-                    ? "h-10 w-10 bg-primary/10 active:bg-primary/20"
-                    : "h-8 w-8 bg-primary/5 hover:bg-primary/10"
+                    ? "h-10 w-10 active:text-primary/70"
+                    : "h-8 w-8 hover:text-primary/70"
                 )}
                 onClick={handleTooltipClick}
               >
