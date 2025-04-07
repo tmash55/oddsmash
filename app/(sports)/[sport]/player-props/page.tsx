@@ -446,7 +446,7 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
                     Our free betting tool lets you compare player prop odds
                     between DraftKings, FanDuel, BetMGM, and other sportsbooks.
                     We automatically customize sportsbook links based on your
-                    selected state, ensuring you're directed to the correct
+                    selected state, ensuring you&quot;re directed to the correct
                     state-specific version of each sportsbook when placing bets.
                   </p>
                 </div>

@@ -154,8 +154,8 @@ export default function ParlayBuilderPage() {
                   <p className="text-xs md:text-sm text-muted-foreground">
                     Different sportsbooks offer different odds for the same
                     parlay. For example, a 3-leg parlay might pay +600 at one
-                    sportsbook but +650 at another. On a $100 bet, that's a $50
-                    difference in potential profit!
+                    sportsbook but +650 at another. On a $100 bet, that&apos;s a
+                    $50 difference in potential profit!
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground">
                     Our parlay odds comparison tool makes it easy to find the
@@ -180,9 +180,9 @@ export default function ParlayBuilderPage() {
                     </span>{" "}
                     Same Game Parlays are calculated differently by each
                     sportsbook based on their correlation models. For example, a
-                    parlay combining "Over Total Points" with "Team to Win"
-                    might receive reduced odds because these outcomes are
-                    correlated.
+                    parlay combining &quot;Over Total Points&quot; with
+                    &quot;Team to Win&quot; might receive reduced odds because
+                    these outcomes are correlated.
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground mt-2">
                     While our tool provides estimated SGP odds, the actual odds
