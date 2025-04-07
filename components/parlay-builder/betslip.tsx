@@ -616,7 +616,7 @@ export function Betslip({
         {glowStyles}
       </style>
       <SheetContent
-        className="sm:max-w-md w-full max-w-full p-0 flex flex-col h-[100vh] sm:h-full overflow-x-hidden"
+        className="sm:max-w-md w-full max-w-full p-0 flex flex-col h-[100dvh] sm:h-full overflow-x-hidden"
         side="right"
       >
         <SheetHeader className="p-4 sm:p-6 border-b relative">

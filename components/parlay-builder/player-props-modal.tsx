@@ -397,7 +397,6 @@ export function PlayerPropsModal({
         });
 
         // Log the number of players found
-        console.log(`Found ${playerOutcomes.size} players with outcomes`);
 
         // Create prop objects for each player
         playerOutcomes.forEach((outcomes, player) => {
@@ -870,21 +869,8 @@ export function PlayerPropsModal({
   // Add logging in the main component to verify props are being passed correctly
   // Add this right before the isMobile conditional return
 
-  console.log("Player Props Modal:", {
-    betslipCount,
-    onOpenBetslip: !!onOpenBetslip,
-    isMobile,
-  });
-
   // Make sure we're explicitly passing the betslip props to the mobile component
   // Update the PlayerPropsModalMobile component props to ensure betslip props are passed correctly
-
-  // Log props for debugging
-  console.log("Player Props Modal:", {
-    betslipCount,
-    onOpenBetslip: !!onOpenBetslip,
-    isMobile,
-  });
 
   // Add a floating betslip button for mobile
   const FloatingBetslipButton = () => {
