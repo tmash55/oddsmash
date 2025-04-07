@@ -518,7 +518,7 @@ export function PropComparisonTable({
         >
           <div className="p-4 bg-primary/5 rounded-lg border">
             <div className="flex items-center gap-1 mb-2">
-              <ChevronUp className="h-4 w-4 text-green-500" />
+              <ChevronUp className="h-4 w-4 text-[hsl(var(--emerald-green))]" />
               <span className="font-medium">Best Over</span>
             </div>
             <div className="flex items-center justify-between">
@@ -546,8 +546,8 @@ export function PropComparisonTable({
                 className={cn(
                   "font-bold",
                   bestOver && bestOver.odds > 0
-                    ? "text-green-500"
-                    : "text-red-500"
+                    ? "text-[hsl(var(--emerald-green))]"
+                    : "text-[hsl(var(--dark-pastel-red))]"
                 )}
               >
                 {bestOver ? formatAmericanOdds(bestOver.odds) : "-"}
@@ -557,7 +557,7 @@ export function PropComparisonTable({
 
           <div className="p-4 bg-primary/5 rounded-lg border">
             <div className="flex items-center gap-1 mb-2">
-              <ChevronDown className="h-4 w-4 text-red-500" />
+              <ChevronDown className="h-4 w-4 text-[hsl(var(--dark-pastel-red))]" />
               <span className="font-medium">Best Under</span>
             </div>
             <div className="flex items-center justify-between">
@@ -587,8 +587,8 @@ export function PropComparisonTable({
                 className={cn(
                   "font-bold",
                   bestUnder && bestUnder.odds > 0
-                    ? "text-green-500"
-                    : "text-red-500"
+                    ? "text-[hsl(var(--emerald-green))]"
+                    : "text-[hsl(var(--dark-pastel-red))]"
                 )}
               >
                 {bestUnder ? formatAmericanOdds(bestUnder.odds) : "-"}
@@ -675,7 +675,7 @@ export function PropComparisonTable({
                               )}
                             >
                               <div className="flex items-center gap-1">
-                                <ChevronUp className="h-3 w-3 text-green-500" />
+                                <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
                                 <span>{line}</span>
                               </div>
                               <span
@@ -683,8 +683,8 @@ export function PropComparisonTable({
                                   "font-medium",
                                   over
                                     ? over.price > 0
-                                      ? "text-green-500"
-                                      : "text-red-500"
+                                      ? "text-[hsl(var(--emerald-green))]"
+                                      : "text-[hsl(var(--dark-pastel-red))]"
                                     : "text-muted-foreground"
                                 )}
                               >
@@ -704,7 +704,7 @@ export function PropComparisonTable({
                               )}
                             >
                               <div className="flex items-center gap-1">
-                                <ChevronDown className="h-3 w-3 text-red-500" />
+                                <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
                                 <span>{line}</span>
                               </div>
                               <span
@@ -712,8 +712,8 @@ export function PropComparisonTable({
                                   "font-medium",
                                   under
                                     ? under.price > 0
-                                      ? "text-green-500"
-                                      : "text-red-500"
+                                      ? "text-[hsl(var(--emerald-green))]"
+                                      : "text-[hsl(var(--dark-pastel-red))]"
                                     : "text-muted-foreground"
                                 )}
                               >
@@ -874,7 +874,7 @@ export function PropComparisonTable({
                                         )}
                                       >
                                         <div className="flex items-center gap-1">
-                                          <ChevronUp className="h-3 w-3 text-green-500" />
+                                          <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
                                           <span>{line}</span>
                                         </div>
                                         <span
@@ -882,8 +882,8 @@ export function PropComparisonTable({
                                             "font-medium",
                                             overOutcome
                                               ? overOutcome.price > 0
-                                                ? "text-green-500"
-                                                : "text-red-500"
+                                                ? "text-[hsl(var(--emerald-green))]"
+                                                : "text-[hsl(var(--dark-pastel-red))]"
                                               : "text-muted-foreground"
                                           )}
                                         >
@@ -908,7 +908,7 @@ export function PropComparisonTable({
                                         )}
                                       >
                                         <div className="flex items-center gap-1">
-                                          <ChevronDown className="h-3 w-3 text-red-500" />
+                                          <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
                                           <span>{line}</span>
                                         </div>
                                         <span
@@ -916,8 +916,8 @@ export function PropComparisonTable({
                                             "font-medium",
                                             underOutcome
                                               ? underOutcome.price > 0
-                                                ? "text-green-500"
-                                                : "text-red-500"
+                                                ? "text-[hsl(var(--emerald-green))]"
+                                                : "text-[hsl(var(--dark-pastel-red))]"
                                               : "text-muted-foreground"
                                           )}
                                         >
@@ -968,7 +968,9 @@ export function PropComparisonTable({
                         <div
                           className={cn(
                             "w-2 h-2 rounded-full",
-                            cacheStatus.hit ? "bg-green-500" : "bg-yellow-500"
+                            cacheStatus.hit
+                              ? "bg-[hsl(var(--emerald-green))]"
+                              : "bg-[hsl(var(--maximum-yellow))]"
                           )}
                         />
                         <Clock className="h-3 w-3 mr-1" />
@@ -1252,7 +1254,7 @@ export function PropComparisonTable({
                                         )}
                                       >
                                         <div className="flex items-center gap-1">
-                                          <ChevronUp className="h-3 w-3 text-green-500" />
+                                          <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
                                           <span>{line}</span>
                                         </div>
                                         <span
@@ -1260,8 +1262,8 @@ export function PropComparisonTable({
                                             "font-medium",
                                             overOutcome
                                               ? overOutcome.price > 0
-                                                ? "text-green-500"
-                                                : "text-red-500"
+                                                ? "text-[hsl(var(--emerald-green))]"
+                                                : "text-[hsl(var(--dark-pastel-red))]"
                                               : "text-muted-foreground"
                                           )}
                                         >
@@ -1286,7 +1288,7 @@ export function PropComparisonTable({
                                         )}
                                       >
                                         <div className="flex items-center gap-1">
-                                          <ChevronDown className="h-3 w-3 text-red-500" />
+                                          <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
                                           <span>{line}</span>
                                         </div>
                                         <span
@@ -1294,8 +1296,8 @@ export function PropComparisonTable({
                                             "font-medium",
                                             underOutcome
                                               ? underOutcome.price > 0
-                                                ? "text-green-500"
-                                                : "text-red-500"
+                                                ? "text-[hsl(var(--emerald-green))]"
+                                                : "text-[hsl(var(--dark-pastel-red))]"
                                               : "text-muted-foreground"
                                           )}
                                         >
