@@ -61,6 +61,7 @@ export interface Outcome {
   point?: number;
   description?: string;
   sid?: string;
+  link?: string;
 }
 
 export interface PlayerPropMarket extends Market {
@@ -328,6 +329,7 @@ export async function getEventPlayerProps(
         bookmakers: allBookmakers.join(","),
         oddsFormat: "american",
         includeSids: "true",
+        includeLinks: "true",
       }
     );
 

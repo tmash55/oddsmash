@@ -21,7 +21,6 @@ export default function SportLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <GradientBackground />
       {/* SportsSubNav is now moved to the page components */}
       <main className="flex-1">{children}</main>
     </div>

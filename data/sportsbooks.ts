@@ -6,6 +6,7 @@ export interface Sportsbook {
   regions?: string[];
   isActive?: boolean;
   url?: string;
+  requiresState?: boolean; // Whether this sportsbook requires state in URL
 }
 
 export const sportsbooks: Sportsbook[] = [
@@ -17,6 +18,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://sportsbook.draftkings.com/",
+    requiresState: false,
   },
   {
     id: "fanduel",
@@ -26,6 +28,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://sportsbook.fanduel.com/",
+    requiresState: false,
   },
   {
     id: "betmgm",
@@ -34,7 +37,8 @@ export const sportsbooks: Sportsbook[] = [
     logo_long: "/images/sports-books/betmgm_long.png",
     regions: ["us"],
     isActive: true,
-    url: "https://sports.betmgm.com/",
+    url: "https://sports.{state}.betmgm.com/en/sports",
+    requiresState: true,
   },
   {
     id: "betrivers",
@@ -44,6 +48,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://www.betrivers.com/",
+    requiresState: true,
   },
   {
     id: "williamhill_us",
@@ -53,6 +58,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://www.caesars.com/sportsbook-and-casino",
+    requiresState: true,
   },
   {
     id: "espnbet",
@@ -62,6 +68,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us2"],
     isActive: true,
     url: "https://espnbet.com/",
+    requiresState: false,
   },
   {
     id: "fanatics",
@@ -71,6 +78,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://sportsbook.fanatics.com/",
+    requiresState: false,
   },
   {
     id: "hardrockbet",
@@ -80,6 +88,7 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["u2"],
     isActive: true,
     url: "https://www.hardrock.bet/",
+    requiresState: true,
   },
   {
     id: "pinnacle",
@@ -89,5 +98,6 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["eu"],
     isActive: true,
     url: "https://www.pinnacle.com/en/",
+    requiresState: false,
   },
 ];

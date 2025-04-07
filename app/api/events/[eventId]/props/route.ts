@@ -19,7 +19,15 @@ interface CachedPlayerPropsData {
   commence_time?: string;
   home_team?: string;
   away_team?: string;
+  requests_remaining?: number; // Add this to match the structure
+  requests_used?: number; // Add this to match the structure
   [key: string]: any;
+}
+
+// Define interface for API usage
+interface ApiUsage {
+  requests_remaining: number | null;
+  requests_used: number | null;
 }
 
 export async function GET(
@@ -80,6 +88,19 @@ export async function GET(
           : new Date().toISOString());
 
       response.headers.set("x-last-updated", lastUpdated);
+
+      // Add API usage headers if available in cached data
+      if (cachedData.requests_remaining && cachedData.requests_used) {
+        response.headers.set(
+          "x-requests-remaining",
+          cachedData.requests_remaining.toString()
+        );
+        response.headers.set(
+          "x-requests-used",
+          cachedData.requests_used.toString()
+        );
+      }
+
       return response;
     }
 
@@ -143,11 +164,33 @@ export async function GET(
       marketsToFetchArray
     );
 
+    // Store API usage info in the response if available
+    const apiUsage: ApiUsage = {
+      requests_remaining: null,
+      requests_used: null,
+    };
+
     // Return response with cache status headers
     const response = NextResponse.json(props);
     response.headers.set("x-cache", "MISS");
     response.headers.set("x-cache-key", cacheKey);
     response.headers.set("x-last-updated", new Date().toISOString());
+
+    // Add API usage headers if available
+    if (
+      apiUsage.requests_remaining !== null &&
+      apiUsage.requests_used !== null
+    ) {
+      response.headers.set(
+        "x-requests-remaining",
+        apiUsage.requests_remaining.toString()
+      );
+      response.headers.set(
+        "x-requests-used",
+        apiUsage.requests_used.toString()
+      );
+    }
+
     return response;
   } catch (error) {
     console.error("Error fetching player props:", error);

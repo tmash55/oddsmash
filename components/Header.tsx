@@ -38,6 +38,7 @@ import { useSportsbooks } from "@/contexts/sportsbook-context";
 import { ThemeToggle } from "./theme-toggle";
 import { SportLogo } from "./sport-logo";
 import { sports } from "@/data/sports-data";
+import { StateSelector } from "./state-selector";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -92,7 +93,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b backdrop-blur transition-all duration-300",
+        "sticky top-0 z-50 w-full backdrop-blur transition-all duration-300",
         isScrolled
           ? "bg-background/80 supports-[backdrop-filter]:bg-background/60"
           : "bg-background/95 supports-[backdrop-filter]:bg-background/80"
@@ -196,8 +197,9 @@ export function Header() {
           </NavigationMenu>
         </div>
 
-        {/* Right column - Theme toggle and Sportsbooks button */}
+        {/* Right column - Theme toggle, State selector, and Sportsbooks button */}
         <div className="hidden md:flex justify-end items-center space-x-3">
+          <StateSelector />
           <ThemeToggle />
           <Button
             variant="outline"
@@ -212,6 +214,7 @@ export function Header() {
 
         {/* Mobile Menu Button */}
         <div className="flex justify-end md:hidden col-span-2 space-x-2">
+          <StateSelector />
           <Button
             variant="ghost"
             size="icon"

@@ -5,7 +5,7 @@ export const API_SPORT_IDS = {
   NBA: "basketball_nba",
   NCAAB: "basketball_ncaab",
   MLB: "baseball_mlb",
-  NHL: "hockey_nhl",
+  NHL: "icehockey_nhl",
   NFL: "americanfootball_nfl",
 } as const;
 

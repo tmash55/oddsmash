@@ -94,7 +94,7 @@ export const sports: Sport[] = [
   {
     id: "icehockey_nhl",
     name: "NHL",
-    icon: "/images/sport-league/nhl-logo.png", // Will use the SportIcon component
+    icon: "/images/sport-league/nhl-logo.png",
     active: true,
     useImage: true,
   },

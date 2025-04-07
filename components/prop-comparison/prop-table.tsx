@@ -20,6 +20,7 @@ import {
   SortAsc,
   RefreshCw,
   Clock,
+  ExternalLink,
 } from "lucide-react";
 import {
   Tooltip,
@@ -85,7 +86,8 @@ export function PropComparisonTable({
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
-  const { selectedSportsbooks } = useSportsbookPreferences();
+  const { selectedSportsbooks, userState, formatSportsbookUrl } =
+    useSportsbookPreferences();
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -134,6 +136,55 @@ export function PropComparisonTable({
         return "Points";
     }
   }
+
+  // Function to handle clicking on a betting line
+  const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
+    if (!outcome || !outcome.link || !bookmakerKey) return;
+
+    // Find the sportsbook
+    const sportsbook = sportsbooks.find((sb) => sb.id === bookmakerKey);
+    if (!sportsbook) return;
+
+    let betUrl = outcome.link;
+
+    // Check if this sportsbook requires state information
+    if (sportsbook.requiresState) {
+      // For sportsbooks that need state in the URL
+      if (bookmakerKey === "betmgm") {
+        // Replace {state} in the URL with the user's state
+        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
+      } else if (bookmakerKey === "betrivers") {
+        // Handle BetRivers specific URL format
+        // Extract event ID and other parameters if they exist in the link
+        const eventIdMatch = betUrl.match(/#event\/(\d+)/);
+        const couponMatch = betUrl.match(/\?coupon=([^|]+)\|([^|]+)\|([^&]+)/);
+
+        const params: Record<string, string> = {};
+        if (eventIdMatch && eventIdMatch[1]) {
+          params.eventId = eventIdMatch[1];
+        }
+
+        if (couponMatch) {
+          params.pickType = couponMatch[1];
+          params.selectionId = couponMatch[2];
+          params.wagerAmount = couponMatch[3];
+        }
+
+        // Use the formatSportsbookUrl helper from the hook
+        betUrl = formatSportsbookUrl(bookmakerKey, params);
+      } else if (
+        bookmakerKey === "williamhill_us" ||
+        bookmakerKey === "hardrockbet"
+      ) {
+        // Handle other sportsbooks that might need state information
+        // This is a placeholder - implement specific logic as needed
+        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
+      }
+    }
+
+    // Open the URL in a new tab
+    window.open(betUrl, "_blank", "noopener,noreferrer");
+  };
 
   // Fetch player props when event is selected
   const fetchPlayerProps = async (refresh = false) => {
@@ -474,6 +525,57 @@ export function PropComparisonTable({
     };
   };
 
+  // Render a clickable odds button
+  const renderOddsButton = (
+    outcome: Outcome | null | undefined,
+    isOver: boolean,
+    line: number,
+    isBest: boolean,
+    bookmakerKey: string
+  ) => {
+    const hasLink = outcome && outcome.link;
+
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-between p-1.5 rounded-md border text-sm",
+          isBest ? "bg-primary/10 border-primary" : "",
+          !outcome && "opacity-40",
+          hasLink && "hover:bg-accent/80 cursor-pointer transition-colors"
+        )}
+        onClick={() => hasLink && handleBetClick(outcome, bookmakerKey)}
+        role={hasLink ? "button" : undefined}
+        tabIndex={hasLink ? 0 : undefined}
+      >
+        <div className="flex items-center gap-1">
+          {isOver ? (
+            <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
+          ) : (
+            <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
+          )}
+          <span>{line}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span
+            className={cn(
+              "font-medium",
+              outcome
+                ? outcome.price > 0
+                  ? "text-[hsl(var(--emerald-green))]"
+                  : "text-[hsl(var(--dark-pastel-red))]"
+                : "text-muted-foreground"
+            )}
+          >
+            {outcome ? formatAmericanOdds(outcome.price) : "-"}
+          </span>
+          {hasLink && (
+            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Render the mobile card view
   const renderMobileView = () => {
     if (!currentPlayer) return null;
@@ -664,63 +766,23 @@ export function PropComparisonTable({
 
                       return (
                         <div key={line} className="border-b last:border-0 py-1">
-                          {(showType === "both" || showType === "over") && (
-                            <div
-                              className={cn(
-                                "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                isOverBest
-                                  ? "bg-primary/10 border-primary"
-                                  : "",
-                                !over && "opacity-40"
-                              )}
-                            >
-                              <div className="flex items-center gap-1">
-                                <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
-                                <span>{line}</span>
-                              </div>
-                              <span
-                                className={cn(
-                                  "font-medium",
-                                  over
-                                    ? over.price > 0
-                                      ? "text-[hsl(var(--emerald-green))]"
-                                      : "text-[hsl(var(--dark-pastel-red))]"
-                                    : "text-muted-foreground"
-                                )}
-                              >
-                                {over ? formatAmericanOdds(over.price) : "-"}
-                              </span>
-                            </div>
-                          )}
+                          {(showType === "both" || showType === "over") &&
+                            renderOddsButton(
+                              over,
+                              true,
+                              line,
+                              isOverBest,
+                              bookmaker
+                            )}
 
-                          {(showType === "both" || showType === "under") && (
-                            <div
-                              className={cn(
-                                "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
-                                isUnderBest
-                                  ? "bg-primary/10 border-primary"
-                                  : "",
-                                !under && "opacity-40"
-                              )}
-                            >
-                              <div className="flex items-center gap-1">
-                                <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
-                                <span>{line}</span>
-                              </div>
-                              <span
-                                className={cn(
-                                  "font-medium",
-                                  under
-                                    ? under.price > 0
-                                      ? "text-[hsl(var(--emerald-green))]"
-                                      : "text-[hsl(var(--dark-pastel-red))]"
-                                    : "text-muted-foreground"
-                                )}
-                              >
-                                {under ? formatAmericanOdds(under.price) : "-"}
-                              </span>
-                            </div>
-                          )}
+                          {(showType === "both" || showType === "under") &&
+                            renderOddsButton(
+                              under,
+                              false,
+                              line,
+                              isUnderBest,
+                              bookmaker
+                            )}
                         </div>
                       );
                     })}
@@ -863,72 +925,24 @@ export function PropComparisonTable({
                                     className="border-b last:border-0 py-1"
                                   >
                                     {(showType === "both" ||
-                                      showType === "over") && (
-                                      <div
-                                        className={cn(
-                                          "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                          isOverBest
-                                            ? "bg-primary/10 border-primary"
-                                            : "",
-                                          !overOutcome && "opacity-40"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
-                                          <span>{line}</span>
-                                        </div>
-                                        <span
-                                          className={cn(
-                                            "font-medium",
-                                            overOutcome
-                                              ? overOutcome.price > 0
-                                                ? "text-[hsl(var(--emerald-green))]"
-                                                : "text-[hsl(var(--dark-pastel-red))]"
-                                              : "text-muted-foreground"
-                                          )}
-                                        >
-                                          {overOutcome
-                                            ? formatAmericanOdds(
-                                                overOutcome.price
-                                              )
-                                            : "-"}
-                                        </span>
-                                      </div>
-                                    )}
+                                      showType === "over") &&
+                                      renderOddsButton(
+                                        overOutcome,
+                                        true,
+                                        line,
+                                        isOverBest,
+                                        bookmaker
+                                      )}
 
                                     {(showType === "both" ||
-                                      showType === "under") && (
-                                      <div
-                                        className={cn(
-                                          "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
-                                          isUnderBest
-                                            ? "bg-primary/10 border-primary"
-                                            : "",
-                                          !underOutcome && "opacity-40"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
-                                          <span>{line}</span>
-                                        </div>
-                                        <span
-                                          className={cn(
-                                            "font-medium",
-                                            underOutcome
-                                              ? underOutcome.price > 0
-                                                ? "text-[hsl(var(--emerald-green))]"
-                                                : "text-[hsl(var(--dark-pastel-red))]"
-                                              : "text-muted-foreground"
-                                          )}
-                                        >
-                                          {underOutcome
-                                            ? formatAmericanOdds(
-                                                underOutcome.price
-                                              )
-                                            : "-"}
-                                        </span>
-                                      </div>
-                                    )}
+                                      showType === "under") &&
+                                      renderOddsButton(
+                                        underOutcome,
+                                        false,
+                                        line,
+                                        isUnderBest,
+                                        bookmaker
+                                      )}
                                   </div>
                                 );
                               })}
@@ -1243,72 +1257,24 @@ export function PropComparisonTable({
                                     className="border-b last:border-0 py-1"
                                   >
                                     {(showType === "both" ||
-                                      showType === "over") && (
-                                      <div
-                                        className={cn(
-                                          "flex items-center justify-between p-1.5 rounded-md border text-sm",
-                                          isOverBest
-                                            ? "bg-primary/10 border-primary"
-                                            : "",
-                                          !overOutcome && "opacity-40"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
-                                          <span>{line}</span>
-                                        </div>
-                                        <span
-                                          className={cn(
-                                            "font-medium",
-                                            overOutcome
-                                              ? overOutcome.price > 0
-                                                ? "text-[hsl(var(--emerald-green))]"
-                                                : "text-[hsl(var(--dark-pastel-red))]"
-                                              : "text-muted-foreground"
-                                          )}
-                                        >
-                                          {overOutcome
-                                            ? formatAmericanOdds(
-                                                overOutcome.price
-                                              )
-                                            : "-"}
-                                        </span>
-                                      </div>
-                                    )}
+                                      showType === "over") &&
+                                      renderOddsButton(
+                                        overOutcome,
+                                        true,
+                                        line,
+                                        isOverBest,
+                                        bookmaker
+                                      )}
 
                                     {(showType === "both" ||
-                                      showType === "under") && (
-                                      <div
-                                        className={cn(
-                                          "flex items-center justify-between p-1.5 rounded-md border text-sm mt-2",
-                                          isUnderBest
-                                            ? "bg-primary/10 border-primary"
-                                            : "",
-                                          !underOutcome && "opacity-40"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-1">
-                                          <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
-                                          <span>{line}</span>
-                                        </div>
-                                        <span
-                                          className={cn(
-                                            "font-medium",
-                                            underOutcome
-                                              ? underOutcome.price > 0
-                                                ? "text-[hsl(var(--emerald-green))]"
-                                                : "text-[hsl(var(--dark-pastel-red))]"
-                                              : "text-muted-foreground"
-                                          )}
-                                        >
-                                          {underOutcome
-                                            ? formatAmericanOdds(
-                                                underOutcome.price
-                                              )
-                                            : "-"}
-                                        </span>
-                                      </div>
-                                    )}
+                                      showType === "under") &&
+                                      renderOddsButton(
+                                        underOutcome,
+                                        false,
+                                        line,
+                                        isUnderBest,
+                                        bookmaker
+                                      )}
                                   </div>
                                 );
                               })}
