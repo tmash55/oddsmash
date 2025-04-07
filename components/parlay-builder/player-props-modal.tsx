@@ -721,7 +721,7 @@ export function PlayerPropsModal({
                     className={cn(
                       "flex-none h-12 w-16 flex flex-col items-center justify-center border rounded-md",
                       isSelected
-                        ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
+                        ? "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-sm"
                         : "bg-background/50 hover:bg-accent/50 transition-colors",
                       prop.isAlternate && !isSelected && "border-dashed"
                     )}
@@ -734,7 +734,7 @@ export function PlayerPropsModal({
                     <div
                       className={cn(
                         "text-xs font-medium",
-                        isSelected ? "text-primary-foreground" : ""
+                        isSelected ? "text-primary-foreground/90" : ""
                       )}
                     >
                       {line}+
@@ -743,10 +743,8 @@ export function PlayerPropsModal({
                       className={cn(
                         "text-xs font-semibold",
                         isSelected
-                          ? "text-primary-foreground"
-                          : prop.overOdds > 0
-                          ? "text-[hsl(var(--emerald-green))]"
-                          : "text-[hsl(var(--dark-pastel-red))]"
+                          ? "text-primary-foreground/90 font-bold"
+                          : "text-blue-500 font-bold"
                       )}
                     >
                       {displayOdds(prop.overOdds)}
@@ -817,7 +815,7 @@ export function PlayerPropsModal({
               className={cn(
                 "h-10 flex items-center justify-between px-3 border rounded-md",
                 isOverSelected
-                  ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
+                  ? "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-sm"
                   : "bg-card/50 hover:bg-accent/50 transition-colors"
               )}
               whileHover={{ scale: 1.02 }}
@@ -834,10 +832,8 @@ export function PlayerPropsModal({
                 className={cn(
                   "text-xs font-semibold",
                   isOverSelected
-                    ? "text-primary-foreground"
-                    : standardProp.overOdds > 0
-                    ? "text-[hsl(var(--emerald-green))]"
-                    : "text-[hsl(var(--dark-pastel-red))]"
+                    ? "text-primary-foreground/90 font-bold"
+                    : "text-blue-500 font-bold"
                 )}
               >
                 {standardProp.overOdds
@@ -852,7 +848,7 @@ export function PlayerPropsModal({
               className={cn(
                 "h-10 flex items-center justify-between px-3 border rounded-md",
                 isUnderSelected
-                  ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
+                  ? "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-sm"
                   : "bg-card/50 hover:bg-accent/50 transition-colors"
               )}
               whileHover={{ scale: 1.02 }}
@@ -869,10 +865,8 @@ export function PlayerPropsModal({
                 className={cn(
                   "text-xs font-semibold",
                   isUnderSelected
-                    ? "text-primary-foreground"
-                    : standardProp.underOdds > 0
-                    ? "text-[hsl(var(--emerald-green))]"
-                    : "text-[hsl(var(--dark-pastel-red))]"
+                    ? "text-primary-foreground/90 font-bold"
+                    : "text-blue-500 font-bold"
                 )}
               >
                 {standardProp.underOdds
@@ -1051,7 +1045,7 @@ export function PlayerPropsModal({
                   console.log(`Forcing re-fetch at ${timestamp}`);
                 }}
               >
-                <SelectTrigger className="w-[130px] h-7 text-xs hover:text-primary focus:text-foreground">
+                <SelectTrigger className="w-[130px] h-7 text-xs hover:text-foreground focus:text-foreground">
                   <SelectValue placeholder="Select prop type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1092,7 +1086,7 @@ export function PlayerPropsModal({
                       ease: "linear",
                     }}
                   >
-                    <Loader2 className="h-8 w-8 text-secondary" />
+                    <Loader2 className="h-8 w-8 text-primary" />
                   </motion.div>
                   {/* Update the loading text to use the sportsbook name */}
                   <motion.span
@@ -1271,7 +1265,7 @@ export function PlayerPropsModal({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs hover:text-primary focus:text-foreground"
+                            className="h-6 px-2 text-xs hover:text-foreground focus:text-foreground"
                             onClick={() =>
                               setOverLinesExpanded(!overLinesExpanded)
                             }
@@ -1319,7 +1313,7 @@ export function PlayerPropsModal({
                             >
                               <Button
                                 variant="outline"
-                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70 hover:text-primary"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70 hover:text-foreground"
                                 onClick={() => {
                                   // Toggle between showing initial count and all players
                                   setPlayersToShow(
@@ -1366,7 +1360,7 @@ export function PlayerPropsModal({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs hover:text-primary focus:text-foreground"
+                            className="h-6 px-2 text-xs hover:text-foreground focus:text-foreground"
                             onClick={() =>
                               setOverUnderExpanded(!overUnderExpanded)
                             }
@@ -1414,7 +1408,7 @@ export function PlayerPropsModal({
                             >
                               <Button
                                 variant="outline"
-                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70 hover:text-primary"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70 hover:text-foreground"
                                 onClick={() => {
                                   // Toggle between showing initial count and all players
                                   setPlayersToShow(

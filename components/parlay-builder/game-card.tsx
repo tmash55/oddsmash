@@ -202,15 +202,15 @@ export function GameCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="overflow-hidden mb-3 border-0 shadow-md rounded-xl bg-gradient-to-br from-background to-card/50 hover:shadow-lg transition-all duration-200 mx-1">
+        <Card className="overflow-hidden mb-3 border border-border/10 shadow-md rounded-xl bg-gradient-to-br from-background to-card/30 hover:shadow-lg transition-all duration-300 mx-1 hover:border-primary/20">
           <CardContent className="p-0">
             {/* Desktop View - Improved Sportsbook Style */}
             <div className="hidden sm:block">
-              <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-b hover:from-primary/10 hover:to-primary/15 transition-all duration-200">
+              <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-b hover:from-primary/10 hover:to-primary/15 transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-medium text-base flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-[hsl(var(--emerald-green))]"></span>
+                      <span className="inline-block w-2 h-2 rounded-full bg-[hsl(var(--primary))]"></span>
                       {game.awayTeam.name} @ {game.homeTeam.name}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
@@ -226,17 +226,17 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-3 mb-2 px-1">
                   <div className="col-span-1"></div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-accent/30 px-2 py-0.5 rounded-full">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-secondary/40 px-2 py-0.5 rounded-full">
                       Spread
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-accent/30 px-2 py-0.5 rounded-full">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-secondary/40 px-2 py-0.5 rounded-full">
                       Moneyline
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-accent/30 px-2 py-0.5 rounded-full">
+                    <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground bg-secondary/40 px-2 py-0.5 rounded-full">
                       Total
                     </span>
                   </div>
@@ -246,7 +246,7 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-3 items-center mb-3">
                   <div className="col-span-1 flex items-center">
                     <div className="font-bold text-lg flex items-center gap-2">
-                      <div className="w-1 h-5 bg-primary rounded-full"></div>
+                      <div className="w-1 h-5 bg-[hsl(var(--primary))] rounded-full"></div>
                       {game.awayTeam.name}
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-3 items-center">
                   <div className="col-span-1 flex items-center">
                     <div className="font-bold text-lg flex items-center gap-2">
-                      <div className="w-1 h-5 bg-primary rounded-full"></div>
+                      <div className="w-1 h-5 bg-[hsl(var(--primary))] rounded-full"></div>
                       {game.homeTeam.name}
                     </div>
                   </div>
@@ -334,14 +334,14 @@ export function GameCard({
                 <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between text-primary hover:text-primary hover:bg-secondary/10 border border-primary/20 text-sm transition-all duration-200 group rounded-lg"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-secondary/20 border border-primary/20 text-sm transition-all duration-300 group rounded-lg"
                     onClick={() => setShowPlayerProps(true)}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 bg-secondary rounded-full"></span>
+                      <span className="inline-block w-2 h-2 bg-[hsl(var(--primary))/40] rounded-full"></span>
                       More wagers
                     </span>
-                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </motion.div>
               </div>
@@ -350,9 +350,9 @@ export function GameCard({
             {/* Mobile View - Redesigned Compact Grid Layout */}
             <div className="sm:hidden">
               {/* Game Header */}
-              <div className="p-2 bg-gradient-to-r from-primary/5 to-accent/10 border-b">
+              <div className="p-2 bg-gradient-to-r from-primary/5 to-primary/10 border-b">
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(var(--emerald-green))]"></span>
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))]"></span>
                   {formatGameDate(game.startTime)} •{" "}
                   {formatGameTime(game.startTime)}
                 </div>
@@ -363,7 +363,7 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-0.5 items-center mb-1">
                   <div className="col-span-1">
                     <div className="text-xs font-bold truncate flex items-center gap-1">
-                      <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                      <div className="w-0.5 h-3 bg-[hsl(var(--primary))] rounded-full"></div>
                       {game.awayTeam.name}
                     </div>
                   </div>
@@ -407,7 +407,7 @@ export function GameCard({
                 <div className="grid grid-cols-4 gap-0.5 items-center">
                   <div className="col-span-1">
                     <div className="text-xs font-bold truncate flex items-center gap-1">
-                      <div className="w-0.5 h-3 bg-primary rounded-full"></div>
+                      <div className="w-0.5 h-3 bg-[hsl(var(--primary))] rounded-full"></div>
                       {game.homeTeam.name}
                     </div>
                   </div>
@@ -453,14 +453,14 @@ export function GameCard({
                 <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between text-primary hover:text-primary hover:bg-secondary/10 border border-primary/20 h-6 text-xs transition-all duration-200 group rounded-md"
+                    className="w-full justify-between text-primary hover:text-primary hover:bg-secondary/20 border border-primary/20 h-6 text-xs transition-all duration-300 group rounded-md"
                     onClick={() => setShowPlayerProps(true)}
                   >
                     <span className="flex items-center gap-1">
-                      <span className="inline-block w-1.5 h-1.5 bg-secondary rounded-full"></span>
+                      <span className="inline-block w-1.5 h-1.5 bg-[hsl(var(--primary))/40] rounded-full"></span>
                       More wagers
                     </span>
-                    <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform duration-200" />
+                    <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </motion.div>
               </div>
@@ -543,9 +543,9 @@ function MarketButton({
       <Button
         variant={selected ? "default" : "outline"}
         className={cn(
-          "w-full justify-between h-10 px-3 transition-all duration-200 rounded-lg",
+          "w-full justify-between h-10 px-3 transition-all duration-300 rounded-lg",
           selected
-            ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground shadow-md shadow-primary/20"
+            ? "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-md shadow-[hsl(var(--primary))/20]"
             : "bg-background hover:border-primary/50"
         )}
         onClick={() =>
@@ -558,7 +558,7 @@ function MarketButton({
             <span
               className={cn(
                 "text-sm font-medium",
-                selected ? "" : "text-muted-foreground"
+                selected ? "text-white" : "text-foreground"
               )}
             >
               {market.type === "total"
@@ -571,10 +571,10 @@ function MarketButton({
         <span
           className={cn(
             "text-sm font-mono tracking-tight",
-            !selected && hasOdds
-              ? odds > 0
-                ? "text-[hsl(var(--emerald-green))] font-bold"
-                : "text-[hsl(var(--dark-pastel-red))] font-bold"
+            selected
+              ? "text-white font-bold"
+              : hasOdds
+              ? "text-blue-500 font-bold"
               : ""
           )}
         >
@@ -638,9 +638,9 @@ function MobileMarketButton({
     <motion.div whileTap={{ scale: 0.95 }}>
       <button
         className={cn(
-          "h-8 rounded-md flex flex-col items-center justify-center transition-all duration-200 w-full px-0.5",
+          "h-8 rounded-md flex flex-col items-center justify-center transition-all duration-300 w-full px-0.5",
           selected
-            ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground shadow-sm shadow-primary/20"
+            ? "bg-[hsl(var(--primary))] border border-[hsl(var(--primary))] shadow-sm shadow-[hsl(var(--primary))/20]"
             : "bg-card/50 hover:bg-card/70"
         )}
         onClick={() =>
@@ -663,10 +663,10 @@ function MobileMarketButton({
           <div
             className={cn(
               "text-[10px] font-mono tracking-tight",
-              !selected && isPositiveOdds
-                ? "text-[hsl(var(--emerald-green))] font-bold"
-                : !selected && hasOdds
-                ? "text-[hsl(var(--dark-pastel-red))] font-bold"
+              selected
+                ? "text-white font-bold"
+                : hasOdds
+                ? "text-blue-500 font-bold"
                 : ""
             )}
           >

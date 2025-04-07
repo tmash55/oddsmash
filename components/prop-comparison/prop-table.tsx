@@ -539,7 +539,7 @@ export function PropComparisonTable({
       <div
         className={cn(
           "flex items-center justify-between p-1.5 rounded-md border text-sm",
-          isBest ? "bg-primary/10 border-primary" : "",
+          isBest ? "bg-primary/10 border-primary text-primary-foreground" : "",
           !outcome && "opacity-40",
           hasLink && "hover:bg-accent/80 cursor-pointer transition-colors"
         )}
@@ -549,11 +549,17 @@ export function PropComparisonTable({
       >
         <div className="flex items-center gap-1">
           {isOver ? (
-            <ChevronUp className="h-3 w-3 text-[hsl(var(--emerald-green))]" />
+            <ChevronUp className="h-3 w-3 text-primary" />
           ) : (
-            <ChevronDown className="h-3 w-3 text-[hsl(var(--dark-pastel-red))]" />
+            <ChevronDown className="h-3 w-3 text-red-500" />
           )}
-          <span>{line}</span>
+          <span
+            className={cn(
+              isBest ? "text-primary font-medium" : "text-foreground"
+            )}
+          >
+            {line}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <span
@@ -561,8 +567,8 @@ export function PropComparisonTable({
               "font-medium",
               outcome
                 ? outcome.price > 0
-                  ? "text-[hsl(var(--emerald-green))]"
-                  : "text-[hsl(var(--dark-pastel-red))]"
+                  ? "text-primary"
+                  : "text-red-500"
                 : "text-muted-foreground"
             )}
           >
@@ -648,8 +654,8 @@ export function PropComparisonTable({
                 className={cn(
                   "font-bold",
                   bestOver && bestOver.odds > 0
-                    ? "text-[hsl(var(--emerald-green))]"
-                    : "text-[hsl(var(--dark-pastel-red))]"
+                    ? "text-primary"
+                    : "text-red-500"
                 )}
               >
                 {bestOver ? formatAmericanOdds(bestOver.odds) : "-"}
@@ -659,7 +665,7 @@ export function PropComparisonTable({
 
           <div className="p-4 bg-primary/5 rounded-lg border">
             <div className="flex items-center gap-1 mb-2">
-              <ChevronDown className="h-4 w-4 text-[hsl(var(--dark-pastel-red))]" />
+              <ChevronDown className="h-4 w-4 text-red-500" />
               <span className="font-medium">Best Under</span>
             </div>
             <div className="flex items-center justify-between">
@@ -689,8 +695,8 @@ export function PropComparisonTable({
                 className={cn(
                   "font-bold",
                   bestUnder && bestUnder.odds > 0
-                    ? "text-[hsl(var(--emerald-green))]"
-                    : "text-[hsl(var(--dark-pastel-red))]"
+                    ? "text-primary"
+                    : "text-red-500"
                 )}
               >
                 {bestUnder ? formatAmericanOdds(bestUnder.odds) : "-"}
@@ -1249,7 +1255,7 @@ export function PropComparisonTable({
                                 const isUnderBest =
                                   underOutcome &&
                                   bestOdds &&
-                                  underOutcome.price === bestOdds.under;
+                                  overOutcome.price === bestOdds.under;
 
                                 return (
                                   <div
