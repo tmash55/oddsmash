@@ -178,10 +178,10 @@ export function Betslip({
     sportsbook: string
   ): number | null => {
     if (legs.length === 0) return null;
-    if (legs.length === 1) {
-      // If only one leg, just return its odds directly
-      const leg = legs[0];
 
+    // If just one leg, return its odds directly
+    if (legs.length === 1) {
+      const leg = legs[0];
       if (leg.type === "player-prop" && leg.propData) {
         return getPlayerPropOdds(leg, sportsbook) || null;
       }
@@ -197,11 +197,10 @@ export function Betslip({
         }
       });
 
-      if (!market) return null;
-      return market.odds?.[sportsbook] || null;
+      return market?.odds?.[sportsbook] || null;
     }
 
-    // Get individual leg odds
+    // Fetch all leg odds
     const legOdds = legs.map((leg) => {
       if (leg.type === "player-prop" && leg.propData) {
         return getPlayerPropOdds(leg, sportsbook) || 0;
@@ -218,69 +217,34 @@ export function Betslip({
         }
       });
 
-      if (!market) return 0;
-      return market.odds?.[sportsbook] || 0;
+      return market?.odds?.[sportsbook] || 0;
     });
 
-    // Check if we have odds for all legs
     if (legOdds.some((odds) => odds === 0)) return null;
 
-    // Convert to decimal odds
-    const decimalOdds = legOdds.map((odds) => {
-      if (odds > 0) {
-        return odds / 100 + 1;
-      } else {
-        return 100 / Math.abs(odds) + 1;
-      }
-    });
+    // Convert American to Decimal odds
+    const decimalOdds = legOdds.map((odds) =>
+      odds > 0 ? odds / 100 + 1 : 100 / Math.abs(odds) + 1
+    );
 
-    // Analyze the leg types to determine correlation approach
-    const marketTypes = legs.map((leg) => leg.type);
+    // Base total: multiply all decimal odds
+    const baseDecimal = decimalOdds.reduce((acc, val) => acc * val, 1);
 
-    // Check for specific market combinations
-    const hasSpread = marketTypes.includes("spread");
-    const hasTotal = marketTypes.includes("total");
-    const hasMoneyline = marketTypes.includes("moneyline");
-    const hasPlayerProps = marketTypes.includes("player-prop");
+    // Smart correlation adjustment
+    const numLegs = legs.length;
+    const baseCorrelationFactor = 0.72; // base reduction factor (FanDuel-style)
 
-    // Initialize correlation adjustment
-    let correlationAdjustment = 1.0;
+    // Apply exponential decay: the more legs, the greater the trim
+    const correlationMultiplier = Math.pow(baseCorrelationFactor, numLegs - 1);
 
-    // Different correlation scenarios based on market combinations
-    if (hasMoneyline && hasPlayerProps) {
-      // Moneyline + Player Props often have positive correlation
-      // (e.g., if a team wins, their star player likely scored more)
-      correlationAdjustment = 1.15; // 15% boost
-    } else if (hasSpread && hasTotal) {
-      // Spread + Total often have negative correlation
-      correlationAdjustment = 0.85; // 15% reduction
-    } else if (
-      hasPlayerProps &&
-      legs.filter((l) => l.type === "player-prop").length > 1
-    ) {
-      // Multiple player props from same game often have positive correlation
-      correlationAdjustment = 1.1; // 10% boost
-    }
-
-    // Calculate the combined decimal odds with correlation adjustment
-    // For positive correlation (>1.0), we boost the odds
-    // For negative correlation (<1.0), we reduce the odds
-    let combinedDecimalOdds = 1;
-
-    // Multiply all decimal odds
-    for (const odds of decimalOdds) {
-      combinedDecimalOdds *= odds;
-    }
-
-    // Apply correlation adjustment
-    combinedDecimalOdds = Math.pow(combinedDecimalOdds, correlationAdjustment);
+    const adjustedDecimal = baseDecimal * correlationMultiplier;
 
     // Convert back to American odds
     let americanOdds;
-    if (combinedDecimalOdds >= 2) {
-      americanOdds = Math.round((combinedDecimalOdds - 1) * 100);
+    if (adjustedDecimal >= 2) {
+      americanOdds = Math.round((adjustedDecimal - 1) * 100);
     } else {
-      americanOdds = Math.round(-100 / (combinedDecimalOdds - 1));
+      americanOdds = Math.round(-100 / (adjustedDecimal - 1));
     }
 
     return americanOdds;
