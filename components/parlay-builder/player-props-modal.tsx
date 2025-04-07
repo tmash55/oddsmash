@@ -668,7 +668,7 @@ export function PlayerPropsModal({
         transition={{ duration: 0.3, delay: index * 0.05 }}
       >
         <div className="flex items-center gap-1.5 mb-1">
-          <Avatar className="h-7 w-7 border bg-gradient-to-br from-primary/5 to-primary/20">
+          <Avatar className="h-7 w-7 border bg-gradient-to-br from-primary/5 to-accent/20">
             <AvatarImage src={getPlayerAvatar(player)} alt={player} />
             <AvatarFallback>{player.charAt(0)}</AvatarFallback>
           </Avatar>
@@ -704,7 +704,7 @@ export function PlayerPropsModal({
                     className={cn(
                       "flex-none h-12 w-12 flex flex-col items-center justify-center border rounded-md",
                       isSelected
-                        ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-primary shadow-sm"
+                        ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
                         : "bg-background/50 hover:bg-accent/50 transition-colors",
                       prop.isAlternate && !isSelected && "border-dashed"
                     )}
@@ -728,8 +728,8 @@ export function PlayerPropsModal({
                         isSelected
                           ? "text-primary-foreground"
                           : prop.overOdds > 0
-                          ? "text-green-500"
-                          : "text-red-500"
+                          ? "text-[hsl(var(--emerald-green))]"
+                          : "text-[hsl(var(--dark-pastel-red))]"
                       )}
                     >
                       {displayOdds(prop.overOdds)}
@@ -776,7 +776,7 @@ export function PlayerPropsModal({
         transition={{ duration: 0.3, delay: index * 0.05 }}
       >
         <div className="flex items-center gap-1.5 mb-1">
-          <Avatar className="h-7 w-7 border bg-gradient-to-br from-primary/5 to-primary/20">
+          <Avatar className="h-7 w-7 border bg-gradient-to-br from-primary/5 to-accent/20">
             <AvatarImage src={getPlayerAvatar(player)} alt={player} />
             <AvatarFallback>{player.charAt(0)}</AvatarFallback>
           </Avatar>
@@ -799,8 +799,8 @@ export function PlayerPropsModal({
             className={cn(
               "flex-1 h-10 flex items-center justify-between px-3 border rounded-md",
               isOverSelected
-                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-primary shadow-sm"
-                : "bg-background/50 hover:bg-accent/50 transition-colors"
+                ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
+                : "bg-card/50 hover:bg-accent/50 transition-colors"
             )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -816,8 +816,8 @@ export function PlayerPropsModal({
                 isOverSelected
                   ? "text-primary-foreground"
                   : standardProp.overOdds > 0
-                  ? "text-green-500"
-                  : "text-red-500"
+                  ? "text-[hsl(var(--emerald-green))]"
+                  : "text-[hsl(var(--dark-pastel-red))]"
               )}
             >
               {standardProp.overOdds
@@ -832,8 +832,8 @@ export function PlayerPropsModal({
             className={cn(
               "flex-1 h-10 flex items-center justify-between px-3 border rounded-md",
               isUnderSelected
-                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-primary shadow-sm"
-                : "bg-background/50 hover:bg-accent/50 transition-colors"
+                ? "bg-gradient-to-br from-primary to-secondary/80 text-primary-foreground border-primary shadow-sm"
+                : "bg-card/50 hover:bg-accent/50 transition-colors"
             )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -849,8 +849,8 @@ export function PlayerPropsModal({
                 isUnderSelected
                   ? "text-primary-foreground"
                   : standardProp.underOdds > 0
-                  ? "text-green-500"
-                  : "text-red-500"
+                  ? "text-[hsl(var(--emerald-green))]"
+                  : "text-[hsl(var(--dark-pastel-red))]"
               )}
             >
               {standardProp.underOdds
@@ -922,7 +922,7 @@ export function PlayerPropsModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[95vw] sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] p-0 max-h-[90vh] flex flex-col overflow-hidden rounded-xl">
           {/* DialogHeader */}
-          <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+          <DialogHeader className="px-3 py-2 border-b bg-gradient-to-r from-primary/5 to-accent/10">
             <div className="flex items-center justify-between w-full">
               {isMobile && (
                 <Button
@@ -938,7 +938,7 @@ export function PlayerPropsModal({
 
               <div className="flex flex-col items-center space-y-1 mx-auto">
                 <DialogTitle className="text-base flex items-center gap-1.5">
-                  <Zap className="h-4 w-4 text-primary" />
+                  <Zap className="h-4 w-4 text-secondary" />
                   Player Props
                 </DialogTitle>
                 <Badge
@@ -1069,7 +1069,7 @@ export function PlayerPropsModal({
                       ease: "linear",
                     }}
                   >
-                    <Loader2 className="h-8 w-8 text-primary" />
+                    <Loader2 className="h-8 w-8 text-secondary" />
                   </motion.div>
                   {/* Update the loading text to use the sportsbook name */}
                   <motion.span
@@ -1229,14 +1229,14 @@ export function PlayerPropsModal({
                       {/* Over Lines Section with its own expand/collapse */}
                       <div className="mb-4">
                         <motion.div
-                          className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
+                          className="mb-2 bg-gradient-to-r from-primary/5 to-accent/10 p-1.5 rounded-lg flex justify-between items-center"
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3 }}
                         >
                           <div>
                             <h3 className="text-xs font-medium flex items-center">
-                              <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
+                              <span className="bg-secondary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
                                 <TrendingUp className="h-2.5 w-2.5" />
                               </span>
                               {getCurrentMarketName()} Over Lines
@@ -1298,7 +1298,7 @@ export function PlayerPropsModal({
                             >
                               <Button
                                 variant="outline"
-                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70"
                                 onClick={() =>
                                   setOverLinesExpanded(!overLinesExpanded)
                                 }
@@ -1326,14 +1326,14 @@ export function PlayerPropsModal({
                       {/* Over/Under Section with its own expand/collapse */}
                       <div>
                         <motion.div
-                          className="mb-2 bg-gradient-to-r from-primary/5 to-primary/10 p-1.5 rounded-lg flex justify-between items-center"
+                          className="mb-2 bg-gradient-to-r from-primary/5 to-accent/10 p-1.5 rounded-lg flex justify-between items-center"
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: 0.1 }}
                         >
                           <div>
                             <h3 className="text-xs font-medium flex items-center">
-                              <span className="bg-primary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
+                              <span className="bg-secondary/20 text-primary rounded-full w-4 h-4 inline-flex items-center justify-center mr-1">
                                 <ArrowRight className="h-2.5 w-2.5" />
                               </span>
                               {getCurrentMarketName()} Over/Under
@@ -1395,7 +1395,7 @@ export function PlayerPropsModal({
                             >
                               <Button
                                 variant="outline"
-                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-muted/50 hover:from-muted/30 hover:to-muted/70"
+                                className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-background to-card/50 hover:from-card/30 hover:to-card/70"
                                 onClick={() =>
                                   setOverUnderExpanded(!overUnderExpanded)
                                 }
