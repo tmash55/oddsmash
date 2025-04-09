@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Header />
 
             {/* Apply full width on mobile, container with padding on larger screens */}
-            <main className="w-full px-0 sm:px-4 md:px-6 mx-auto">
+            <main className="w-full px-0 sm:px-4 md:px-6 lg:px-8 mx-auto max-w-screen-2xl">
               {children}
             </main>
             <Toaster />

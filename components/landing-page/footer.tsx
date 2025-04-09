@@ -1,158 +1,183 @@
+"use client";
+
 import Link from "next/link";
+import { ChevronRight, Mail, Twitter, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Facebook, Instagram, Twitter } from "lucide-react";
 
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="border-t bg-muted/50">
-      <div className="container px-4 py-12 md:px-6 md:py-16 lg:py-20">
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <Link href="/" className="inline-block">
-              <span className="text-xl font-bold text-primary">SmashOdds</span>
-            </Link>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Find the best odds across major sportsbooks, track promotions, and
-              make smarter betting decisions.
-            </p>
-            <div className="mt-6 flex space-x-4">
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="#">
-                  <Twitter className="h-4 w-4" />
-                  <span className="sr-only">Twitter</span>
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="#">
-                  <Instagram className="h-4 w-4" />
-                  <span className="sr-only">Instagram</span>
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="#">
-                  <Facebook className="h-4 w-4" />
-                  <span className="sr-only">Facebook</span>
-                </Link>
-              </Button>
+    <footer className="w-full bg-background border-t border-border/40">
+      <div className="container px-4 py-12 mx-auto">
+        {/* Mobile-first footer layout */}
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8">
+          {/* Branding & Newsletter - Full width on mobile, 5 cols on desktop */}
+          <div className="md:col-span-5 space-y-6">
+            <div className="flex flex-col space-y-4">
+              <Link href="/" className="flex items-center space-x-2">
+                <span className="font-bold text-2xl">BetterOdds</span>
+              </Link>
+              <p className="text-muted-foreground text-sm">
+                Compare odds across sportsbooks to maximize your potential
+                returns. Never leave money on the table again.
+              </p>
+            </div>
+
+            {/* Newsletter signup */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Subscribe to our newsletter</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="max-w-xs"
+                />
+                <Button size="sm" className="w-full sm:w-auto">
+                  Subscribe
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                We'll never share your email. Unsubscribe anytime.
+              </p>
             </div>
           </div>
-          <div>
-            <h3 className="text-sm font-medium">Tools</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Prop Comparison
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Promo Calendar
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Parlay Builder
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Historical Trends
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Company</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Blog
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Subscribe</h3>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Get the latest odds and promotions delivered to your inbox.
-            </p>
-            <form className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="h-9"
-              />
-              <Button type="submit" className="h-9">
-                Subscribe
-              </Button>
-            </form>
-          </div>
-        </div>
-        <div className="mt-12 border-t pt-8">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <p className="text-center text-sm text-muted-foreground">
-              © {new Date().getFullYear()} SmashOdds. All rights reserved.
-            </p>
-            <div className="flex gap-4">
+
+          {/* Quick Links - Full width on mobile, 3 cols on desktop */}
+          <div className="md:col-span-3 space-y-4">
+            <h3 className="text-base font-semibold">Quick Links</h3>
+            <nav className="flex flex-col space-y-2">
               <Link
-                href="#"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                href="/mlb/player-props"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                MLB Props
+              </Link>
+              <Link
+                href="/nba/player-props"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                NBA Props
+              </Link>
+              <Link
+                href="/nfl/player-props"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                NFL Props
+              </Link>
+              <Link
+                href="/parlay-builder"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Parlay Builder
+              </Link>
+            </nav>
+          </div>
+
+          {/* Company Links - Full width on mobile, 2 cols on desktop */}
+          <div className="md:col-span-2 space-y-4">
+            <h3 className="text-base font-semibold">Company</h3>
+            <nav className="flex flex-col space-y-2">
+              <Link
+                href="/about-us"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                About Us
+              </Link>
+              <Link
+                href="/contact"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Contact
+              </Link>
+
+              <Link
+                href="/blog"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Blog
+              </Link>
+            </nav>
+          </div>
+
+          {/* Legal Links - Full width on mobile, 2 cols on desktop */}
+          <div className="md:col-span-2 space-y-4">
+            <h3 className="text-base font-semibold">Legal</h3>
+            <nav className="flex flex-col space-y-2">
+              <Link
+                href="/terms-of-service"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Terms of Service
               </Link>
               <Link
-                href="#"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                href="/privacy-policy"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy Policy
               </Link>
               <Link
-                href="#"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                href="/responsible-gambling"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cookies
+                Responsible Gambling
               </Link>
-            </div>
+            </nav>
+          </div>
+        </div>
+
+        {/* Bottom section with social links and copyright */}
+        <div className="flex flex-col md:flex-row justify-between items-center mt-12 pt-8 border-t border-border/40">
+          <div className="flex space-x-6 mb-4 md:mb-0">
+            <a
+              href="https://twitter.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Twitter"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Twitter className="h-5 w-5" />
+            </a>
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Instagram className="h-5 w-5" />
+            </a>
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Facebook className="h-5 w-5" />
+            </a>
+            <a
+              href="mailto:info@betterodds.com"
+              aria-label="Email"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Mail className="h-5 w-5" />
+            </a>
+          </div>
+
+          <div className="text-sm text-muted-foreground text-center md:text-right">
+            <p>© {currentYear} OddSmash. All rights reserved.</p>
+            <p className="mt-1 text-xs">
+              21+ | Please gamble responsibly |{" "}
+              <Link
+                href="/responsible-gambling"
+                className="underline hover:text-foreground"
+              >
+                Get Help
+              </Link>
+            </p>
           </div>
         </div>
       </div>

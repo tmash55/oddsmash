@@ -32,65 +32,60 @@ export function FaqSection() {
           <div className="mx-auto max-w-3xl">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger>
-                  What sportsbooks do you compare?
-                </AccordionTrigger>
+                <AccordionTrigger>Is OddSmash really free?</AccordionTrigger>
                 <AccordionContent>
-                  We compare odds and promotions from all major U.S.
-                  sportsbooks, including but not limited to DraftKings, FanDuel,
-                  BetMGM, Caesars, PointsBet, and more. Our coverage varies by
-                  state due to different legalization status.
+                  Yep — 100% free to use with no sign-up required. Just head to
+                  the tools and start comparing odds right away.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger>Is SmashOdds free to use?</AccordionTrigger>
+                <AccordionTrigger>
+                  What sportsbooks are included?
+                </AccordionTrigger>
                 <AccordionContent>
-                  We offer both free and premium tiers. The free tier gives you
-                  access to basic odds comparison, while our premium
-                  subscription unlocks all features including the promo
-                  calendar, parlay builder, and historical trends.
+                  OddsMash compares player props and parlays from all major U.S.
+                  sportsbooks like DraftKings, FanDuel, Caesars, BetMGM, ESPN
+                  Bet, and more. Coverage may vary based on your location.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
                 <AccordionTrigger>
-                  How often are the odds updated?
+                  How does the Parlay Builder work?
                 </AccordionTrigger>
                 <AccordionContent>
-                  Our odds are updated in near real-time, typically within 1-2
-                  minutes of any change at the sportsbooks. This ensures you
-                  always have the most current information when making betting
-                  decisions.
+                  Add legs to your parlay and we&apos;ll instantly show you
+                  which sportsbook is offering the highest payout. Then click to
+                  add it directly to your betslip.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-4">
-                <AccordionTrigger>What sports do you cover?</AccordionTrigger>
+                <AccordionTrigger>
+                  Do you update odds in real-time?
+                </AccordionTrigger>
                 <AccordionContent>
-                  We currently cover all major U.S. sports including NFL, NBA,
-                  MLB, NHL, and NCAA football and basketball. We also cover
-                  popular international sports like soccer, tennis, golf, and
-                  MMA/UFC.
+                  We update odds frequently throughout the day — and the closer
+                  we get to game time, the more often we check for changes. This
+                  ensures you&apos;re seeing the most accurate and current lines
+                  when it matters most.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-5">
-                <AccordionTrigger>
-                  Can I place bets directly through SmashOdds?
-                </AccordionTrigger>
+                <AccordionTrigger>What is the Promo Calendar?</AccordionTrigger>
                 <AccordionContent>
-                  No, SmashOdds is an odds comparison and betting tools
-                  platform. We provide links to the sportsbooks where you can
-                  place your bets, but we do not handle any betting transactions
-                  ourselves.
+                  Our upcoming Promo Calendar will highlight the best sportsbook
+                  recurring promotions available each day — so you never miss a
+                  bonus or boost again.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-6">
                 <AccordionTrigger>
-                  How do I get started with SmashOdds?
+                  Can I bet directly on OddsMash?
                 </AccordionTrigger>
                 <AccordionContent>
-                  Simply create a free account to start using our basic
-                  features. You can explore the platform and decide if you want
-                  to upgrade to our premium tier for access to all tools and
-                  features.
+                  No, OddsMash doesn&apos;t take bets — we show you where the
+                  best lines are, then link you directly to the sportsbook to
+                  place your bet. Always double check your bet with the
+                  sportsbook before placing a bet.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

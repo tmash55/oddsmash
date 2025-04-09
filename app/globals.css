@@ -58,9 +58,9 @@
     --highlight-bg: 137 76% 15%; /* Deep emerald hover or highlight background */
   }
   .dark {
-    --background: 20 14.3% 4.1%;
+    --background: 222.2 84% 4.9%;
     --foreground: 0 0% 95%;
-    --card: 24 9.8% 10%;
+    --card: 220 13% 9%;
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 95%;

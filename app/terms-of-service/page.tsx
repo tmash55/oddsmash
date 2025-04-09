@@ -57,39 +57,44 @@ const TOS = () => {
           className="leading-relaxed whitespace-pre-wrap"
           style={{ fontFamily: "sans-serif" }}
         >
-          {`Last Updated: September 26, 2023
+          {`Terms of Service
+Effective Date: April 8, 2025
 
-Welcome to ShipFast!
+Welcome to Oddsmash! These Terms of Service (“Terms”) govern your use of our website and tools.
 
-These Terms of Service ("Terms") govern your use of the ShipFast website at https://shipfa.st ("Website") and the services provided by ShipFast. By using our Website and services, you agree to these Terms.
+1. About Oddsmash
+Oddsmash is a sports betting analytics platform designed to help users compare player props, build parlays, identify promotions, and shop for the best odds across major U.S. sportsbooks. Our tools are intended for informational and entertainment purposes only. Oddsmash does not facilitate, process, or accept any form of bets or wagers.
 
-1. Description of ShipFast
+2. Disclaimer
+You are solely responsible for verifying all betting selections and lines once redirected to a sportsbook. Odds, props, and market values displayed on Oddsmash may differ from those available on sportsbook websites due to frequent changes and updates.
+Oddsmash is not liable for any losses, missed winnings, or incorrect wagers made after using our tools. We are not responsible for your betting outcomes.
 
-ShipFast is a platform that offers a JavaScript code boilerplate to assist entrepreneurs in launching their startups more efficiently.
+3. No Betting or Gambling Services
+Oddsmash is not a sportsbook and does not accept or place bets on behalf of users. We do not offer real-money wagering or betting capabilities of any kind.
 
-2. Ownership and Usage Rights
+4. User Conduct
+By using Oddsmash, you agree to only access our tools for personal, non-commercial use. You may not use our platform to scrape data or impersonate other users.
 
-When you purchase a package from ShipFast, you gain the right to download and use the code provided for creating applications. You own the code you create but do not have the right to resell it. We offer a full refund within 7 days of purchase, as specified in our refund policy.
+5. Data Collection
+We collect user information such as email, name, and usage behavior to improve your experience. Please review our Privacy Policy for full details.
 
-3. User Data and Privacy
+6. External Links
+We provide outbound links to sportsbook websites for user convenience. We are not affiliated with these sportsbooks and make no guarantees regarding the accuracy, terms, or services provided by them.
 
-We collect and store user data, including name, email, and payment information, as necessary to provide our services. For details on how we handle your data, please refer to our Privacy Policy at https://shipfa.st/privacy-policy.
+7. Availability
+Our tools are provided “as is.” We do our best to ensure high availability and accurate data, but we do not guarantee uninterrupted or error-free service.
 
-4. Non-Personal Data Collection
+8. Age Requirement
+You must be at least 18 years old, or the legal betting age in your jurisdiction, to use Oddsmash. It is your responsibility to follow applicable laws.
 
-We use web cookies to collect non-personal data for the purpose of improving our services and user experience.
+9. Changes to Terms
+We may update these Terms from time to time. Any significant updates will be communicated via email or on the site.
 
-5. Governing Law
+10. Governing Law
+These Terms are governed by the laws of the United States and the state in which the company operates.
 
-These Terms are governed by the laws of France.
-
-6. Updates to the Terms
-
-We may update these Terms from time to time. Users will be notified of any changes via email.
-
-For any questions or concerns regarding these Terms of Service, please contact us at marc@shipfa.st.
-
-Thank you for using ShipFast!`}
+11. Contact
+For questions or concerns, please email us at support@oddsmash.io.`}
         </pre>
       </div>
     </main>
