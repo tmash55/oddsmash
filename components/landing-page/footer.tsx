@@ -40,7 +40,7 @@ export function Footer() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                We'll never share your email. Unsubscribe anytime.
+                We&apos;ll never share your email. Unsubscribe anytime.
               </p>
             </div>
           </div>
