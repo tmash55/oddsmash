@@ -60,7 +60,7 @@ const PrivacyPolicy = () => {
           {`Privacy Policy
 Effective Date: April 8, 2025
 
-Thank you for using Oddsmash. This Privacy Policy outlines how we collect, use, and protect your information.
+Thank you for using OddSmash. This Privacy Policy outlines how we collect, use, and protect your information.
 
 1. Information We Collect
 We do not collect personal information such as names, passwords, or payment details. The only personal data we collect is your email address, and only if you voluntarily provide it by signing up for our newsletter.
@@ -81,10 +81,10 @@ Improve site performance
 Understand how visitors interact with the platform
 
 3. Data Sharing
-We do not sell, rent, or share your personal information with any third parties. Your data is used solely to improve your experience with Oddsmash.
+We do not sell, rent, or share your personal information with any third parties. Your data is used solely to improve your experience with OddSmash.
 
 4. Age Requirement
-Oddsmash is intended for users 18 years of age or older. By using the site, you confirm that you meet this age requirement.
+OddSmash is intended for users 18 years of age or older. By using the site, you confirm that you meet this age requirement.
 
 5. Children's Privacy
 We do not knowingly collect or store data from children under the age of 13. If you believe a child has submitted data to us, please contact us immediately.

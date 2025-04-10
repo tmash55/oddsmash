@@ -68,7 +68,10 @@ export function SportsbookSelector() {
   const [activeTab, setActiveTab] = useState<"sportsbooks" | "location">(
     "sportsbooks"
   );
+
+  // Improved media queries for better responsiveness
   const isMobile = useMediaQuery("(max-width: 640px)");
+  const isSmallMobile = useMediaQuery("(max-width: 380px)");
 
   // Reset temp selections when dialog opens
   const handleOpenChange = (open: boolean) => {
@@ -186,15 +189,21 @@ export function SportsbookSelector() {
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             variant="outline"
-            size="sm"
-            className="gap-2 border-border/60 bg-background/80 hover:bg-background/90 hover:border-primary/30 transition-all duration-200"
+            size={isSmallMobile ? "sm" : "default"}
+            className="gap-1.5 border-border/60 bg-background/80 hover:bg-background/90 hover:border-primary/30 transition-all duration-200"
           >
-            <Settings2 className="h-4 w-4 text-primary/70" />
-            <span>Sportsbooks</span>
+            <Settings2
+              className={cn(
+                "text-primary/70",
+                isSmallMobile ? "h-3.5 w-3.5" : "h-4 w-4"
+              )}
+            />
+            <span className={isSmallMobile ? "text-sm" : ""}>Sportsbooks</span>
             <Badge
               variant="outline"
               className={cn(
                 "ml-1 bg-primary/10 text-primary text-xs",
+                isSmallMobile && "text-[10px] px-1.5 py-0",
                 tempSelections.length === maxSelections &&
                   "bg-green-500/10 text-green-500"
               )}
@@ -208,14 +217,18 @@ export function SportsbookSelector() {
         className={cn(
           "p-0 overflow-hidden",
           isMobile
-            ? "w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] rounded-lg"
-            : "sm:max-w-[450px]"
+            ? "w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] h-[80vh] max-h-[80vh] rounded-lg"
+            : "sm:max-w-[450px] max-h-[85vh]"
         )}
       >
         <DialogHeader className={cn("px-4 sm:px-6 pt-4 sm:pt-6 pb-2")}>
-          <DialogTitle className="text-xl">Sportsbook Settings</DialogTitle>
-          <DialogDescription className="flex items-center gap-1.5">
-            <span>Customize your sportsbook preferences</span>
+          <DialogTitle className={cn("text-xl", isSmallMobile && "text-lg")}>
+            Sportsbook Settings
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-1.5 flex-wrap">
+            <span className={isSmallMobile ? "text-xs" : ""}>
+              Customize your sportsbook preferences
+            </span>
             <TooltipProvider>
               <Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
                 <TooltipTrigger asChild onClick={(e) => e.preventDefault()}>
@@ -247,12 +260,18 @@ export function SportsbookSelector() {
               value="sportsbooks"
               className="flex items-center gap-1.5"
             >
-              <Settings2 className="h-4 w-4" />
-              <span>Sportsbooks</span>
+              <Settings2
+                className={cn("h-4 w-4", isSmallMobile && "h-3.5 w-3.5")}
+              />
+              <span className={isSmallMobile ? "text-xs" : ""}>
+                Sportsbooks
+              </span>
             </TabsTrigger>
             <TabsTrigger value="location" className="flex items-center gap-1.5">
-              <MapPin className="h-4 w-4" />
-              <span>Location</span>
+              <MapPin
+                className={cn("h-4 w-4", isSmallMobile && "h-3.5 w-3.5")}
+              />
+              <span className={isSmallMobile ? "text-xs" : ""}>Location</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -260,8 +279,13 @@ export function SportsbookSelector() {
         {activeTab === "sportsbooks" && (
           <>
             <div className={cn("px-4 sm:px-6 py-2")}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                <div
+                  className={cn(
+                    "text-sm text-muted-foreground",
+                    isSmallMobile && "text-xs"
+                  )}
+                >
                   {tempSelections.length} of {maxSelections} selected
                 </div>
                 <div className="flex gap-2">
@@ -271,7 +295,11 @@ export function SportsbookSelector() {
                     onClick={handleSelectAll}
                     className={cn(
                       "h-8 font-medium",
-                      isMobile ? "text-[11px] px-2" : "text-xs"
+                      isSmallMobile
+                        ? "text-[10px] px-1.5 h-7"
+                        : isMobile
+                        ? "text-[11px] px-2"
+                        : "text-xs"
                     )}
                     disabled={tempSelections.length === maxSelections}
                   >
@@ -283,7 +311,11 @@ export function SportsbookSelector() {
                     onClick={handleClearAll}
                     className={cn(
                       "h-8 font-medium",
-                      isMobile ? "text-[11px] px-2" : "text-xs"
+                      isSmallMobile
+                        ? "text-[10px] px-1.5 h-7"
+                        : isMobile
+                        ? "text-[11px] px-2"
+                        : "text-xs"
                     )}
                     disabled={tempSelections.length <= 1}
                   >
@@ -298,7 +330,7 @@ export function SportsbookSelector() {
             <ScrollArea
               className={cn(
                 "px-4 sm:px-6 py-4",
-                isMobile ? "flex-1" : "h-[400px]"
+                isMobile ? "flex-1 max-h-[calc(80vh-220px)]" : "max-h-[400px]"
               )}
             >
               <div className="space-y-2">
@@ -325,7 +357,8 @@ export function SportsbookSelector() {
                             disabled
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer",
-                            isMobile && "p-4" // Larger touch target on mobile
+                            isMobile && "p-3", // Adjusted padding
+                            isSmallMobile && "p-2.5" // Even smaller padding for very small screens
                           )}
                           onClick={() =>
                             !disabled && handleToggle(sportsbook.id)
@@ -335,7 +368,11 @@ export function SportsbookSelector() {
                             <div
                               className={cn(
                                 "relative flex-shrink-0",
-                                isMobile ? "w-7 h-7" : "w-6 h-6"
+                                isSmallMobile
+                                  ? "w-6 h-6"
+                                  : isMobile
+                                  ? "w-7 h-7"
+                                  : "w-6 h-6"
                               )}
                             >
                               <img
@@ -347,7 +384,9 @@ export function SportsbookSelector() {
                             <span
                               className={cn(
                                 "font-medium",
-                                isMobile && "text-base"
+                                isSmallMobile
+                                  ? "text-sm"
+                                  : isMobile && "text-base"
                               )}
                             >
                               {sportsbook.name}
@@ -362,13 +401,21 @@ export function SportsbookSelector() {
                                 exit={{ scale: 0.5, opacity: 0 }}
                                 className={cn(
                                   "rounded-full bg-primary flex items-center justify-center",
-                                  isMobile ? "h-6 w-6" : "h-5 w-5"
+                                  isSmallMobile
+                                    ? "h-5 w-5"
+                                    : isMobile
+                                    ? "h-6 w-6"
+                                    : "h-5 w-5"
                                 )}
                               >
                                 <Check
                                   className={cn(
                                     "text-white",
-                                    isMobile ? "h-4 w-4" : "h-3 w-3"
+                                    isSmallMobile
+                                      ? "h-3 w-3"
+                                      : isMobile
+                                      ? "h-4 w-4"
+                                      : "h-3 w-3"
                                   )}
                                 />
                               </motion.div>
@@ -376,7 +423,11 @@ export function SportsbookSelector() {
                               <div
                                 className={cn(
                                   "rounded-full border-2 border-muted-foreground/30",
-                                  isMobile ? "h-6 w-6" : "h-5 w-5"
+                                  isSmallMobile
+                                    ? "h-5 w-5"
+                                    : isMobile
+                                    ? "h-6 w-6"
+                                    : "h-5 w-5"
                                 )}
                               />
                             )}
@@ -396,8 +447,18 @@ export function SportsbookSelector() {
                   isMobile && "py-3"
                 )}
               >
-                <AlertCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600 dark:text-green-400">
+                <AlertCircle
+                  className={cn(
+                    "h-4 w-4 text-green-500",
+                    isSmallMobile && "h-3.5 w-3.5"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-sm text-green-600 dark:text-green-400",
+                    isSmallMobile && "text-xs"
+                  )}
+                >
                   Maximum number of sportsbooks selected
                 </span>
               </div>
@@ -406,22 +467,31 @@ export function SportsbookSelector() {
         )}
 
         {activeTab === "location" && (
-          <div className="px-4 sm:px-6 py-4 flex-1">
+          <div className="px-4 sm:px-6 py-4 flex-1 overflow-y-auto max-h-[calc(80vh-180px)]">
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">
+                <label
+                  className={cn(
+                    "text-sm font-medium mb-1.5 block",
+                    isSmallMobile && "text-xs"
+                  )}
+                >
                   Select Your State
                 </label>
                 <Select value={tempState} onValueChange={setTempState}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isSmallMobile ? "h-8 text-xs" : ""}>
                     <SelectValue placeholder="Select a state" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[40vh]">
                     <div className="py-1.5 px-2 text-xs font-semibold text-muted-foreground">
                       Legal Betting States
                     </div>
                     {legalStates.map(([stateName, stateCode]) => (
-                      <SelectItem key={stateCode} value={stateCode}>
+                      <SelectItem
+                        key={stateCode}
+                        value={stateCode}
+                        className={isSmallMobile ? "text-xs" : ""}
+                      >
                         <div className="flex items-center gap-2">
                           <span className="w-8 text-xs font-mono">
                             {stateCode}
@@ -436,7 +506,11 @@ export function SportsbookSelector() {
                     </div>
 
                     {otherStates.map(([stateName, stateCode]) => (
-                      <SelectItem key={stateCode} value={stateCode}>
+                      <SelectItem
+                        key={stateCode}
+                        value={stateCode}
+                        className={isSmallMobile ? "text-xs" : ""}
+                      >
                         <div className="flex items-center gap-2">
                           <span className="w-8 text-xs font-mono">
                             {stateCode}
@@ -450,19 +524,44 @@ export function SportsbookSelector() {
               </div>
 
               <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
-                  <Info className="h-4 w-4 text-primary" />
+                <h3
+                  className={cn(
+                    "text-sm font-medium mb-2 flex items-center gap-1.5",
+                    isSmallMobile && "text-xs"
+                  )}
+                >
+                  <Info
+                    className={cn(
+                      "h-4 w-4 text-primary",
+                      isSmallMobile && "h-3.5 w-3.5"
+                    )}
+                  />
                   Why set your state?
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p
+                  className={cn(
+                    "text-sm text-muted-foreground",
+                    isSmallMobile && "text-xs"
+                  )}
+                >
                   Setting your state helps us provide you with the correct
                   sportsbook links. Some sportsbooks like BetRivers and BetMGM
                   require state-specific URLs.
                 </p>
 
                 {!LEGAL_BETTING_STATES.includes(tempState) && (
-                  <div className="mt-3 bg-yellow-500/10 p-3 rounded-md border border-yellow-500/20 text-sm text-yellow-600 dark:text-yellow-400">
-                    <AlertCircle className="h-4 w-4 inline-block mr-1.5" />
+                  <div
+                    className={cn(
+                      "mt-3 bg-yellow-500/10 p-3 rounded-md border border-yellow-500/20 text-sm text-yellow-600 dark:text-yellow-400",
+                      isSmallMobile && "text-xs p-2.5"
+                    )}
+                  >
+                    <AlertCircle
+                      className={cn(
+                        "h-4 w-4 inline-block mr-1.5",
+                        isSmallMobile && "h-3.5 w-3.5"
+                      )}
+                    />
                     Sports betting may not be legal in {tempState}. Some links
                     may not work.
                   </div>
@@ -485,11 +584,17 @@ export function SportsbookSelector() {
                 disabled={isSaving}
                 className={cn(
                   "w-full relative overflow-hidden transition-all h-12 text-base",
+                  isSmallMobile && "h-10 text-sm",
                   isSaving ? "pl-10" : ""
                 )}
               >
                 {isSaving && (
-                  <Loader2 className="absolute left-3 h-5 w-5 animate-spin" />
+                  <Loader2
+                    className={cn(
+                      "absolute left-3 h-5 w-5 animate-spin",
+                      isSmallMobile && "h-4 w-4"
+                    )}
+                  />
                 )}
                 {isSaving ? "Saving Changes..." : "Save Changes"}
               </Button>
@@ -497,7 +602,10 @@ export function SportsbookSelector() {
                 variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isSaving}
-                className="w-full h-11 text-base border-border/60"
+                className={cn(
+                  "w-full h-11 text-base border-border/60",
+                  isSmallMobile && "h-9 text-sm"
+                )}
               >
                 Cancel
               </Button>

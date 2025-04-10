@@ -43,7 +43,7 @@ export function FaqSection() {
                   What sportsbooks are included?
                 </AccordionTrigger>
                 <AccordionContent>
-                  OddsMash compares player props and parlays from all major U.S.
+                  OddSmash compares player props and parlays from all major U.S.
                   sportsbooks like DraftKings, FanDuel, Caesars, BetMGM, ESPN
                   Bet, and more. Coverage may vary based on your location.
                 </AccordionContent>
@@ -79,10 +79,10 @@ export function FaqSection() {
               </AccordionItem>
               <AccordionItem value="item-6">
                 <AccordionTrigger>
-                  Can I bet directly on OddsMash?
+                  Can I bet directly on OddSmash?
                 </AccordionTrigger>
                 <AccordionContent>
-                  No, OddsMash doesn&apos;t take bets — we show you where the
+                  No, OddSmash doesn&apos;t take bets — we show you where the
                   best lines are, then link you directly to the sportsbook to
                   place your bet. Always double check your bet with the
                   sportsbook before placing a bet.

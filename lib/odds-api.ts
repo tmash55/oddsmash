@@ -224,7 +224,11 @@ export async function getEvents(
   // If not in cache, fetch from API
   try {
     // Only include markets parameter if the array is not empty
-    const params: Record<string, string> = { dateFormat: "iso" };
+    const params: Record<string, string> = {
+      dateFormat: "iso",
+      includeSids: "true",
+      includeLinks: "true",
+    };
 
     const response = await makeRequest<Event[]>(
       `/sports/${sportKey}/events`,
@@ -263,6 +267,8 @@ export async function getOdds(
     const params: Record<string, string> = {
       dateFormat: "iso",
       oddsFormat,
+      includeSids: "true",
+      includeLinks: "true",
     };
 
     if (markets.length > 0) {

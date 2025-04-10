@@ -1,9 +1,11 @@
-# OddsMash Project Overview
+# OddSmash Project Overview
 
 ## Project Description
-OddsMash is a Next.js application that helps users analyze and compare sports betting odds across different platforms.
+
+OddSmash is a Next.js application that helps users analyze and compare sports betting odds across different platforms.
 
 ## Tech Stack
+
 - **Framework**: Next.js with TypeScript
 - **Styling**: Tailwind CSS
 - **Authentication**: NextAuth.js
@@ -12,6 +14,7 @@ OddsMash is a Next.js application that helps users analyze and compare sports be
 - **API Integration**: Sports Data API
 
 ## Project Structure
+
 ```
 oddsmash/
 ├── app/                    # Next.js app directory (pages and layouts)
@@ -26,6 +29,7 @@ oddsmash/
 ```
 
 ## Key Features
+
 1. User Authentication
 2. Sports Betting Odds Comparison
 3. Historical Data Analysis
@@ -33,23 +37,29 @@ oddsmash/
 5. Real-time Odds Updates
 
 ## Environment Variables
+
 Required environment variables:
+
 - `MONGODB_URI`: MongoDB connection string
 - `NEXTAUTH_SECRET`: NextAuth.js secret key
 - `NEXTAUTH_URL`: Application URL
 - `SPORTS_DATA_API_KEY`: API key for sports data
 
 ## API Integration
+
 ### Odds API Documentation
+
 - **Base URL**: https://api.the-odds-api.com/v4/sports
 - **Authentication**: API key required in headers
-- **Rate Limits**: 
+- **Rate Limits**:
   - Free tier: 500 requests/month
   - Pro tier: 1000 requests/month
   - Enterprise: Custom limits
 
 ### Available Endpoints
+
 1. **Get Sports**
+
    - Endpoint: `GET /sports`
    - Description: List all available sports
    - Parameters:
@@ -57,6 +67,7 @@ Required environment variables:
      - `all`: Boolean (optional) - Include inactive sports
 
 2. **Get Odds**
+
    - Endpoint: `GET /sports/{sport}/odds`
    - Description: Get odds for a specific sport
    - Parameters:
@@ -73,6 +84,7 @@ Required environment variables:
      - `daysFrom`: Integer (optional) - Number of days from today
 
 ### Data Structures
+
 ```typescript
 interface Sport {
   key: string;
@@ -111,6 +123,7 @@ interface Outcome {
 ```
 
 ### Implementation Notes
+
 1. API calls should be made server-side to protect API key
 2. Implement caching to respect rate limits
 3. Use TypeScript interfaces for type safety
@@ -118,6 +131,7 @@ interface Outcome {
 5. Implement retry logic for failed requests
 
 ## Development Guidelines
+
 1. Follow TypeScript best practices
 2. Use Tailwind CSS for styling
 3. Implement responsive design
@@ -125,18 +139,22 @@ interface Outcome {
 5. Follow the existing project structure
 
 ## Getting Started
+
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Set up environment variables
 4. Run development server: `npm run dev`
 
 ## Deployment
+
 The application is deployed on Vercel.
 
 ## Contributing
+
 1. Create feature branches
 2. Follow the existing code style
 3. Submit pull requests for review
 
 ## Support
-For support, please contact the development team. 
+
+For support, please contact the development team.
