@@ -93,7 +93,7 @@ export function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const { theme } = useTheme();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   // Set visibility for animations
   useEffect(() => {
@@ -103,7 +103,7 @@ export function HeroSection() {
   // Auto-rotate carousel
   useEffect(() => {
     const startCarousel = () => {
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         setActiveIndex((prev) => (prev + 1) % carouselItems.length);
       }, 7000);
     };
@@ -123,7 +123,7 @@ export function HeroSection() {
     // Reset interval when manually navigating
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         setActiveIndex((prev) => (prev + 1) % carouselItems.length);
       }, 7000);
     }

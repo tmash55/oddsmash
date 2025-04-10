@@ -88,7 +88,7 @@ export const sports: Sport[] = [
     id: "basketball_ncaab",
     name: "NCAAB",
     icon: "", // Will use the SportIcon component
-    active: true,
+    active: false,
     useImage: false,
   },
   {
