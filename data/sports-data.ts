@@ -23,6 +23,12 @@ export type BettingMarket = {
   odds: {
     [key: string]: number;
   };
+  links?: {
+    [key: string]: string;
+  };
+  sids?: {
+    [key: string]: string;
+  };
   line?: number;
   player?: string;
   team?: string;
@@ -57,6 +63,7 @@ export type ParlayLeg = {
   description: string;
   line?: number;
   sid?: string; // Add this field for sportsbook-specific IDs
+  link?: string; // Add this field for deep linking to sportsbook
   // Add this new field for player props data
   propData?: {
     player: string;

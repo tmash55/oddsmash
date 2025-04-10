@@ -174,16 +174,11 @@ export function GameCard({
         (s: any) => s.team?.toLowerCase() === game.homeTeam.name.toLowerCase()
       ) || null;
 
-    console.log(
-      `Non-baseball game: ${game.awayTeam.name} @ ${game.homeTeam.name}`
-    );
-    console.log(`Away spread:`, awaySpread);
-    console.log(`Home spread:`, homeSpread);
+    
   }
 
   // Log the final spread assignments
-  console.log(`Final away spread for ${game.awayTeam.name}:`, awaySpread);
-  console.log(`Final home spread for ${game.homeTeam.name}:`, homeSpread);
+
 
   const awayMoneyline = game.markets.moneyline?.[1] || null;
   const homeMoneyline = game.markets.moneyline?.[0] || null;

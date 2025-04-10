@@ -23,12 +23,14 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import { type ParlayLeg, type Game, formatOdds } from "@/data/sports-data";
 import { sportsbooks } from "@/data/sportsbooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSportsbooks } from "@/contexts/sportsbook-context";
+import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +53,15 @@ const glowStyles = `
     box-shadow: 0 0 15px rgba(var(--primary), 0.4);
   }
 `;
+
+interface Outcome {
+  name: string;
+  price: number;
+  point?: number;
+  description?: string;
+  sid?: string;
+  link?: string;
+}
 
 interface BetslipProps {
   open: boolean;
@@ -78,6 +89,7 @@ export function Betslip({
     null
   );
   const { userSportsbooks } = useSportsbooks();
+  const { selectedSportsbooks, userState, formatSportsbookUrl } = useSportsbookPreferences();
   const [animatePayouts, setAnimatePayouts] = useState(false);
   const [expandedGames, setExpandedGames] = useState<Record<string, boolean>>(
     {}
@@ -103,8 +115,8 @@ export function Betslip({
   const getPlayerPropOdds = (
     leg: ParlayLeg,
     sportsbook: string
-  ): number | undefined => {
-    if (!leg.propData) return undefined;
+  ): { odds?: number; link?: string } => {
+    if (!leg.propData) return {};
 
     const { gameId, propData } = leg;
     const cacheKey = `${gameId}-${propData.market}`;
@@ -120,7 +132,7 @@ export function Betslip({
 
       // If neither standard nor alternate market data is available, return undefined
       if (!playerPropsData[alternateCacheKey]) {
-        return undefined;
+        return {};
       }
 
       // Use the alternate market data if available
@@ -128,7 +140,7 @@ export function Betslip({
 
       // Find the bookmaker
       const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
-      if (!bookmaker) return undefined;
+      if (!bookmaker) return {};
 
       // Search through all markets for this bookmaker
       for (const market of bookmaker.markets) {
@@ -141,18 +153,23 @@ export function Betslip({
           );
         });
 
-        // If we found a matching outcome, return its price
-        if (outcome) return outcome.price;
+        // If we found a matching outcome, return its price and link
+        if (outcome) {
+          return {
+            odds: outcome.price,
+            link: outcome.link,
+          };
+        }
       }
 
-      return undefined;
+      return {};
     }
 
     const data = playerPropsData[cacheKey];
 
     // Find the bookmaker
     const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
-    if (!bookmaker) return undefined;
+    if (!bookmaker) return {};
 
     // Search through all markets for this bookmaker
     for (const market of bookmaker.markets) {
@@ -165,11 +182,16 @@ export function Betslip({
         );
       });
 
-      // If we found a matching outcome, return its price
-      if (outcome) return outcome.price;
+      // If we found a matching outcome, return its price and link
+      if (outcome) {
+        return {
+          odds: outcome.price,
+          link: outcome.link,
+        };
+      }
     }
 
-    return undefined;
+    return {};
   };
 
   // Calculate SGP (Same Game Parlay) odds with correlation factors
@@ -183,7 +205,7 @@ export function Betslip({
     if (legs.length === 1) {
       const leg = legs[0];
       if (leg.type === "player-prop" && leg.propData) {
-        return getPlayerPropOdds(leg, sportsbook) || null;
+        return getPlayerPropOdds(leg, sportsbook).odds || null;
       }
 
       const game = games.find((g) => g.id === leg.gameId);
@@ -203,7 +225,7 @@ export function Betslip({
     // Fetch all leg odds
     const legOdds = legs.map((leg) => {
       if (leg.type === "player-prop" && leg.propData) {
-        return getPlayerPropOdds(leg, sportsbook) || 0;
+        return getPlayerPropOdds(leg, sportsbook).odds || 0;
       }
 
       const game = games.find((g) => g.id === leg.gameId);
@@ -307,7 +329,7 @@ export function Betslip({
     return legs.every((leg) => {
       // For player props
       if (leg.type === "player-prop" && leg.propData) {
-        const odds = getPlayerPropOdds(leg, sportsbook);
+        const odds = getPlayerPropOdds(leg, sportsbook).odds;
         return odds !== undefined;
       }
 
@@ -379,7 +401,7 @@ export function Betslip({
 
           // If this is a player prop, get odds from player props data
           if (leg.type === "player-prop" && leg.propData) {
-            const odds = getPlayerPropOdds(leg, sportsbook);
+            const odds = getPlayerPropOdds(leg, sportsbook).odds;
             if (odds === undefined) return; // If odds not available, skip this sportsbook
             gameGroupOdds.push(odds);
           } else {
@@ -493,17 +515,147 @@ export function Betslip({
     return sportsbookInfo?.url || "#";
   };
 
-  // Handle placing bet
+  // Add this helper function to parse FanDuel link parameters
+  const parseFanduelLink = (link: string): { marketId?: string; selectionId?: string } => {
+    try {
+      const url = new URL(link);
+      const params = new URLSearchParams(url.search);
+      const marketId = params.get('marketId') || params.get('marketId[0]');
+      const selectionId = params.get('selectionId') || params.get('selectionId[0]');
+      return { marketId, selectionId };
+    } catch (e) {
+      console.error('Error parsing FanDuel link:', e);
+      return {};
+    }
+  };
+
+  // Add this helper function to create FanDuel parlay link
+  const createFanduelParlayLink = (legs: { marketId?: string; selectionId?: string }[]): string => {
+    const baseUrl = 'https://ia.sportsbook.fanduel.com/addToBetslip';
+    const params: string[] = [];
+    
+    legs.forEach((leg, index) => {
+      if (leg.marketId && leg.selectionId) {
+        params.push(`marketId[${index}]=${leg.marketId}`);
+        params.push(`selectionId[${index}]=${leg.selectionId}`);
+      }
+    });
+
+    return `${baseUrl}?${params.join('&')}`;
+  };
+
+  // Add this helper function to parse DraftKings link parameters
+  const parseDraftkingsLink = (link: string): { eventId?: string; sid?: string } => {
+    try {
+      const url = new URL(link);
+      const eventId = url.pathname.split('/').pop() || '';
+      const outcomes = url.searchParams.get('outcomes') || '';
+      // Get the first SID if multiple exist
+      const sid = outcomes.split('+')[0];
+      return { eventId, sid };
+    } catch (e) {
+      console.error('Error parsing DraftKings link:', e);
+      return {};
+    }
+  };
+
+  // Add this helper function to create DraftKings parlay link
+  const createDraftkingsLink = (legs: { eventId?: string, sid?: string }[]): string => {
+    // Use the first leg's event ID as the base
+    const baseEventId = legs[0]?.eventId || '';
+    const sids = legs.map(leg => leg.sid).filter(Boolean);
+    
+    if (!baseEventId || sids.length === 0) {
+      console.error('Missing required DraftKings parameters');
+      return '';
+    }
+
+    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.join('+')}`;
+  };
+
+  // Update the handlePlaceBet function
   const handlePlaceBet = () => {
     if (!selectedSportsbook) return;
 
-    // Track that user clicked the place bet button
-    console.log(
-      `User placing bet with ${selectedSportsbook} - Odds: ${parlayOdds[selectedSportsbook]}`
-    );
+    console.log('=== Place Bet Button Clicked ===');
+    console.log(`Selected Sportsbook: ${selectedSportsbook}`);
+    console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`);
+
+    // Get all legs for the selected sportsbook
+    const legsForSportsbook = legs.map(leg => {
+      let link;
+      if (leg.type === "player-prop") {
+        const propData = getPlayerPropOdds(leg, selectedSportsbook);
+        console.log(`Player Prop Leg - ${leg.selection}:`, {
+          originalLink: leg.link,
+          propDataLink: propData.link,
+          sportsbook: selectedSportsbook
+        });
+        link = propData.link;
+      } else {
+        // For standard markets, find the game and market
+        const game = games.find(g => g.id === leg.gameId);
+        if (game) {
+          let market: any;
+          Object.values(game.markets).forEach(marketGroup => {
+            if (Array.isArray(marketGroup)) {
+              const found = marketGroup.find(m => m.id === leg.marketId);
+              if (found) {
+                market = found;
+                console.log(`Standard Market Leg - ${leg.selection}:`, {
+                  marketLink: market.links?.[selectedSportsbook],
+                  sportsbook: selectedSportsbook
+                });
+                link = market.links?.[selectedSportsbook];
+              }
+            }
+          });
+        }
+      }
+      return { ...leg, currentLink: link };
+    });
+
+    console.log('All legs with current sportsbook links:', legsForSportsbook);
+
+    let betLink: string;
+
+    // Special handling for FanDuel parlays
+    if (selectedSportsbook === 'fanduel' && legs.length > 1) {
+      const parlayLegs = legsForSportsbook
+        .map(leg => leg.currentLink ? parseFanduelLink(leg.currentLink) : null)
+        .filter(leg => leg && leg.marketId && leg.selectionId);
+
+      if (parlayLegs.length > 0) {
+        betLink = createFanduelParlayLink(parlayLegs);
+        console.log('Created FanDuel parlay link:', betLink);
+      } else {
+        betLink = getSportsbookLink(selectedSportsbook);
+        console.log('No valid FanDuel legs found, using homepage:', betLink);
+      }
+    }
+    // Special handling for DraftKings parlays
+    else if (selectedSportsbook === 'draftkings' && legs.length > 1) {
+      const parlayLegs = legsForSportsbook
+        .map(leg => leg.currentLink ? parseDraftkingsLink(leg.currentLink) : null)
+        .filter(leg => leg && leg.eventId && leg.sid);
+
+      if (parlayLegs.length > 0) {
+        betLink = createDraftkingsLink(parlayLegs);
+        console.log('Created DraftKings parlay link:', betLink);
+      } else {
+        betLink = getSportsbookLink(selectedSportsbook);
+        console.log('No valid DraftKings legs found, using homepage:', betLink);
+      }
+    } else {
+      // For other sportsbooks or single bets, use the first valid link
+      const firstValidLink = legsForSportsbook.find(leg => leg.currentLink)?.currentLink;
+      betLink = firstValidLink || getSportsbookLink(selectedSportsbook);
+    }
+    
+    console.log('Final bet link to be opened:', betLink);
 
     // Open the sportsbook in a new tab
-    window.open(getSportsbookLink(selectedSportsbook), "_blank");
+    window.open(betLink, "_blank");
   };
 
   // Get market type display name for standard markets
@@ -573,6 +725,106 @@ export function Betslip({
     });
     setExpandedGames(newExpandedState);
   }, [legs]);
+
+  // Add this function to check if a sportsbook has deep linking available
+  const hasDeepLink = (sportsbook: string) => {
+    return legs.some(leg => {
+      if (leg.type === "player-prop") {
+        const propData = getPlayerPropOdds(leg, sportsbook);
+        return !!propData.link;
+      } else {
+        const game = games.find(g => g.id === leg.gameId);
+        if (game) {
+          let hasLink = false;
+          Object.values(game.markets).forEach(marketGroup => {
+            if (Array.isArray(marketGroup)) {
+              const found = marketGroup.find(m => m.id === leg.marketId);
+              if (found && found.links?.[sportsbook]) {
+                hasLink = true;
+              }
+            }
+          });
+          return hasLink;
+        }
+        return false;
+      }
+    });
+  };
+
+  const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
+    console.log('handleBetClick called with:', { outcome, bookmakerKey });
+    
+    if (!outcome || !bookmakerKey) {
+      console.warn('Missing outcome or bookmakerKey:', { outcome, bookmakerKey });
+      return;
+    }
+
+    // Find the sportsbook
+    const sportsbook = sportsbooks.find((sb) => sb.id === bookmakerKey);
+    if (!sportsbook) {
+      console.warn('Sportsbook not found:', bookmakerKey);
+      return;
+    }
+
+    // Get the correct link for the selected sportsbook
+    let betUrl = outcome.link;
+    console.log('Initial bet link:', betUrl);
+    console.log('Sportsbook:', sportsbook);
+    console.log('User state:', userState);
+
+    // Check if this sportsbook requires state information
+    if (sportsbook.requiresState && betUrl) {
+      console.log('Sportsbook requires state code');
+      
+      if (bookmakerKey === "betmgm") {
+        if (!userState) {
+          console.error('No state code available for BetMGM URL');
+          return;
+        }
+        const stateCode = userState.toLowerCase();
+        console.log('Using state code for BetMGM:', stateCode);
+        
+        // Handle both URL formats:
+        // 1. sports.{state}.betmgm.com format
+        // 2. Any other format using {state}
+        if (betUrl.includes('sports.{state}.betmgm.com')) {
+          betUrl = betUrl.replace('sports.{state}.betmgm.com', `sports.${stateCode}.betmgm.com`);
+        } else {
+          betUrl = betUrl.replace(/{state}/g, stateCode);
+        }
+        
+        console.log('BetMGM URL after state replacement:', betUrl);
+      } else if (bookmakerKey === "betrivers") {
+        // Handle BetRivers specific URL format
+        const eventIdMatch = betUrl?.match(/#event\/(\d+)/);
+        const couponMatch = betUrl?.match(/\?coupon=([^|]+)\|([^|]+)\|([^&]+)/);
+
+        const params: Record<string, string> = {};
+        if (eventIdMatch && eventIdMatch[1]) {
+          params.eventId = eventIdMatch[1];
+        }
+
+        if (couponMatch) {
+          params.pickType = couponMatch[1];
+          params.selectionId = couponMatch[2];
+          params.wagerAmount = couponMatch[3];
+        }
+
+        // Use the formatSportsbookUrl helper from the hook
+        betUrl = formatSportsbookUrl(bookmakerKey, params);
+        console.log('BetRivers URL after formatting:', betUrl);
+      }
+    }
+
+    if (!betUrl) {
+      console.error('No valid bet URL found for', bookmakerKey);
+      return;
+    }
+
+    console.log('Opening bet link:', betUrl);
+    // Open the URL in a new tab
+    window.open(betUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -769,6 +1021,20 @@ export function Betslip({
                                             }
                                             className="w-full h-full object-contain"
                                           />
+                                          {isAvailable && hasDeepLink(sportsbook) && (
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <div className="absolute -top-1 -right-1 bg-primary/10 rounded-full p-0.5">
+                                                    <Zap className="h-3 w-3 text-primary" />
+                                                  </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                  <p className="text-xs">Deep linking available - faster bet placement</p>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          )}
                                         </div>
                                         <div className="text-sm font-medium text-center">
                                           {sportsbookInfo?.name || sportsbook}
