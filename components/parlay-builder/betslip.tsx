@@ -502,22 +502,13 @@ export function Betslip({
     }
   }
 
-  // Add this helper function to create FanDuel parlay link
-  const createFanduelParlayLink = (legs: { marketId?: string; selectionId?: string }[]): string => {
-    const baseUrl = "https://ia.sportsbook.fanduel.com/addToBetslip"
-    const params: string[] = []
-
-    legs.forEach((leg, index) => {
-      if (leg.marketId && leg.selectionId) {
-        params.push(`marketId[${index}]=${leg.marketId}`)
-        params.push(`selectionId[${index}]=${leg.selectionId}`)
-      }
-    })
-
-    return `${baseUrl}?${params.join("&")}`
+  // Add helper function to detect mobile device
+  const isMobileDevice = () => {
+    if (typeof window === 'undefined') return false
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // Add this helper function to parse DraftKings link parameters
+  // Add back the parseDraftkingsLink function
   const parseDraftkingsLink = (link: string): { eventId?: string; sid?: string } => {
     try {
       const url = new URL(link)
@@ -532,9 +523,8 @@ export function Betslip({
     }
   }
 
-  // Add this helper function to create DraftKings parlay link
+  // Update DraftKings link creation for mobile
   const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): string => {
-    // Use the first leg's event ID as the base
     const baseEventId = legs[0]?.eventId || ""
     const sids = legs.map((leg) => leg.sid).filter(Boolean)
 
@@ -543,27 +533,62 @@ export function Betslip({
       return ""
     }
 
-    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.map(encodeURIComponent).join("+")}`
+    // For mobile, use the dk:// scheme
+    if (isMobileDevice()) {
+      const encodedSids = sids.map(encodeURIComponent).join("+")
+      return `dk://sportsbook/addtoparlay?eventId=${baseEventId}&outcomes=${encodedSids}`
+    }
 
+    // For desktop, use the web URL
+    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.map(encodeURIComponent).join("+")}`
   }
 
-  // Add this helper function to create Caesars parlay link
+  // Update Caesars link creation for mobile
   const createCaesarsLink = (legs: { sid?: string }[]): string => {
     const sids = legs.filter((leg) => leg.sid).map((leg) => leg.sid)
     if (sids.length === 0) {
       console.error("No valid SIDs found for Caesars parlay")
       return ""
     }
+
+    // For mobile, use the caesars:// scheme
+    if (isMobileDevice()) {
+      const encodedSids = sids.map(encodeURIComponent).join(",")
+      return `caesarssportsbook://addtoparlay?selectionIds=${encodedSids}&state=${userState.toLowerCase()}`
+    }
+
+    // For desktop, use the web URL
     return `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/bet/betslip?selectionIds=${sids.map(encodeURIComponent).join(",")}`
   }
 
-  // Update the handlePlaceBet function to use the correct SIDs
+  // Update FanDuel link creation for mobile
+  const createFanduelParlayLink = (legs: { marketId?: string; selectionId?: string }[]): string => {
+    const params: string[] = []
+
+    legs.forEach((leg, index) => {
+      if (leg.marketId && leg.selectionId) {
+        params.push(`marketId[${index}]=${leg.marketId}`)
+        params.push(`selectionId[${index}]=${leg.selectionId}`)
+      }
+    })
+
+    // For mobile, use the fd:// scheme
+    if (isMobileDevice()) {
+      return `fd://addtoparlay?${params.join("&")}`
+    }
+
+    // For desktop, use the web URL
+    return `https://ia.sportsbook.fanduel.com/addToBetslip?${params.join("&")}`
+  }
+
+  // Update handlePlaceBet to handle mobile fallbacks
   const handlePlaceBet = () => {
     if (!selectedSportsbook) return
 
     console.log("=== Place Bet Button Clicked ===")
     console.log(`Selected Sportsbook: ${selectedSportsbook}`)
     console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`)
+    console.log(`Is Mobile Device: ${isMobileDevice()}`)
 
     // Get all legs for the selected sportsbook
     const legsForSportsbook = legs.map((leg) => {
@@ -616,83 +641,86 @@ export function Betslip({
     console.log("All legs with current sportsbook links:", legsForSportsbook)
 
     let betLink: string
+    let fallbackLink: string // Add fallback link for mobile
 
-    // Special handling for FanDuel parlays
-    if (selectedSportsbook === "fanduel" && legs.length > 1) {
-      const parlayLegs = legsForSportsbook
-        .map((leg) => (leg.currentLink ? parseFanduelLink(leg.currentLink) : null))
-        .filter((leg) => leg && leg.marketId && leg.selectionId)
+    // Create links with try-catch for better error handling
+    try {
+      if (selectedSportsbook === "fanduel" && legs.length > 1) {
+        const parlayLegs = legsForSportsbook
+          .map((leg) => (leg.currentLink ? parseFanduelLink(leg.currentLink) : null))
+          .filter((leg) => leg && leg.marketId && leg.selectionId)
 
-      if (parlayLegs.length > 0) {
-        betLink = createFanduelParlayLink(parlayLegs)
-        console.log("Created FanDuel parlay link:", betLink)
-      } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid FanDuel legs found, using homepage:", betLink)
-      }
-    }
-    // Special handling for DraftKings parlays
-    else if (selectedSportsbook === "draftkings" && legs.length > 1) {
-      const parlayLegs = legsForSportsbook
-        .map((leg) => {
-          // For DraftKings, we can use either the link parsing or direct SID
-          if (leg.currentLink) {
-            return parseDraftkingsLink(leg.currentLink)
-          } else if (leg.sid) {
-            // If we have a direct SID, use it (it's already encoded)
-            return { eventId: leg.gameId, sid: leg.sid }
-          }
-          return null
-        })
-        .filter((leg) => leg && (leg.eventId || leg.sid))
-
-      if (parlayLegs.length > 0) {
-        betLink = createDraftkingsLink(parlayLegs)
-        console.log("Created DraftKings parlay link:", betLink)
-      } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid DraftKings legs found, using homepage:", betLink)
-      }
-    }
-    // Special handling for Caesars parlays
-    else if (selectedSportsbook === "williamhill_us" && legs.length > 1) {
-      const parlayLegs = legsForSportsbook
-        .map((leg) => ({ sid: leg.sid }))
-        .filter((leg) => leg.sid)
-
-      if (parlayLegs.length > 0) {
-        betLink = createCaesarsLink(parlayLegs)
-        console.log("Created Caesars parlay link:", betLink)
-      } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid Caesars legs found, using homepage:", betLink)
-      }
-    } else {
-      // For other sportsbooks or single bets, use the first valid link
-      const firstValidLink = legsForSportsbook.find((leg) => leg.currentLink)?.currentLink
-      betLink = firstValidLink || getSportsbookLink(selectedSportsbook)
-    }
-
-    console.log("Final bet link to be opened:", betLink)
-
-    // Handle state-specific URLs
-    const sportsbook = sportsbooks.find((sb) => sb.id === selectedSportsbook)
-    if (sportsbook && sportsbook.requiresState && betLink) {
-      if (selectedSportsbook === "betmgm") {
-        betLink = betLink.replace(/{state}/g, userState.toLowerCase())
-      } else if (selectedSportsbook === "betrivers") {
-        // Handle BetRivers specific URL format - replace {state} in the domain
-        if (betLink.includes("{state}.betrivers.com")) {
-          betLink = betLink.replace("{state}.betrivers.com", `${userState.toLowerCase()}.betrivers.com`)
-          console.log("BetRivers URL after state replacement in handlePlaceBet:", betLink)
+        if (parlayLegs.length > 0) {
+          betLink = createFanduelParlayLink(parlayLegs)
+          fallbackLink = `https://sportsbook.fanduel.com/` // FanDuel mobile app fallback
+        } else {
+          betLink = getSportsbookLink(selectedSportsbook)
         }
-      } else if (selectedSportsbook === "williamhill_us" || selectedSportsbook === "hardrockbet") {
-        betLink = betLink.replace(/{state}/g, userState.toLowerCase())
       }
-    }
+      else if (selectedSportsbook === "draftkings" && legs.length > 1) {
+        const parlayLegs = legsForSportsbook
+          .map((leg) => {
+            if (leg.currentLink) {
+              return parseDraftkingsLink(leg.currentLink)
+            } else if (leg.sid) {
+              return { eventId: leg.gameId, sid: leg.sid }
+            }
+            return null
+          })
+          .filter((leg) => leg && (leg.eventId || leg.sid))
 
-    // Open the sportsbook in a new tab
-    window.open(betLink, "_blank")
+        if (parlayLegs.length > 0) {
+          betLink = createDraftkingsLink(parlayLegs)
+          fallbackLink = `https://sportsbook.draftkings.com/` // DraftKings mobile app fallback
+        } else {
+          betLink = getSportsbookLink(selectedSportsbook)
+        }
+      }
+      else if (selectedSportsbook === "williamhill_us" && legs.length > 1) {
+        const parlayLegs = legsForSportsbook
+          .map((leg) => ({ sid: leg.sid }))
+          .filter((leg) => leg.sid)
+
+        if (parlayLegs.length > 0) {
+          betLink = createCaesarsLink(parlayLegs)
+          fallbackLink = `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/sports` // Caesars mobile app fallback
+        } else {
+          betLink = getSportsbookLink(selectedSportsbook)
+        }
+      } else {
+        // For other sportsbooks or single bets
+        const firstValidLink = legsForSportsbook.find((leg) => leg.currentLink)?.currentLink
+        betLink = firstValidLink || getSportsbookLink(selectedSportsbook)
+      }
+
+      console.log("Created bet link:", betLink)
+
+      // Handle mobile deep linking with fallback
+      if (isMobileDevice()) {
+        // Set a timeout to redirect to fallback URL if deep link fails
+        const timeout = setTimeout(() => {
+          window.location.href = fallbackLink || getSportsbookLink(selectedSportsbook)
+        }, 1500)
+
+        // Try to open the deep link
+        window.location.href = betLink
+
+        // Clear the timeout if the page is hidden (indicating app opened successfully)
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            clearTimeout(timeout)
+          }
+        })
+      } else {
+        // On desktop, open in new tab as before
+        window.open(betLink, "_blank")
+      }
+
+    } catch (error) {
+      console.error("Error creating bet link:", error)
+      // Fallback to sportsbook homepage
+      window.open(getSportsbookLink(selectedSportsbook), "_blank")
+    }
   }
 
   const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
