@@ -179,9 +179,15 @@ export function GameCard({
 
   // Log the final spread assignments
 
+  // Find moneyline markets by matching team names
+  const moneylineMarkets = game.markets.moneyline || [];
+  const awayMoneyline = moneylineMarkets.find(
+    (m: any) => m.team === game.awayTeam.name
+  ) || null;
+  const homeMoneyline = moneylineMarkets.find(
+    (m: any) => m.team === game.homeTeam.name
+  ) || null;
 
-  const awayMoneyline = game.markets.moneyline?.[1] || null;
-  const homeMoneyline = game.markets.moneyline?.[0] || null;
   const overTotal = game.markets.total?.[0] || null;
   const underTotal = game.markets.total?.[1] || null;
 

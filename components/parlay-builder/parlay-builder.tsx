@@ -7,7 +7,6 @@ import { GameCard } from "./game-card";
 import { BetslipButton } from "./betslip-button";
 import { Betslip } from "./betslip";
 import { toast } from "@/hooks/use-toast";
-import { sportsbooks } from "@/data/sportsbooks";
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -40,25 +39,6 @@ interface MarketOutcome {
   link?: string;
 }
 
-interface Outcome {
-  name: string;
-  price: number;
-  point?: number;
-  description?: string;
-  sid?: string;
-  link?: string;
-}
-
-// Add this near the top where we define interfaces
-interface PlayerPropOutcome {
-  description: string;
-  name: string;
-  price: number;
-  point: number;
-  sid?: string;
-  link?: string;
-}
-
 export function ParlayBuilder() {
   const [selectedSport, setSelectedSport] = useState("basketball_nba");
   const [games, setGames] = useState<Game[]>([]);
@@ -78,17 +58,8 @@ export function ParlayBuilder() {
   // Add a new state for filtered games
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
 
-  // Get user's selected sportsbooks and state from hook
-  const { selectedSportsbooks, userState, formatSportsbookUrl } = useSportsbookPreferences();
-
-  // Add effect to handle sportsbook changes
-  useEffect(() => {
-    console.log('Selected sportsbooks changed:', selectedSportsbooks);
-    // Clear cached games when sportsbooks change
-    setAllGames({});
-    setGames([]);
-    // This will trigger the fetchEvents effect since we cleared the games
-  }, [selectedSportsbooks]);
+  // Get user's selected sportsbooks from hook
+  const { selectedSportsbooks } = useSportsbookPreferences();
 
   // Set initial active sportsbook from preferences if available
   useEffect(() => {
@@ -99,14 +70,6 @@ export function ParlayBuilder() {
       setActiveSportsbook(selectedSportsbooks[0]);
     }
   }, [selectedSportsbooks, activeSportsbook]);
-
-  // Add this near the top of the ParlayBuilder component, after the state declarations
-  useEffect(() => {
-    console.log(
-      "ParlayBuilder - User's selected sportsbooks:",
-      selectedSportsbooks
-    );
-  }, [selectedSportsbooks]);
 
   // Add this effect to ensure we always have an active sport selected
   useEffect(() => {
@@ -275,14 +238,17 @@ export function ParlayBuilder() {
     event: any,
     bookmakerData: { [key: string]: any }
   ): any[] => {
+    console.log(`Creating spread markets for event: ${event.id}`);
+    console.log(`Home team: ${event.home_team}, Away team: ${event.away_team}`);
+
     const homeSpread: any = {
       id: `spread-home-${event.id}`,
       type: "spread",
       name: "Spread",
       selection: event.home_team,
       odds: {},
-      links: {}, // Add links object
-      sids: {}, // Store SIDs for each sportsbook
+      links: {},
+      sids: {},
       line: 0,
       team: event.home_team,
     };
@@ -293,8 +259,8 @@ export function ParlayBuilder() {
       name: "Spread",
       selection: event.away_team,
       odds: {},
-      links: {}, // Add links object
-      sids: {}, // Store SIDs for each sportsbook
+      links: {},
+      sids: {},
       line: 0,
       team: event.away_team,
     };
@@ -302,12 +268,17 @@ export function ParlayBuilder() {
     // Extract spread odds from bookmakers
     Object.keys(bookmakerData).forEach((key) => {
       const bookmaker = bookmakerData[key];
-      // Check for alternative market keys for spreads
+      // Check for both spreads and run_line markets
       const spreadMarket =
         bookmaker.markets.spreads ||
         bookmaker.markets.spread ||
-        bookmaker.markets.run_line;
+        bookmaker.markets.run_line ||
+        bookmaker.markets.runline;
+
       if (spreadMarket) {
+        console.log(`Processing spread market from ${key}:`, spreadMarket);
+
+        // Find outcomes by exact team name match
         const homeOutcome = spreadMarket.outcomes.find(
           (o: any) => o.name === event.home_team
         );
@@ -316,12 +287,10 @@ export function ParlayBuilder() {
         );
 
         if (homeOutcome) {
+          console.log(`Found home spread for ${event.home_team}:`, homeOutcome);
           homeSpread.odds[key] = homeOutcome.price;
           homeSpread.line = homeOutcome.point;
-          // Store SID and link if available
-          if (homeOutcome.sid) {
-            homeSpread.sids[key] = homeOutcome.sid;
-          }
+          if (homeOutcome.sid) homeSpread.sids[key] = homeOutcome.sid;
           if (homeOutcome.link) {
             homeSpread.links[key] = homeOutcome.link;
             console.log(`Storing home spread link for ${key}:`, homeOutcome.link);
@@ -329,6 +298,7 @@ export function ParlayBuilder() {
         }
 
         if (awayOutcome) {
+          console.log(`Found away spread for ${event.away_team}:`, awayOutcome);
           awaySpread.odds[key] = awayOutcome.price;
           awaySpread.line = awayOutcome.point;
           // Store SID and link if available
@@ -337,7 +307,6 @@ export function ParlayBuilder() {
           }
           if (awayOutcome.link) {
             awaySpread.links[key] = awayOutcome.link;
-            console.log(`Storing away spread link for ${key}:`, awayOutcome.link);
           }
         }
       }
@@ -351,37 +320,43 @@ export function ParlayBuilder() {
     event: any,
     bookmakerData: { [key: string]: any }
   ): any[] => {
+    // For NHL games, we need to swap home and away teams
+    const isNHL = selectedSport === "icehockey_nhl";
+    const homeTeam = isNHL ? event.away_team : event.home_team;
+    const awayTeam = isNHL ? event.home_team : event.away_team;
+
     const homeMoneyline: any = {
       id: `ml-home-${event.id}`,
       type: "moneyline",
       name: "Moneyline",
-      selection: event.home_team,
+      selection: homeTeam,
       odds: {},
       links: {}, // Add links object
       sids: {}, // Store SIDs for each sportsbook
-      team: event.home_team,
+      team: homeTeam,
     };
 
     const awayMoneyline: any = {
       id: `ml-away-${event.id}`,
       type: "moneyline",
       name: "Moneyline",
-      selection: event.away_team,
+      selection: awayTeam,
       odds: {},
       links: {}, // Add links object
       sids: {}, // Store SIDs for each sportsbook
-      team: event.away_team,
+      team: awayTeam,
     };
 
     // Extract moneyline odds from bookmakers
     Object.keys(bookmakerData).forEach((key) => {
       const bookmaker = bookmakerData[key];
       if (bookmaker.markets.h2h) {
+        // For NHL games, we need to swap which team we look for in the outcomes
         const homeOutcome = bookmaker.markets.h2h.outcomes.find(
-          (o: any) => o.name === event.home_team
+          (o: any) => o.name === homeTeam
         );
         const awayOutcome = bookmaker.markets.h2h.outcomes.find(
-          (o: any) => o.name === event.away_team
+          (o: any) => o.name === awayTeam
         );
 
         if (homeOutcome) {
@@ -392,7 +367,6 @@ export function ParlayBuilder() {
           }
           if (homeOutcome.link) {
             homeMoneyline.links[key] = homeOutcome.link;
-            console.log(`Storing home ML link for ${key}:`, homeOutcome.link);
           }
         }
 
@@ -404,7 +378,6 @@ export function ParlayBuilder() {
           }
           if (awayOutcome.link) {
             awayMoneyline.links[key] = awayOutcome.link;
-            console.log(`Storing away ML link for ${key}:`, awayOutcome.link);
           }
         }
       }
@@ -465,7 +438,6 @@ export function ParlayBuilder() {
           }
           if (overOutcome.link) {
             overTotal.links[key] = overOutcome.link;
-            console.log(`Storing over total link for ${key}:`, overOutcome.link);
           }
         }
 
@@ -478,7 +450,6 @@ export function ParlayBuilder() {
           }
           if (underOutcome.link) {
             underTotal.links[key] = underOutcome.link;
-            console.log(`Storing under total link for ${key}:`, underOutcome.link);
           }
         }
       }
@@ -644,19 +615,6 @@ export function ParlayBuilder() {
     });
   };
 
-  // Add a function to validate bet links
-  const validateBetLink = (link: string | undefined): string | undefined => {
-    if (!link) return undefined;
-    try {
-      const url = new URL(link);
-      // Check if it's a valid URL and has a protocol
-      return url.protocol && url.host ? link : undefined;
-    } catch {
-      console.warn('Invalid bet link detected:', link);
-      return undefined;
-    }
-  };
-
   // Add or remove a leg from the parlay
   const toggleLeg = async (
     game: Game,
@@ -748,9 +706,11 @@ export function ParlayBuilder() {
         const normalizedMarketKey = marketKey.replace("_alternate", "");
 
         // Find and remove any existing legs for the same player and market type
+        // This ensures only one line per player per market type
         const updatedLegs = selectedLegs.filter((leg) => {
           if (leg.type !== "player-prop" || !leg.propData) return true;
 
+          // If this is the same player and same market type (normalized), remove it
           const legMarketNormalized = leg.propData.market.replace(
             "_alternate",
             ""
@@ -772,15 +732,15 @@ export function ParlayBuilder() {
           type: "player-prop",
           description: `${game.homeTeam.abbreviation} vs ${game.awayTeam.abbreviation}: ${selection.selection}`,
           line: selection.line,
-          sid: selection.sid || selection.propIdentifiers?.sid,
-          link: validateBetLink(selection.link || selection.propIdentifiers?.link), // Validate link before storing
+          sid: selection.sid, // Add SID if available
+          // Add additional data for odds comparison
           propData: {
             player: playerName,
             market: marketKey,
             line: selection.line || selection.propIdentifiers?.line,
             betType: selection.betType || selection.propIdentifiers?.betType,
             sportId: game.sportId,
-            sid: selection.sid || selection.propIdentifiers?.sid,
+            sid: selection.sid || selection.propIdentifiers?.sid, // Add SID to propData
           },
         };
 
@@ -821,9 +781,7 @@ export function ParlayBuilder() {
                     console.log(
                       `  ${sportsbook}: ${formatOdds(outcome.price)} (Line: ${
                         outcome.point
-                      }) ${outcome.sid ? `SID: ${outcome.sid}` : ""} ${
-                        outcome.link ? `Link: ${outcome.link}` : ""
-                      }`
+                      }) ${outcome.sid ? `SID: ${outcome.sid}` : ""}`
                     );
                   } else {
                     console.log(`  ${sportsbook}: No exact line match`);
@@ -856,7 +814,7 @@ export function ParlayBuilder() {
           description: `${game.homeTeam.abbreviation} vs ${game.awayTeam.abbreviation}: ${selection}`,
           line: market.line ?? 0,
           sid: market.sids?.[sportsbookId], // Store the SID if available
-          link: validateBetLink(market.links?.[sportsbookId]), // Validate and store the link if available
+          link: market.links?.[sportsbookId], // Store the link if available
         };
 
         console.log("ParlayBuilder - Adding leg:", newLeg);
@@ -867,26 +825,15 @@ export function ParlayBuilder() {
         selectedSportsbooks.forEach((sportsbook) => {
           const odds = market.odds?.[sportsbook];
           const sid = market.sids?.[sportsbook];
-          const link = market.links?.[sportsbook];
           if (odds !== undefined) {
             console.log(
               `  ${sportsbook}: ${formatOdds(odds)} (Line: ${
                 market.line || "N/A"
-              }) ${sid ? `SID: ${sid}` : ""} ${link ? `Link: ${link}` : "No link"}`
+              }) ${sid ? `SID: ${sid}` : ""}`
             );
           } else {
             console.log(`  ${sportsbook}: Not available`);
           }
-        });
-
-        // Log the final leg data being added
-        console.log("Final leg data:", {
-          id: newLeg.id,
-          type: newLeg.type,
-          selection: newLeg.selection,
-          sportsbook: sportsbookId,
-          sid: newLeg.sid,
-          link: newLeg.link
         });
 
         setSelectedLegs((prev) => [...prev, newLeg]);
@@ -1058,84 +1005,6 @@ export function ParlayBuilder() {
     );
     setFilteredGames(filtered);
   }, [games, dateFilter]);
-
-  // Add this function to handle bet clicks with state-specific URLs
-  const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
-    console.log('handleBetClick called with:', { outcome, bookmakerKey });
-    
-    if (!outcome || !bookmakerKey) {
-      console.warn('Missing outcome or bookmakerKey:', { outcome, bookmakerKey });
-      return;
-    }
-
-    // Find the sportsbook
-    const sportsbook = sportsbooks.find((sb) => sb.id === bookmakerKey);
-    if (!sportsbook) {
-      console.warn('Sportsbook not found:', bookmakerKey);
-      return;
-    }
-
-    // Get the correct link for the selected sportsbook
-    let betUrl = outcome.link;
-    console.log('Initial bet link:', betUrl);
-    console.log('Sportsbook:', sportsbook);
-    console.log('User state:', userState);
-
-    // Check if this sportsbook requires state information
-    if (sportsbook.requiresState) {
-      console.log('Sportsbook requires state code');
-      
-      // For sportsbooks that need state in the URL
-      if (bookmakerKey === "betmgm") {
-        // Replace {state} in the URL with the user's state
-        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
-        console.log('BetMGM URL after state replacement:', betUrl);
-      } else if (bookmakerKey === "betrivers") {
-        // Handle BetRivers specific URL format
-        const eventIdMatch = betUrl?.match(/#event\/(\d+)/);
-        const couponMatch = betUrl?.match(/\?coupon=([^|]+)\|([^|]+)\|([^&]+)/);
-
-        const params: Record<string, string> = {};
-        if (eventIdMatch && eventIdMatch[1]) {
-          params.eventId = eventIdMatch[1];
-        }
-
-        if (couponMatch) {
-          params.pickType = couponMatch[1];
-          params.selectionId = couponMatch[2];
-          params.wagerAmount = couponMatch[3];
-        }
-
-        // Use the formatSportsbookUrl helper from the hook
-        betUrl = formatSportsbookUrl(bookmakerKey, params);
-        console.log('BetRivers URL after formatting:', betUrl);
-      } else if (bookmakerKey === "williamhill_us") {
-        // Handle Caesars specific URL format
-        console.log('Processing Caesars URL');
-        if (!betUrl) {
-          console.warn('No bet URL found for Caesars');
-          return;
-        }
-        // Make sure we're replacing both /us/{state} and just {state}
-        betUrl = betUrl.replace(/\/us\/{state}\//, `/us/${userState.toLowerCase()}/`);
-        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
-        console.log('Caesars URL after state replacement:', betUrl);
-      } else if (bookmakerKey === "hardrockbet") {
-        // Handle Hard Rock Bet
-        betUrl = betUrl?.replace(/{state}/g, userState.toLowerCase());
-        console.log('Hard Rock Bet URL after state replacement:', betUrl);
-      }
-    }
-
-    if (!betUrl) {
-      console.error('No valid bet URL found for', bookmakerKey);
-      return;
-    }
-
-    console.log('Opening bet link:', betUrl);
-    // Open the URL in a new tab
-    window.open(betUrl, "_blank", "noopener,noreferrer");
-  };
 
   return (
     <div className="relative bg-background sm:rounded-lg sm:border p-0 sm:p-4 w-full max-w-full overflow-hidden">
