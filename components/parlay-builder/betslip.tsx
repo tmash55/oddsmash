@@ -1,12 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Trash2,
   Calculator,
@@ -19,16 +26,23 @@ import {
   Zap,
   DollarSign,
   Info,
-} from "lucide-react"
-import { type ParlayLeg, type Game, formatOdds } from "@/data/sports-data"
-import { sportsbooks } from "@/data/sportsbooks"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
-import { useSportsbooks } from "@/contexts/sportsbook-context"
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
-import { getMarketsForSport } from "@/lib/constants/markets"
+  Monitor,
+  Smartphone,
+} from "lucide-react";
+import { type ParlayLeg, type Game, formatOdds } from "@/data/sports-data";
+import { sportsbooks } from "@/data/sportsbooks";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { useSportsbooks } from "@/contexts/sportsbook-context";
+import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { getMarketsForSport } from "@/lib/constants/markets";
 
 // Add custom utility classes for glow effects
 const glowStyles = `
@@ -56,26 +70,26 @@ const glowStyles = `
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
   }
-`
+`;
 
 interface Outcome {
-  name: string
-  price: number
-  point?: number
-  description?: string
-  sid?: string
-  link?: string
+  name: string;
+  price: number;
+  point?: number;
+  description?: string;
+  sid?: string;
+  link?: string;
 }
 
 interface BetslipProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  legs: ParlayLeg[]
-  onRemoveLeg: (legId: string) => void
-  onClearAll?: () => void
-  games: Game[]
-  displayOdds?: (odds: number) => string
-  playerPropsData?: Record<string, any>
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  legs: ParlayLeg[];
+  onRemoveLeg: (legId: string) => void;
+  onClearAll?: () => void;
+  games: Game[];
+  displayOdds?: (odds: number) => string;
+  playerPropsData?: Record<string, any>;
 }
 
 export function Betslip({
@@ -88,61 +102,75 @@ export function Betslip({
   displayOdds = formatOdds,
   playerPropsData = {},
 }: BetslipProps) {
-  const [wagerAmount, setWagerAmount] = useState("10")
-  const [selectedSportsbook, setSelectedSportsbook] = useState<string | null>(null)
-  const { userSportsbooks } = useSportsbooks()
-  const { selectedSportsbooks, userState, formatSportsbookUrl } = useSportsbookPreferences()
-  const [animatePayouts, setAnimatePayouts] = useState(false)
-  const [expandedGames, setExpandedGames] = useState<Record<string, boolean>>({})
+  const [wagerAmount, setWagerAmount] = useState("10");
+  const [selectedSportsbook, setSelectedSportsbook] = useState<string | null>(
+    null
+  );
+  const { userSportsbooks } = useSportsbooks();
+  const { selectedSportsbooks, userState, formatSportsbookUrl } =
+    useSportsbookPreferences();
+  const [animatePayouts, setAnimatePayouts] = useState(false);
+  const [expandedGames, setExpandedGames] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Add logging for debugging
   useEffect(() => {
     if (open) {
-      console.log("Betslip - User's selected sportsbooks:", userSportsbooks)
-      console.log("Betslip - Selected legs:", legs)
-      console.log("Betslip - Player props data:", playerPropsData)
+      console.log("Betslip - User's selected sportsbooks:", userSportsbooks);
+      console.log("Betslip - Selected legs:", legs);
+      console.log("Betslip - Player props data:", playerPropsData);
     }
-  }, [open, userSportsbooks, legs, playerPropsData])
+  }, [open, userSportsbooks, legs, playerPropsData]);
 
   // Trigger payout animation when wager amount changes
   useEffect(() => {
-    setAnimatePayouts(true)
-    const timer = setTimeout(() => setAnimatePayouts(false), 500)
-    return () => clearTimeout(timer)
-  }, [wagerAmount])
+    setAnimatePayouts(true);
+    const timer = setTimeout(() => setAnimatePayouts(false), 500);
+    return () => clearTimeout(timer);
+  }, [wagerAmount]);
 
   // Update the getPlayerPropOdds function to search across both standard and alternate markets
-  const getPlayerPropOdds = (leg: ParlayLeg, sportsbook: string): { odds?: number; link?: string; sid?: string } => {
-    if (!leg.propData) return {}
+  const getPlayerPropOdds = (
+    leg: ParlayLeg,
+    sportsbook: string
+  ): { odds?: number; link?: string; sid?: string } => {
+    if (!leg.propData) return {};
 
-    const { gameId, propData } = leg
-    const cacheKey = `${gameId}-${propData.market}`
+    const { gameId, propData } = leg;
+    const cacheKey = `${gameId}-${propData.market}`;
 
     // Check if we have data for this prop
     if (!playerPropsData[cacheKey]) {
       // Try alternate market cache key if standard market not found
-      const baseMarket = propData.market.replace("_alternate", "")
-      const alternateMarket = propData.market.endsWith("_alternate") ? baseMarket : `${baseMarket}_alternate`
-      const alternateCacheKey = `${gameId}-${alternateMarket}`
+      const baseMarket = propData.market.replace("_alternate", "");
+      const alternateMarket = propData.market.endsWith("_alternate")
+        ? baseMarket
+        : `${baseMarket}_alternate`;
+      const alternateCacheKey = `${gameId}-${alternateMarket}`;
 
       // If neither standard nor alternate market data is available, return undefined
       if (!playerPropsData[alternateCacheKey]) {
-        return {}
+        return {};
       }
 
       // Use the alternate market data if available
-      const data = playerPropsData[alternateCacheKey]
+      const data = playerPropsData[alternateCacheKey];
 
       // Find the bookmaker
-      const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook)
-      if (!bookmaker) return {}
+      const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
+      if (!bookmaker) return {};
 
       // Search through all markets for this bookmaker
       for (const market of bookmaker.markets) {
         // Find the outcome with EXACT line match regardless of market key
         const outcome = market.outcomes.find((o: any) => {
-          return o.description === propData.player && o.name === propData.betType && o.point === propData.line
-        })
+          return (
+            o.description === propData.player &&
+            o.name === propData.betType &&
+            o.point === propData.line
+          );
+        });
 
         // If we found a matching outcome, return its price, link and sid
         if (outcome) {
@@ -150,25 +178,29 @@ export function Betslip({
             odds: outcome.price,
             link: outcome.link,
             sid: outcome.sid,
-          }
+          };
         }
       }
 
-      return {}
+      return {};
     }
 
-    const data = playerPropsData[cacheKey]
+    const data = playerPropsData[cacheKey];
 
     // Find the bookmaker
-    const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook)
-    if (!bookmaker) return {}
+    const bookmaker = data.bookmakers.find((b: any) => b.key === sportsbook);
+    if (!bookmaker) return {};
 
     // Search through all markets for this bookmaker
     for (const market of bookmaker.markets) {
       // Find the outcome with EXACT line match
       const outcome = market.outcomes.find((o: any) => {
-        return o.description === propData.player && o.name === propData.betType && o.point === propData.line
-      })
+        return (
+          o.description === propData.player &&
+          o.name === propData.betType &&
+          o.point === propData.line
+        );
+      });
 
       // If we found a matching outcome, return its price, link and sid
       if (outcome) {
@@ -176,99 +208,112 @@ export function Betslip({
           odds: outcome.price,
           link: outcome.link,
           sid: outcome.sid,
-        }
+        };
       }
     }
 
-    return {}
-  }
+    return {};
+  };
 
   // Calculate SGP (Same Game Parlay) odds with correlation factors
-  const calculateSGPOdds = (legs: ParlayLeg[], sportsbook: string): number | null => {
-    if (legs.length === 0) return null
+  const calculateSGPOdds = (
+    legs: ParlayLeg[],
+    sportsbook: string
+  ): number | null => {
+    if (legs.length === 0) return null;
 
     // If just one leg, return its odds directly
     if (legs.length === 1) {
-      const leg = legs[0]
+      const leg = legs[0];
       if (leg.type === "player-prop" && leg.propData) {
-        return getPlayerPropOdds(leg, sportsbook).odds || null
+        return getPlayerPropOdds(leg, sportsbook).odds || null;
       }
 
-      const game = games.find((g) => g.id === leg.gameId)
-      if (!game) return null
+      const game = games.find((g) => g.id === leg.gameId);
+      if (!game) return null;
 
-      let market: any
+      let market: any;
       Object.values(game.markets).forEach((marketGroup) => {
         if (Array.isArray(marketGroup)) {
-          const found = marketGroup.find((m) => m.id === leg.marketId)
-          if (found) market = found
+          const found = marketGroup.find((m) => m.id === leg.marketId);
+          if (found) market = found;
         }
-      })
+      });
 
-      return market?.odds?.[sportsbook] || null
+      return market?.odds?.[sportsbook] || null;
     }
 
     // Fetch all leg odds
     const legOdds = legs.map((leg) => {
       if (leg.type === "player-prop" && leg.propData) {
-        return getPlayerPropOdds(leg, sportsbook).odds || 0
+        return getPlayerPropOdds(leg, sportsbook).odds || 0;
       }
 
-      const game = games.find((g) => g.id === leg.gameId)
-      if (!game) return 0
+      const game = games.find((g) => g.id === leg.gameId);
+      if (!game) return 0;
 
-      let market: any
+      let market: any;
       Object.values(game.markets).forEach((marketGroup) => {
         if (Array.isArray(marketGroup)) {
-          const found = marketGroup.find((m) => m.id === leg.marketId)
-          if (found) market = found
+          const found = marketGroup.find((m) => m.id === leg.marketId);
+          if (found) market = found;
         }
-      })
+      });
 
-      return market?.odds?.[sportsbook] || 0
-    })
+      return market?.odds?.[sportsbook] || 0;
+    });
 
-    if (legOdds.some((odds) => odds === 0)) return null
+    if (legOdds.some((odds) => odds === 0)) return null;
 
     // Convert American to Decimal odds
-    const decimalOdds = legOdds.map((odds) => (odds > 0 ? odds / 100 + 1 : 100 / Math.abs(odds) + 1))
+    const decimalOdds = legOdds.map((odds) =>
+      odds > 0 ? odds / 100 + 1 : 100 / Math.abs(odds) + 1
+    );
 
     // Base total: multiply all decimal odds
-    const baseDecimal = decimalOdds.reduce((acc, val) => acc * val, 1)
+    const baseDecimal = decimalOdds.reduce((acc, val) => acc * val, 1);
 
     // Smart correlation adjustment
-    const numLegs = legs.length
-    const baseCorrelationFactor = 0.72 // base reduction factor (FanDuel-style)
+    const numLegs = legs.length;
+    const baseCorrelationFactor = 0.72; // base reduction factor (FanDuel-style)
 
     // Apply exponential decay: the more legs, the greater the trim
-    const correlationMultiplier = Math.pow(baseCorrelationFactor, numLegs - 1)
+    const correlationMultiplier = Math.pow(baseCorrelationFactor, numLegs - 1);
 
-    const adjustedDecimal = baseDecimal * correlationMultiplier
+    const adjustedDecimal = baseDecimal * correlationMultiplier;
 
     // Convert back to American odds
-    let americanOdds
+    let americanOdds;
     if (adjustedDecimal >= 2) {
-      americanOdds = Math.round((adjustedDecimal - 1) * 100)
+      americanOdds = Math.round((adjustedDecimal - 1) * 100);
     } else {
-      americanOdds = Math.round(-100 / (adjustedDecimal - 1))
+      americanOdds = Math.round(-100 / (adjustedDecimal - 1));
     }
 
-    return americanOdds
-  }
+    return americanOdds;
+  };
 
   // Helper function to get market display name from the markets file
   const getMarketDisplayName = (marketKey: string): string => {
     // Remove _alternate suffix for display purposes
-    const baseMarketKey = marketKey.replace("_alternate", "")
+    const baseMarketKey = marketKey.replace("_alternate", "");
 
     // Check all sports for this market
-    const allSports = ["basketball_nba", "basketball_ncaab", "baseball_mlb", "icehockey_nhl", "americanfootball_nfl"]
+    const allSports = [
+      "basketball_nba",
+      "basketball_ncaab",
+      "baseball_mlb",
+      "icehockey_nhl",
+      "americanfootball_nfl",
+    ];
 
     for (const sport of allSports) {
-      const markets = getMarketsForSport(sport)
-      const market = markets.find((m) => m.apiKey === baseMarketKey || m.value === baseMarketKey)
+      const markets = getMarketsForSport(sport);
+      const market = markets.find(
+        (m) => m.apiKey === baseMarketKey || m.value === baseMarketKey
+      );
       if (market) {
-        return market.label
+        return market.label;
       }
     }
 
@@ -294,10 +339,10 @@ export function Betslip({
       player_reception_yards: "Rec Yards",
       player_receptions: "Receptions",
       player_touchdowns: "Touchdowns",
-    }
+    };
 
-    return marketNames[baseMarketKey] || baseMarketKey
-  }
+    return marketNames[baseMarketKey] || baseMarketKey;
+  };
 
   // Check if a sportsbook has all the legs with exact line matches
   const checkSportsbookHasAllLegs = (sportsbook: string) => {
@@ -305,103 +350,100 @@ export function Betslip({
     return legs.every((leg) => {
       // For player props
       if (leg.type === "player-prop" && leg.propData) {
-        const odds = getPlayerPropOdds(leg, sportsbook).odds
-        return odds !== undefined
+        const odds = getPlayerPropOdds(leg, sportsbook).odds;
+        return odds !== undefined;
       }
 
       // For standard markets
-      const game = games.find((g) => g.id === leg.gameId)
-      if (!game) return false
+      const game = games.find((g) => g.id === leg.gameId);
+      if (!game) return false;
 
-      let market: any
+      let market: any;
       Object.values(game.markets).forEach((marketGroup) => {
         if (Array.isArray(marketGroup)) {
-          const found = marketGroup.find((m) => m.id === leg.marketId)
-          if (found) market = found
+          const found = marketGroup.find((m) => m.id === leg.marketId);
+          if (found) market = found;
         }
-      })
+      });
 
-      if (!market) return false
+      if (!market) return false;
 
       // Check if this sportsbook has odds for this market
-      return market.odds?.[sportsbook] !== undefined
-    })
-  }
+      return market.odds?.[sportsbook] !== undefined;
+    });
+  };
 
   // Calculate parlay odds for all sportsbooks
   const calculateOddsForAllSportsbooks = () => {
-    const parlayOdds: { [key: string]: number | null } = {}
+    const parlayOdds: { [key: string]: number | null } = {};
 
     // Skip if no legs
     if (legs.length === 0) {
-      return parlayOdds
+      return parlayOdds;
     }
 
     // Initialize all user sportsbooks with null (indicating not available)
     userSportsbooks.forEach((sportsbook) => {
-      parlayOdds[sportsbook] = null
-    })
+      parlayOdds[sportsbook] = null;
+    });
 
     // For each sportsbook, calculate the parlay odds if all legs are available
     userSportsbooks.forEach((sportsbook) => {
       // Check if this sportsbook has all legs
       if (!checkSportsbookHasAllLegs(sportsbook)) {
         // If not, leave as null
-        return
+        return;
       }
 
       // Group legs by game for SGP calculations
-      const legsByGame = legs.reduce(
-        (acc, leg) => {
-          const gameId = leg.gameId
-          if (!acc[gameId]) {
-            acc[gameId] = []
-          }
-          acc[gameId].push(leg)
-          return acc
-        },
-        {} as Record<string, ParlayLeg[]>,
-      )
+      const legsByGame = legs.reduce((acc, leg) => {
+        const gameId = leg.gameId;
+        if (!acc[gameId]) {
+          acc[gameId] = [];
+        }
+        acc[gameId].push(leg);
+        return acc;
+      }, {} as Record<string, ParlayLeg[]>);
 
       // Calculate odds for each game group (applying SGP logic for multiple legs per game)
-      const gameGroupOdds: number[] = []
+      const gameGroupOdds: number[] = [];
 
       for (const gameId in legsByGame) {
-        const gameLegs = legsByGame[gameId]
+        const gameLegs = legsByGame[gameId];
 
         // If multiple legs from same game, use SGP calculation
         if (gameLegs.length > 1) {
-          const sgpOdds = calculateSGPOdds(gameLegs, sportsbook)
-          if (sgpOdds === null) return // If SGP odds can't be calculated, skip this sportsbook
-          gameGroupOdds.push(sgpOdds)
+          const sgpOdds = calculateSGPOdds(gameLegs, sportsbook);
+          if (sgpOdds === null) return; // If SGP odds can't be calculated, skip this sportsbook
+          gameGroupOdds.push(sgpOdds);
         } else {
           // For single legs, calculate normally
-          const leg = gameLegs[0]
+          const leg = gameLegs[0];
 
           // If this is a player prop, get odds from player props data
           if (leg.type === "player-prop" && leg.propData) {
-            const odds = getPlayerPropOdds(leg, sportsbook).odds
-            if (odds === undefined) return // If odds not available, skip this sportsbook
-            gameGroupOdds.push(odds)
+            const odds = getPlayerPropOdds(leg, sportsbook).odds;
+            if (odds === undefined) return; // If odds not available, skip this sportsbook
+            gameGroupOdds.push(odds);
           } else {
             // Otherwise, find the game and market
-            const game = games.find((g) => g.id === leg.gameId)
-            if (!game) return
+            const game = games.find((g) => g.id === leg.gameId);
+            if (!game) return;
 
-            let market: any
+            let market: any;
             Object.values(game.markets).forEach((marketGroup) => {
               if (Array.isArray(marketGroup)) {
-                const found = marketGroup.find((m) => m.id === leg.marketId)
-                if (found) market = found
+                const found = marketGroup.find((m) => m.id === leg.marketId);
+                if (found) market = found;
               }
-            })
+            });
 
-            if (!market) return
+            if (!market) return;
 
             // Get the odds for this sportsbook
-            const odds = market.odds?.[sportsbook]
-            if (odds === undefined) return // If odds not available, skip this sportsbook
-            gameGroupOdds.push(odds)
+            const odds = market.odds?.[sportsbook];
+            if (odds === undefined) return; // If odds not available, skip this sportsbook
+            gameGroupOdds.push(odds);
           }
         }
       }
@@ -411,230 +453,242 @@ export function Betslip({
         // Convert to decimal odds for multiplication
         const decimalOdds = gameGroupOdds.map((odds) => {
           if (odds > 0) {
-            return odds / 100 + 1
+            return odds / 100 + 1;
           } else {
-            return 100 / Math.abs(odds) + 1
+            return 100 / Math.abs(odds) + 1;
           }
-        })
+        });
 
         // Multiply all decimal odds
-        const totalDecimalOdds = decimalOdds.reduce((acc, odds) => acc * odds, 1)
+        const totalDecimalOdds = decimalOdds.reduce(
+          (acc, odds) => acc * odds,
+          1
+        );
 
         // Convert back to American odds
-        let americanOdds
+        let americanOdds;
         if (totalDecimalOdds >= 2) {
-          americanOdds = Math.round((totalDecimalOdds - 1) * 100)
+          americanOdds = Math.round((totalDecimalOdds - 1) * 100);
         } else {
-          americanOdds = Math.round(-100 / (totalDecimalOdds - 1))
+          americanOdds = Math.round(-100 / (totalDecimalOdds - 1));
         }
 
-        parlayOdds[sportsbook] = americanOdds
+        parlayOdds[sportsbook] = americanOdds;
       }
-    })
+    });
 
-    return parlayOdds
-  }
+    return parlayOdds;
+  };
 
-  const parlayOdds = calculateOddsForAllSportsbooks()
+  const parlayOdds = calculateOddsForAllSportsbooks();
 
   // Find the best odds among available sportsbooks
   const findBestOdds = () => {
-    let bestSportsbook = ""
-    let bestOddsValue = Number.NEGATIVE_INFINITY
+    let bestSportsbook = "";
+    let bestOddsValue = Number.NEGATIVE_INFINITY;
 
     Object.entries(parlayOdds).forEach(([sportsbook, odds]) => {
       if (odds !== null && odds > bestOddsValue) {
-        bestOddsValue = odds
-        bestSportsbook = sportsbook
+        bestOddsValue = odds;
+        bestSportsbook = sportsbook;
       }
-    })
+    });
 
     return {
       sportsbook: bestSportsbook,
       odds: bestOddsValue,
-    }
-  }
+    };
+  };
 
-  const bestOdds = findBestOdds()
+  const bestOdds = findBestOdds();
 
   // Always select the sportsbook with the best odds when betslip opens or legs change
   useEffect(() => {
     if (open && legs.length > 0 && bestOdds.sportsbook) {
       // Always select the best odds sportsbook when betslip is opened
-      setSelectedSportsbook(bestOdds.sportsbook)
-      console.log("Betslip - Auto-selecting best sportsbook:", bestOdds.sportsbook)
+      setSelectedSportsbook(bestOdds.sportsbook);
+      console.log(
+        "Betslip - Auto-selecting best sportsbook:",
+        bestOdds.sportsbook
+      );
     }
-  }, [open, legs, bestOdds.sportsbook])
+  }, [open, legs, bestOdds.sportsbook]);
 
   // Calculate potential payout
   const calculatePayout = (odds: number | null, wager: number) => {
-    if (odds === null) return 0
+    if (odds === null) return 0;
 
     if (odds > 0) {
-      return wager + (wager * odds) / 100
+      return wager + (wager * odds) / 100;
     } else {
-      return wager + (wager * 100) / Math.abs(odds)
+      return wager + (wager * 100) / Math.abs(odds);
     }
-  }
+  };
 
   // Get game info for a leg
   const getGameInfo = (gameId: string) => {
-    return games.find((game) => game.id === gameId)
-  }
+    return games.find((game) => game.id === gameId);
+  };
 
   // Generate deep link to sportsbook using the URLs from sportsbooks.ts
   const getSportsbookLink = (sportsbookId: string) => {
-    const sportsbookInfo = sportsbooks.find((sb) => sb.id === sportsbookId)
-    return sportsbookInfo?.url || "#"
-  }
+    const sportsbookInfo = sportsbooks.find((sb) => sb.id === sportsbookId);
+    return sportsbookInfo?.url || "#";
+  };
 
   // Add this helper function to parse FanDuel link parameters
-  const parseFanduelLink = (link: string): { marketId?: string; selectionId?: string } => {
+  const parseFanduelLink = (
+    link: string
+  ): { marketId?: string; selectionId?: string } => {
     try {
-      const url = new URL(link)
-      const params = new URLSearchParams(url.search)
-      const marketId = params.get("marketId") || params.get("marketId[0]")
-      const selectionId = params.get("selectionId") || params.get("selectionId[0]")
-      return { marketId, selectionId }
+      const url = new URL(link);
+      const params = new URLSearchParams(url.search);
+      const marketId = params.get("marketId") || params.get("marketId[0]");
+      const selectionId =
+        params.get("selectionId") || params.get("selectionId[0]");
+      return { marketId, selectionId };
     } catch (e) {
-      console.error("Error parsing FanDuel link:", e)
-      return {}
+      console.error("Error parsing FanDuel link:", e);
+      return {};
     }
-  }
+  };
 
   // Add this helper function to create FanDuel parlay link
-  const createFanduelParlayLink = (legs: { marketId?: string; selectionId?: string }[]): string => {
-  const baseUrl = "https://ia.sportsbook.fanduel.com/addToBetslip"
-  const params: string[] = []
+  const createFanduelParlayLink = (
+    legs: { marketId?: string; selectionId?: string }[]
+  ): string => {
+    const baseUrl = "https://ia.sportsbook.fanduel.com/addToBetslip";
+    const params: string[] = [];
 
-  legs.forEach((leg, index) => {
-    if (leg.marketId && leg.selectionId) {
-      const encodedMarketId = encodeURIComponent(leg.marketId)
-      const encodedSelectionId = encodeURIComponent(leg.selectionId)
-      params.push(`marketId[${index}]=${encodedMarketId}`)
-      params.push(`selectionId[${index}]=${encodedSelectionId}`)
-    }
-  })
+    legs.forEach((leg, index) => {
+      if (leg.marketId && leg.selectionId) {
+        params.push(`marketId[${index}]=${leg.marketId}`);
+        params.push(`selectionId[${index}]=${leg.selectionId}`);
+      }
+    });
 
-  return `${baseUrl}?${params.join("&")}`
-}
-
+    return `${baseUrl}?${params.join("&")}`;
+  };
 
   // Add this helper function to parse DraftKings link parameters
-  const parseDraftkingsLink = (link: string): { eventId?: string; sid?: string } => {
+  const parseDraftkingsLink = (
+    link: string
+  ): { eventId?: string; sid?: string } => {
     try {
-      const url = new URL(link)
-      const eventId = url.pathname.split("/").pop() || ""
-      const outcomes = url.searchParams.get("outcomes") || ""
+      const url = new URL(link);
+      const eventId = url.pathname.split("/").pop() || "";
+      const outcomes = url.searchParams.get("outcomes") || "";
       // Get the first SID if multiple exist
-      const sid = outcomes.split("+")[0]
-      return { eventId, sid }
+      const sid = outcomes.split("+")[0];
+      return { eventId, sid };
     } catch (e) {
-      console.error("Error parsing DraftKings link:", e)
-      return {}
+      console.error("Error parsing DraftKings link:", e);
+      return {};
     }
-  }
+  };
 
   // Add this helper function to create DraftKings parlay link
-const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): string => {
-  const baseEventId = legs[0]?.eventId || ""
-  const sids = legs
-    .map((leg) => leg.sid)
-    .filter(Boolean)
-    .map((sid) => encodeURIComponent(sid!)) // encode individual SIDs
+  const createDraftkingsLink = (
+    legs: { eventId?: string; sid?: string }[]
+  ): string => {
+    // Use the first leg's event ID as the base
+    const baseEventId = legs[0]?.eventId || "";
+    const sids = legs.map((leg) => leg.sid).filter(Boolean);
 
-  if (!baseEventId || sids.length === 0) {
-    console.error("Missing required DraftKings parameters")
-    return ""
-  }
+    if (!baseEventId || sids.length === 0) {
+      console.error("Missing required DraftKings parameters");
+      return "";
+    }
 
-  // Join SIDs using %2B instead of +
-  return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.join('%2B')}`
-}
-
-
+    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids
+      .map(encodeURIComponent)
+      .join("+")}`;
+  };
 
   // Add this helper function to create Caesars parlay link
   const createCaesarsLink = (legs: { sid?: string }[]): string => {
-  const sids = legs
-    .filter((leg) => leg.sid)
-    .map((leg) => encodeURIComponent(leg.sid!)) // encode each sid individually
-  return `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/bet/betslip?selectionIds=${sids.join('%2C')}` // join with encoded comma
-}
-
+    const sids = legs
+      .filter((leg) => leg.sid)
+      .map((leg) => encodeURIComponent(leg.sid!)); // encode each sid individually
+    return `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/bet/betslip?selectionIds=${sids.join(
+      "%2C"
+    )}`; // join with encoded comma
+  };
 
   // Update the handlePlaceBet function to use the correct SIDs
   const handlePlaceBet = () => {
-    if (!selectedSportsbook) return
+    if (!selectedSportsbook) return;
 
-    console.log("=== Place Bet Button Clicked ===")
-    console.log(`Selected Sportsbook: ${selectedSportsbook}`)
-    console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`)
+    console.log("=== Place Bet Button Clicked ===");
+    console.log(`Selected Sportsbook: ${selectedSportsbook}`);
+    console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`);
 
     // Get all legs for the selected sportsbook
     const legsForSportsbook = legs.map((leg) => {
-      let link
-      let sid
+      let link;
+      let sid;
       if (leg.type === "player-prop") {
-        const propData = getPlayerPropOdds(leg, selectedSportsbook)
+        const propData = getPlayerPropOdds(leg, selectedSportsbook);
         console.log(`Player Prop Leg - ${leg.selection}:`, {
           originalLink: leg.link,
           propDataLink: propData.link,
           sportsbook: selectedSportsbook,
           propDataSid: propData.sid,
-        })
-        link = propData.link
+        });
+        link = propData.link;
         // For player props, use the SID from the selected sportsbook's data
-        sid = propData.sid
+        sid = propData.sid;
         // Encode # to %23 in the SID if it exists
         if (sid) {
-          sid = sid.replace(/#/g, '%23')
+          sid = sid.replace(/#/g, "%23");
         }
       } else {
         // For standard markets, find the game and market
-        const game = games.find((g) => g.id === leg.gameId)
+        const game = games.find((g) => g.id === leg.gameId);
         if (game) {
-          let market: any
+          let market: any;
           Object.values(game.markets).forEach((marketGroup) => {
             if (Array.isArray(marketGroup)) {
-              const found = marketGroup.find((m) => m.id === leg.marketId)
+              const found = marketGroup.find((m) => m.id === leg.marketId);
               if (found) {
-                market = found
+                market = found;
                 console.log(`Standard Market Leg - ${leg.selection}:`, {
                   marketLink: market.links?.[selectedSportsbook],
                   marketSid: market.sids?.[selectedSportsbook],
                   sportsbook: selectedSportsbook,
-                })
-                link = market.links?.[selectedSportsbook]
-                sid = market.sids?.[selectedSportsbook]
+                });
+                link = market.links?.[selectedSportsbook];
+                sid = market.sids?.[selectedSportsbook];
                 // Encode # to %23 in the SID if it exists
                 if (sid) {
-                  sid = sid.replace(/#/g, '%23')
+                  sid = sid.replace(/#/g, "%23");
                 }
               }
             }
-          })
+          });
         }
       }
-      return { ...leg, currentLink: link, sid }
-    })
+      return { ...leg, currentLink: link, sid };
+    });
 
-    console.log("All legs with current sportsbook links:", legsForSportsbook)
+    console.log("All legs with current sportsbook links:", legsForSportsbook);
 
-    let betLink: string
+    let betLink: string;
 
     // Special handling for FanDuel parlays
     if (selectedSportsbook === "fanduel" && legs.length > 1) {
       const parlayLegs = legsForSportsbook
-        .map((leg) => (leg.currentLink ? parseFanduelLink(leg.currentLink) : null))
-        .filter((leg) => leg && leg.marketId && leg.selectionId)
+        .map((leg) =>
+          leg.currentLink ? parseFanduelLink(leg.currentLink) : null
+        )
+        .filter((leg) => leg && leg.marketId && leg.selectionId);
 
       if (parlayLegs.length > 0) {
-        betLink = createFanduelParlayLink(parlayLegs)
-        console.log("Created FanDuel parlay link:", betLink)
+        betLink = createFanduelParlayLink(parlayLegs);
+        console.log("Created FanDuel parlay link:", betLink);
       } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid FanDuel legs found, using homepage:", betLink)
+        betLink = getSportsbookLink(selectedSportsbook);
+        console.log("No valid FanDuel legs found, using homepage:", betLink);
       }
     }
     // Special handling for DraftKings parlays
@@ -643,94 +697,111 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
         .map((leg) => {
           // For DraftKings, we can use either the link parsing or direct SID
           if (leg.currentLink) {
-            return parseDraftkingsLink(leg.currentLink)
+            return parseDraftkingsLink(leg.currentLink);
           } else if (leg.sid) {
             // If we have a direct SID, use it (it's already encoded)
-            return { eventId: leg.gameId, sid: leg.sid }
+            return { eventId: leg.gameId, sid: leg.sid };
           }
-          return null
+          return null;
         })
-        .filter((leg) => leg && (leg.eventId || leg.sid))
+        .filter((leg) => leg && (leg.eventId || leg.sid));
 
       if (parlayLegs.length > 0) {
-        betLink = createDraftkingsLink(parlayLegs)
-        console.log("Created DraftKings parlay link:", betLink)
+        betLink = createDraftkingsLink(parlayLegs);
+        console.log("Created DraftKings parlay link:", betLink);
       } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid DraftKings legs found, using homepage:", betLink)
+        betLink = getSportsbookLink(selectedSportsbook);
+        console.log("No valid DraftKings legs found, using homepage:", betLink);
       }
     }
     // Special handling for Caesars parlays
     else if (selectedSportsbook === "williamhill_us" && legs.length > 1) {
       const parlayLegs = legsForSportsbook
         .map((leg) => ({ sid: leg.sid }))
-        .filter((leg) => leg.sid)
+        .filter((leg) => leg.sid);
 
       if (parlayLegs.length > 0) {
-        betLink = createCaesarsLink(parlayLegs)
-        console.log("Created Caesars parlay link:", betLink)
+        betLink = createCaesarsLink(parlayLegs);
+        console.log("Created Caesars parlay link:", betLink);
       } else {
-        betLink = getSportsbookLink(selectedSportsbook)
-        console.log("No valid Caesars legs found, using homepage:", betLink)
+        betLink = getSportsbookLink(selectedSportsbook);
+        console.log("No valid Caesars legs found, using homepage:", betLink);
       }
     } else {
       // For other sportsbooks or single bets, use the first valid link
-      const firstValidLink = legsForSportsbook.find((leg) => leg.currentLink)?.currentLink
-      betLink = firstValidLink || getSportsbookLink(selectedSportsbook)
+      const firstValidLink = legsForSportsbook.find(
+        (leg) => leg.currentLink
+      )?.currentLink;
+      betLink = firstValidLink || getSportsbookLink(selectedSportsbook);
     }
 
-    console.log("Final bet link to be opened:", betLink)
+    console.log("Final bet link to be opened:", betLink);
 
     // Handle state-specific URLs
-    const sportsbook = sportsbooks.find((sb) => sb.id === selectedSportsbook)
+    const sportsbook = sportsbooks.find((sb) => sb.id === selectedSportsbook);
     if (sportsbook && sportsbook.requiresState && betLink) {
       if (selectedSportsbook === "betmgm") {
-        betLink = betLink.replace(/{state}/g, userState.toLowerCase())
+        betLink = betLink.replace(/{state}/g, userState.toLowerCase());
       } else if (selectedSportsbook === "betrivers") {
         // Handle BetRivers specific URL format - replace {state} in the domain
         if (betLink.includes("{state}.betrivers.com")) {
-          betLink = betLink.replace("{state}.betrivers.com", `${userState.toLowerCase()}.betrivers.com`)
-          console.log("BetRivers URL after state replacement in handlePlaceBet:", betLink)
+          betLink = betLink.replace(
+            "{state}.betrivers.com",
+            `${userState.toLowerCase()}.betrivers.com`
+          );
+          console.log(
+            "BetRivers URL after state replacement in handlePlaceBet:",
+            betLink
+          );
         }
-      } else if (selectedSportsbook === "williamhill_us" || selectedSportsbook === "hardrockbet") {
-        betLink = betLink.replace(/{state}/g, userState.toLowerCase())
+      } else if (
+        selectedSportsbook === "williamhill_us" ||
+        selectedSportsbook === "hardrockbet"
+      ) {
+        betLink = betLink.replace(/{state}/g, userState.toLowerCase());
       }
     }
 
     // Open the sportsbook in a new tab
-    window.open(betLink, "_blank")
-  }
+    window.open(betLink, "_blank");
+  };
 
   const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
-    if (!outcome || !outcome.link || !bookmakerKey) return
+    if (!outcome || !outcome.link || !bookmakerKey) return;
 
     // Find the sportsbook
-    const sportsbook = sportsbooks.find((sb) => sb.id === bookmakerKey)
-    if (!sportsbook) return
+    const sportsbook = sportsbooks.find((sb) => sb.id === bookmakerKey);
+    if (!sportsbook) return;
 
-    let betUrl = outcome.link
+    let betUrl = outcome.link;
 
     // Check if this sportsbook requires state information
     if (sportsbook.requiresState) {
       // For sportsbooks that need state in the URL
       if (bookmakerKey === "betmgm") {
         // Replace {state} in the URL with the user's state
-        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase())
+        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
       } else if (bookmakerKey === "betrivers") {
         // Handle BetRivers specific URL format - replace {state} in the domain
         if (betUrl.includes("{state}.betrivers.com")) {
-          betUrl = betUrl.replace("{state}.betrivers.com", `${userState.toLowerCase()}.betrivers.com`)
-          console.log("BetRivers URL after state replacement:", betUrl)
+          betUrl = betUrl.replace(
+            "{state}.betrivers.com",
+            `${userState.toLowerCase()}.betrivers.com`
+          );
+          console.log("BetRivers URL after state replacement:", betUrl);
         }
-      } else if (bookmakerKey === "williamhill_us" || bookmakerKey === "hardrockbet") {
+      } else if (
+        bookmakerKey === "williamhill_us" ||
+        bookmakerKey === "hardrockbet"
+      ) {
         // Handle other sportsbooks that might need state information
-        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase())
+        betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
       }
     }
 
     // Open the URL in a new tab
-    window.open(betUrl, "_blank", "noopener,noreferrer")
-  }
+    window.open(betUrl, "_blank", "noopener,noreferrer");
+  };
 
   // Get market type display name for standard markets
   const getStandardMarketName = (type: string): string => {
@@ -739,106 +810,104 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
       moneyline: "Moneyline",
       total: "Total",
       "player-prop": "Player Prop",
-    }
-    return marketTypes[type] || type
-  }
+    };
+    return marketTypes[type] || type;
+  };
 
   // Handle clearing all legs
   const handleClearAll = () => {
     if (onClearAll) {
-      onClearAll()
+      onClearAll();
     }
-  }
+  };
 
   // Format the market display for a leg
   const formatMarketDisplay = (leg: ParlayLeg) => {
     // For player props
     if (leg.type === "player-prop" && leg.propData) {
-      const marketName = getMarketDisplayName(leg.propData.market)
-      return marketName
+      const marketName = getMarketDisplayName(leg.propData.market);
+      return marketName;
     }
 
     // For standard markets
-    if (leg.type === "moneyline") return "Moneyline"
+    if (leg.type === "moneyline") return "Moneyline";
 
-    if (leg.type === "spread") return `Spread ${(leg.line > 0 ? "+" : "") + leg.line}`
+    if (leg.type === "spread")
+      return `Spread ${(leg.line > 0 ? "+" : "") + leg.line}`;
 
-    if (leg.type === "total") return `${leg.selection} ${Math.abs(leg.line)}`
+    if (leg.type === "total") return `${leg.selection} ${Math.abs(leg.line)}`;
 
-    return leg.type
-  }
+    return leg.type;
+  };
 
   // Get the team abbreviations for a game
   const getGameTeams = (gameId: string) => {
-    const game = getGameInfo(gameId)
-    if (!game) return ""
-    return `${game.awayTeam.name} @ ${game.homeTeam.name}`
-  }
+    const game = getGameInfo(gameId);
+    if (!game) return "";
+    return `${game.awayTeam.name} @ ${game.homeTeam.name}`;
+  };
 
   // Group legs by game for better organization
-  const groupedLegs = legs.reduce(
-    (acc, leg) => {
-      const gameId = leg.gameId
-      if (!acc[gameId]) {
-        acc[gameId] = []
-      }
-      acc[gameId].push(leg)
-      return acc
-    },
-    {} as Record<string, ParlayLeg[]>,
-  )
+  const groupedLegs = legs.reduce((acc, leg) => {
+    const gameId = leg.gameId;
+    if (!acc[gameId]) {
+      acc[gameId] = [];
+    }
+    acc[gameId].push(leg);
+    return acc;
+  }, {} as Record<string, ParlayLeg[]>);
 
   useEffect(() => {
     // Initialize all games as expanded by default
-    const newExpandedState: Record<string, boolean> = {}
+    const newExpandedState: Record<string, boolean> = {};
     Object.keys(groupedLegs).forEach((gameId) => {
-      newExpandedState[gameId] = true
-    })
-    setExpandedGames(newExpandedState)
-  }, [legs])
+      newExpandedState[gameId] = true;
+    });
+    setExpandedGames(newExpandedState);
+  }, [legs]);
 
   // Add this function to check if a sportsbook has deep linking available
   const hasDeepLink = (sportsbook: string) => {
     return legs.some((leg) => {
       if (leg.type === "player-prop") {
-        const propData = getPlayerPropOdds(leg, sportsbook)
-        return !!propData.link
+        const propData = getPlayerPropOdds(leg, sportsbook);
+        return !!propData.link;
       } else {
-        const game = games.find((g) => g.id === leg.gameId)
+        const game = games.find((g) => g.id === leg.gameId);
         if (game) {
-          let hasLink = false
+          let hasLink = false;
           Object.values(game.markets).forEach((marketGroup) => {
             if (Array.isArray(marketGroup)) {
-              const found = marketGroup.find((m) => m.id === leg.marketId)
+              const found = marketGroup.find((m) => m.id === leg.marketId);
               if (found && found.links?.[sportsbook]) {
-                hasLink = true
+                hasLink = true;
               }
             }
-          })
-          return hasLink
+          });
+          return hasLink;
         }
-        return false
+        return false;
       }
-    })
-  }
+    });
+  };
 
   // Group sportsbooks by odds value
   const groupSportsbooksByOdds = () => {
-    const groups: Record<number, string[]> = {}
+    const groups: Record<number, string[]> = {};
 
     Object.entries(parlayOdds).forEach(([sportsbook, odds]) => {
       if (odds !== null) {
         if (!groups[odds]) {
-          groups[odds] = []
+          groups[odds] = [];
         }
-        groups[odds].push(sportsbook)
+        groups[odds].push(sportsbook);
       }
-    })
+    });
 
-    return groups
-  }
+    return groups;
+  };
 
-  const oddsGroups = groupSportsbooksByOdds()
+  const oddsGroups = groupSportsbooksByOdds();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -890,13 +959,24 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
           <ScrollArea className="h-full">
             {/* Deep linking explanation at the top of the betslip */}
             {legs.length > 0 && (
-              <div className="px-4 pt-4 pb-2 bg-muted/20 border-b">
-                <div className="flex items-start gap-2">
+              <div className="px-4 pt-4 pb-3 bg-muted/20 border-b space-y-2">
+                <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground">
-                   
-                    This indicates sportsbooks that support deep linking, which automatically fills your bet slip with your
-                    selections.
+                    This indicates sportsbooks that support deep linking, which
+                    automatically fills your bet slip with your selections.
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium text-amber-500/80">Note:</span>{" "}
+                    Deep linking on mobile is a work in progress. Currently
+                    works best on <Monitor className="h-3 w-3 inline mx-0.5" />{" "}
+                    desktop or with single selections. Support for multiple
+                    selections on{" "}
+                    <Smartphone className="h-3 w-3 inline mx-0.5" /> mobile is
+                    coming soon!
                   </p>
                 </div>
               </div>
@@ -926,7 +1006,11 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                     </motion.div>
                   </div>
                   <p className="text-gray-400 mb-3">Your betslip is empty</p>
-                  <Button variant="outline" className="mt-2" onClick={() => onOpenChange(false)}>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => onOpenChange(false)}
+                  >
                     Add Selections
                   </Button>
                 </motion.div>
@@ -936,14 +1020,19 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                   <div className="space-y-4">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-muted-foreground">Odds Comparison</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Odds Comparison
+                        </h3>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <span>Based on ${wagerAmount} wager</span>
                         </div>
                       </div>
-                      {Object.values(groupedLegs).some((legs) => legs.length > 1) && (
+                      {Object.values(groupedLegs).some(
+                        (legs) => legs.length > 1
+                      ) && (
                         <p className="text-xs text-muted-foreground italic">
-                          Note: Same Game Parlay (SGP) odds account for correlations between bets.
+                          Note: Same Game Parlay (SGP) odds account for
+                          correlations between bets.
                         </p>
                       )}
                     </div>
@@ -952,51 +1041,69 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                       {userSportsbooks
                         .slice()
                         .sort((a, b) => {
-                          const oddsA = parlayOdds[a]
-                          const oddsB = parlayOdds[b]
+                          const oddsA = parlayOdds[a];
+                          const oddsB = parlayOdds[b];
 
                           // Handle null values (place them at the end)
-                          if (oddsA === null && oddsB === null) return 0
-                          if (oddsA === null) return 1
-                          if (oddsB === null) return -1
+                          if (oddsA === null && oddsB === null) return 0;
+                          if (oddsA === null) return 1;
+                          if (oddsB === null) return -1;
 
                           // Sort by highest odds (best value) first
-                          return oddsB - oddsA
+                          return oddsB - oddsA;
                         })
                         .map((sportsbook) => {
-                          const odds = parlayOdds[sportsbook]
-                          const isBest = odds !== null && bestOdds.sportsbook === sportsbook
-                          const isSelected = sportsbook === selectedSportsbook
-                          const payout = calculatePayout(odds, Number.parseFloat(wagerAmount) || 0)
-                          const sportsbookInfo = sportsbooks.find((sb) => sb.id === sportsbook)
-                          const isAvailable = odds !== null
-                          const hasDeepLinking = hasDeepLink(sportsbook)
+                          const odds = parlayOdds[sportsbook];
+                          const isBest =
+                            odds !== null && bestOdds.sportsbook === sportsbook;
+                          const isSelected = sportsbook === selectedSportsbook;
+                          const payout = calculatePayout(
+                            odds,
+                            Number.parseFloat(wagerAmount) || 0
+                          );
+                          const sportsbookInfo = sportsbooks.find(
+                            (sb) => sb.id === sportsbook
+                          );
+                          const isAvailable = odds !== null;
+                          const hasDeepLinking = hasDeepLink(sportsbook);
 
                           // Check if this sportsbook is part of a group with the same odds
-                          const sameOddsCount = odds !== null && oddsGroups[odds] ? oddsGroups[odds].length : 0
-                          const hasSameOddsAsOthers = sameOddsCount > 1
+                          const sameOddsCount =
+                            odds !== null && oddsGroups[odds]
+                              ? oddsGroups[odds].length
+                              : 0;
+                          const hasSameOddsAsOthers = sameOddsCount > 1;
 
                           return (
                             <motion.div
                               key={sportsbook}
-                              whileHover={isAvailable ? { scale: 1.01, y: -1 } : {}}
+                              whileHover={
+                                isAvailable ? { scale: 1.01, y: -1 } : {}
+                              }
                               whileTap={isAvailable ? { scale: 0.99 } : {}}
                               layout
                               className="w-full"
                             >
                               <button
-                                onClick={() => isAvailable && setSelectedSportsbook(sportsbook)}
+                                onClick={() =>
+                                  isAvailable &&
+                                  setSelectedSportsbook(sportsbook)
+                                }
                                 className={cn(
                                   "w-full flex items-center p-3 rounded-md border transition-all duration-200 relative",
                                   "backdrop-blur-sm bg-card/80",
                                   isSelected
                                     ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
                                     : "shadow-sm hover:shadow-md",
-                                  isBest && !isSelected ? "border-primary/30 bg-primary/5" : "",
-                                  !isAvailable ? "border-muted bg-muted/10" : "",
+                                  isBest && !isSelected
+                                    ? "border-primary/30 bg-primary/5"
+                                    : "",
+                                  !isAvailable
+                                    ? "border-muted bg-muted/10"
+                                    : "",
                                   !isAvailable
                                     ? "opacity-60 cursor-not-allowed"
-                                    : "hover:border-primary/50 hover:border-glow",
+                                    : "hover:border-primary/50 hover:border-glow"
                                 )}
                                 disabled={!isAvailable}
                               >
@@ -1013,7 +1120,10 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                   )}
                                   <div className="w-8 h-8 relative flex-shrink-0 rounded-full overflow-hidden bg-muted/30 flex items-center justify-center">
                                     <img
-                                      src={sportsbookInfo?.logo || "/placeholder.svg?height=32&width=32"}
+                                      src={
+                                        sportsbookInfo?.logo ||
+                                        "/placeholder.svg?height=32&width=32"
+                                      }
                                       alt={sportsbookInfo?.name || sportsbook}
                                       className="w-6 h-6 object-contain"
                                     />
@@ -1036,17 +1146,26 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                                 "bg-background/80 border border-border/30",
                                                 odds! > 0
                                                   ? "text-green-600 dark:text-green-500"
-                                                  : "text-blue-600 dark:text-blue-500",
+                                                  : "text-blue-600 dark:text-blue-500"
                                               )}
                                             >
-                                              <span className="text-base font-bold">{displayOdds(odds!)}</span>
-                                              {hasDeepLinking && <Zap className="h-3.5 w-3.5 opacity-75" />}
+                                              <span className="text-base font-bold">
+                                                {displayOdds(odds!)}
+                                              </span>
+                                              {hasDeepLinking && (
+                                                <Zap className="h-3.5 w-3.5 opacity-75" />
+                                              )}
                                             </div>
                                           </TooltipTrigger>
-                                          <TooltipContent side="top" className="text-xs">
+                                          <TooltipContent
+                                            side="top"
+                                            className="text-xs"
+                                          >
                                             {hasDeepLinking
                                               ? "Deep linking available - faster bet placement"
-                                              : "Odds provided by " + (sportsbookInfo?.name || sportsbook)}
+                                              : "Odds provided by " +
+                                                (sportsbookInfo?.name ||
+                                                  sportsbook)}
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
@@ -1079,10 +1198,20 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                                 Same Odds
                                               </Badge>
                                             </TooltipTrigger>
-                                            <TooltipContent side="top" className="text-xs">
+                                            <TooltipContent
+                                              side="top"
+                                              className="text-xs"
+                                            >
                                               {oddsGroups[odds!]
-                                                .filter((sb) => sb !== sportsbook)
-                                                .map((sb) => sportsbooks.find((s) => s.id === sb)?.name || sb)
+                                                .filter(
+                                                  (sb) => sb !== sportsbook
+                                                )
+                                                .map(
+                                                  (sb) =>
+                                                    sportsbooks.find(
+                                                      (s) => s.id === sb
+                                                    )?.name || sb
+                                                )
                                                 .join(", ")}{" "}
                                               offer the same odds
                                             </TooltipContent>
@@ -1094,7 +1223,7 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                 </div>
                               </button>
                             </motion.div>
-                          )
+                          );
                         })}
                     </div>
                   </div>
@@ -1121,7 +1250,8 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      This is for visualization purposes only. Actual wager amount will be set at the sportsbook.
+                      This is for visualization purposes only. Actual wager
+                      amount will be set at the sportsbook.
                     </p>
                   </div>
 
@@ -1135,15 +1265,15 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                     </div>
                     <AnimatePresence>
                       {Object.entries(groupedLegs).map(([gameId, gameLegs]) => {
-                        const isExpanded = expandedGames[gameId] !== false
+                        const isExpanded = expandedGames[gameId] !== false;
                         const toggleExpanded = () => {
                           setExpandedGames((prev) => ({
                             ...prev,
                             [gameId]: !isExpanded,
-                          }))
-                        }
+                          }));
+                        };
 
-                        const isSGP = gameLegs.length > 1
+                        const isSGP = gameLegs.length > 1;
 
                         return (
                           <motion.div
@@ -1167,9 +1297,14 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                         Same Game Parlay
                                       </Badge>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" align="center" className="max-w-[250px] text-center">
+                                    <TooltipContent
+                                      side="top"
+                                      align="center"
+                                      className="max-w-[250px] text-center"
+                                    >
                                       <p className="text-xs">
-                                        Same Game Parlay odds may vary between sportsbooks as each uses different
+                                        Same Game Parlay odds may vary between
+                                        sportsbooks as each uses different
                                         correlation calculations.
                                       </p>
                                     </TooltipContent>
@@ -1186,8 +1321,8 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                   size="sm"
                                   className="h-6 w-6 p-0 flex-shrink-0"
                                   onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleExpanded()
+                                    e.stopPropagation();
+                                    toggleExpanded();
                                   }}
                                 >
                                   {isExpanded ? (
@@ -1204,13 +1339,16 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                         {getGameTeams(gameId)}
                                       </div>
                                     </TooltipTrigger>
-                                    <TooltipContent>{getGameTeams(gameId)}</TooltipContent>
+                                    <TooltipContent>
+                                      {getGameTeams(gameId)}
+                                    </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
 
                               <div className="text-xs text-muted-foreground flex-shrink-0 ml-auto sm:ml-1 whitespace-nowrap">
-                                {gameLegs.length} {gameLegs.length === 1 ? "leg" : "legs"}
+                                {gameLegs.length}{" "}
+                                {gameLegs.length === 1 ? "leg" : "legs"}
                               </div>
                             </div>
 
@@ -1235,16 +1373,22 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                       >
                                         <div className="p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full overflow-hidden">
                                           {/* First line: Selection */}
-                                          <div className="text-base font-medium mb-1">{leg.selection}</div>
+                                          <div className="text-base font-medium mb-1">
+                                            {leg.selection}
+                                          </div>
 
                                           {/* Second line: Market • Sportsbook and Odds */}
                                           <div className="flex items-center justify-between w-full">
                                             <div className="flex items-center text-sm text-muted-foreground">
-                                              <span>{formatMarketDisplay(leg)}</span>
+                                              <span>
+                                                {formatMarketDisplay(leg)}
+                                              </span>
                                               <span className="mx-1.5">•</span>
                                               <span>
-                                                {sportsbooks.find((sb) => sb.id === leg.sportsbookId)?.name ||
-                                                  leg.sportsbookId}
+                                                {sportsbooks.find(
+                                                  (sb) =>
+                                                    sb.id === leg.sportsbookId
+                                                )?.name || leg.sportsbookId}
                                               </span>
                                             </div>
 
@@ -1256,7 +1400,7 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                                   "bg-background/80 border border-border/30",
                                                   leg.odds > 0
                                                     ? "text-green-600 dark:text-green-500"
-                                                    : "text-blue-600 dark:text-blue-500",
+                                                    : "text-blue-600 dark:text-blue-500"
                                                 )}
                                               >
                                                 {displayOdds(leg.odds)}
@@ -1266,7 +1410,9 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => onRemoveLeg(leg.id)}
+                                                onClick={() =>
+                                                  onRemoveLeg(leg.id)
+                                                }
                                                 className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive p-0"
                                                 aria-label="Remove selection"
                                               >
@@ -1282,7 +1428,7 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                               )}
                             </AnimatePresence>
                           </motion.div>
-                        )
+                        );
                       })}
                     </AnimatePresence>
                   </div>
@@ -1327,7 +1473,7 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                     "w-full h-14 text-base",
                     selectedSportsbook === bestOdds.sportsbook
                       ? "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary border border-primary/30 shadow-glow"
-                      : "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary",
+                      : "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
                   )}
                   size="lg"
                   onClick={handlePlaceBet}
@@ -1335,10 +1481,12 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
                   <span>
                     {selectedSportsbook === bestOdds.sportsbook
                       ? `Place Bet with Best Odds (${
-                          sportsbooks.find((sb) => sb.id === selectedSportsbook)?.name || selectedSportsbook
+                          sportsbooks.find((sb) => sb.id === selectedSportsbook)
+                            ?.name || selectedSportsbook
                         })`
                       : `Place Bet on ${
-                          sportsbooks.find((sb) => sb.id === selectedSportsbook)?.name || selectedSportsbook
+                          sportsbooks.find((sb) => sb.id === selectedSportsbook)
+                            ?.name || selectedSportsbook
                         }`}
                   </span>
                   <ExternalLink className="ml-2 h-5 w-5" />
@@ -1346,13 +1494,18 @@ const createDraftkingsLink = (legs: { eventId?: string; sid?: string }[]): strin
               </motion.div>
             ) : (
               <div className="w-full text-center p-4 bg-muted/20 rounded-md">
-                <p className="text-muted-foreground mb-2">No sportsbook available for these selections</p>
-                <p className="text-xs">Try different selections or check if you have sportsbooks enabled</p>
+                <p className="text-muted-foreground mb-2">
+                  No sportsbook available for these selections
+                </p>
+                <p className="text-xs">
+                  Try different selections or check if you have sportsbooks
+                  enabled
+                </p>
               </div>
             )}
           </SheetFooter>
         )}
       </SheetContent>
     </Sheet>
-  )
+  );
 }

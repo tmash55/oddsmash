@@ -240,7 +240,7 @@ export function ParlayBuilder() {
   ): any[] => {
     console.log(`Creating spread markets for event: ${event.id}`);
     console.log(`Home team: ${event.home_team}, Away team: ${event.away_team}`);
-
+  
     const homeSpread: any = {
       id: `spread-home-${event.id}`,
       type: "spread",
@@ -249,10 +249,10 @@ export function ParlayBuilder() {
       odds: {},
       links: {},
       sids: {},
-      line: 0,
+      line: null,
       team: event.home_team,
     };
-
+  
     const awaySpread: any = {
       id: `spread-away-${event.id}`,
       type: "spread",
@@ -261,59 +261,91 @@ export function ParlayBuilder() {
       odds: {},
       links: {},
       sids: {},
-      line: 0,
+      line: null,
       team: event.away_team,
     };
-
-    // Extract spread odds from bookmakers
+  
     Object.keys(bookmakerData).forEach((key) => {
       const bookmaker = bookmakerData[key];
-      // Check for both spreads and run_line markets
       const spreadMarket =
         bookmaker.markets.spreads ||
         bookmaker.markets.spread ||
         bookmaker.markets.run_line ||
         bookmaker.markets.runline;
-
-      if (spreadMarket) {
-        console.log(`Processing spread market from ${key}:`, spreadMarket);
-
-        // Find outcomes by exact team name match
-        const homeOutcome = spreadMarket.outcomes.find(
-          (o: any) => o.name === event.home_team
-        );
-        const awayOutcome = spreadMarket.outcomes.find(
-          (o: any) => o.name === event.away_team
-        );
-
-        if (homeOutcome) {
-          console.log(`Found home spread for ${event.home_team}:`, homeOutcome);
-          homeSpread.odds[key] = homeOutcome.price;
-          homeSpread.line = homeOutcome.point;
-          if (homeOutcome.sid) homeSpread.sids[key] = homeOutcome.sid;
-          if (homeOutcome.link) {
-            homeSpread.links[key] = homeOutcome.link;
-            console.log(`Storing home spread link for ${key}:`, homeOutcome.link);
+  
+      if (!spreadMarket) return;
+  
+      console.log(`Processing spread market from ${key}:`, spreadMarket);
+  
+      const outcomes = spreadMarket.outcomes;
+  
+      // Try to match outcomes to home and away teams
+      const homeOutcome = outcomes.find(
+        (o: any) => o.name === event.home_team
+      );
+      const awayOutcome = outcomes.find(
+        (o: any) => o.name === event.away_team
+      );
+  
+      // Prefer team name match
+      if (homeOutcome) {
+        homeSpread.odds[key] = homeOutcome.price;
+        homeSpread.line = homeOutcome.point;
+        if (homeOutcome.sid) homeSpread.sids[key] = homeOutcome.sid;
+        if (homeOutcome.link) homeSpread.links[key] = homeOutcome.link;
+      }
+  
+      if (awayOutcome) {
+        awaySpread.odds[key] = awayOutcome.price;
+        awaySpread.line = awayOutcome.point;
+        if (awayOutcome.sid) awaySpread.sids[key] = awayOutcome.sid;
+        if (awayOutcome.link) awaySpread.links[key] = awayOutcome.link;
+      }
+  
+      // If name match fails, fallback to position-based mapping
+      if (!homeOutcome || !awayOutcome) {
+        if (outcomes.length === 2) {
+          console.warn(`Fallback to outcome order for spread on ${key}`);
+  
+          const [first, second] = outcomes;
+  
+          // If home isn't assigned yet
+          if (!homeOutcome) {
+            homeSpread.odds[key] = first.price;
+            homeSpread.line = first.point;
+            if (first.sid) homeSpread.sids[key] = first.sid;
+            if (first.link) homeSpread.links[key] = first.link;
           }
-        }
-
-        if (awayOutcome) {
-          console.log(`Found away spread for ${event.away_team}:`, awayOutcome);
-          awaySpread.odds[key] = awayOutcome.price;
-          awaySpread.line = awayOutcome.point;
-          // Store SID and link if available
-          if (awayOutcome.sid) {
-            awaySpread.sids[key] = awayOutcome.sid;
+  
+          // If away isn't assigned yet
+          if (!awayOutcome) {
+            awaySpread.odds[key] = second.price;
+            awaySpread.line = second.point;
+            if (second.sid) awaySpread.sids[key] = second.sid;
+            if (second.link) awaySpread.links[key] = second.link;
           }
-          if (awayOutcome.link) {
-            awaySpread.links[key] = awayOutcome.link;
-          }
+        } else {
+          console.warn(`Spread market from ${key} does not have 2 outcomes.`);
         }
       }
     });
-
+  
+    console.log("Final spread assignments:", {
+      home: {
+        team: event.home_team,
+        line: homeSpread.line,
+        odds: homeSpread.odds,
+      },
+      away: {
+        team: event.away_team,
+        line: awaySpread.line,
+        odds: awaySpread.odds,
+      },
+    });
+  
     return [homeSpread, awaySpread];
   };
+  
 
   // Helper function to create moneyline markets
   const createMoneylineMarkets = (

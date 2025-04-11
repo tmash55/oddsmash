@@ -44,140 +44,47 @@ export function GameCard({
   };
 
   // Get the spread, moneyline, and total markets
-  const spreads = game.markets.spread || [];
+  // Get the spread, moneyline, and total markets
+const spreads = game.markets.spread || [];
 
-  // Add detailed logging for debugging
-  console.log(
-    `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
-  );
-  console.log(`Sport ID: ${game.sportId}`);
-  console.log(`Raw spreads data:`, spreads);
+// Add detailed logging for debugging
+console.log(
+  `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
+);
+console.log(`Sport ID: ${game.sportId}`);
+console.log(`Raw spreads data:`, spreads);
 
-  // For baseball, we need special handling for spreads
-  let awaySpread = null;
-  let homeSpread = null;
+// Always use team name to match spreads
+const awaySpread = spreads.find(
+  (s: any) => s.team === game.awayTeam.name
+);
+const homeSpread = spreads.find(
+  (s: any) => s.team === game.homeTeam.name
+);
 
-  if (game.sportId?.includes("baseball")) {
-    console.log(
-      `Baseball game detected: ${game.awayTeam.name} @ ${game.homeTeam.name}`
-    );
+// Log warning if a spread is missing
+if (!awaySpread || !homeSpread) {
+  console.warn("Warning: Could not match all spreads by team name", {
+    awaySpreadFound: !!awaySpread,
+    homeSpreadFound: !!homeSpread,
+    spreads,
+  });
+}
 
-    // Log all spread outcomes for debugging
-    spreads.forEach((spread: any, index: number) => {
-      console.log(`Spread ${index + 1}:`, {
-        team: spread.team,
-        selection: spread.selection,
-        name: spread.name,
-        line: spread.line,
-        point: spread.point,
-        odds: spread.odds?.[activeSportsbook],
-      });
-    });
 
-    // For baseball, try to match by team name first
-    const awaySpreadByName = spreads.find((s: any) => {
-      const matchesAwayTeam =
-        (s.team && s.team.includes(game.awayTeam.name)) ||
-        (s.selection && s.selection.includes(game.awayTeam.name)) ||
-        (s.name && s.name.includes(game.awayTeam.name));
-
-      if (matchesAwayTeam) {
-        console.log(
-          `Found away spread by name match for ${game.awayTeam.name}:`,
-          s
-        );
-      }
-      return matchesAwayTeam;
-    });
-
-    const homeSpreadByName = spreads.find((s: any) => {
-      const matchesHomeTeam =
-        (s.team && s.team.includes(game.homeTeam.name)) ||
-        (s.selection && s.selection.includes(game.homeTeam.name)) ||
-        (s.name && s.name.includes(game.homeTeam.name));
-
-      if (matchesHomeTeam) {
-        console.log(
-          `Found home spread by name match for ${game.homeTeam.name}:`,
-          s
-        );
-      }
-      return matchesHomeTeam;
-    });
-
-    // If we found matches by name, use them
-    if (awaySpreadByName) {
-      awaySpread = awaySpreadByName;
-      console.log(
-        `Using name-matched away spread for ${game.awayTeam.name}:`,
-        awaySpread
-      );
+  // Log the final spread assignments for verification
+  console.log("Final spread assignments:", {
+    away: {
+      team: game.awayTeam.name,
+      line: awaySpread?.line,
+      odds: awaySpread?.odds?.[activeSportsbook]
+    },
+    home: {
+      team: game.homeTeam.name,
+      line: homeSpread?.line,
+      odds: homeSpread?.odds?.[activeSportsbook]
     }
-
-    if (homeSpreadByName) {
-      homeSpread = homeSpreadByName;
-      console.log(
-        `Using name-matched home spread for ${game.homeTeam.name}:`,
-        homeSpread
-      );
-    }
-
-    // If we still don't have both spreads and we have exactly 2 spreads, try to match by point value
-    if ((!awaySpread || !homeSpread) && spreads.length === 2) {
-      console.log(
-        `Attempting to match spreads by point value for ${game.awayTeam.name} @ ${game.homeTeam.name}`
-      );
-
-      // In baseball, check both line and point properties
-      const negativeSpread = spreads.find((s: any) => {
-        const isNegative = (s.line && s.line < 0) || (s.point && s.point < 0);
-        if (isNegative) {
-          console.log(`Found negative spread:`, s);
-        }
-        return isNegative;
-      });
-
-      const positiveSpread = spreads.find((s: any) => {
-        const isPositive = (s.line && s.line > 0) || (s.point && s.point > 0);
-        if (isPositive) {
-          console.log(`Found positive spread:`, s);
-        }
-        return isPositive;
-      });
-
-      // In baseball, away teams typically get -1.5
-      if (!awaySpread && negativeSpread) {
-        awaySpread = negativeSpread;
-        console.log(
-          `Assigned negative spread to away team ${game.awayTeam.name}:`,
-          awaySpread
-        );
-      }
-
-      // Home teams typically get +1.5
-      if (!homeSpread && positiveSpread) {
-        homeSpread = positiveSpread;
-        console.log(
-          `Assigned positive spread to home team ${game.homeTeam.name}:`,
-          homeSpread
-        );
-      }
-    }
-  } else {
-    // For other sports, use the original logic
-    awaySpread =
-      spreads.find(
-        (s: any) => s.team?.toLowerCase() === game.awayTeam.name.toLowerCase()
-      ) || null;
-    homeSpread =
-      spreads.find(
-        (s: any) => s.team?.toLowerCase() === game.homeTeam.name.toLowerCase()
-      ) || null;
-
-    
-  }
-
-  // Log the final spread assignments
+  });
 
   // Find moneyline markets by matching team names
   const moneylineMarkets = game.markets.moneyline || [];
