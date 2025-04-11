@@ -722,6 +722,10 @@ export function ParlayBuilder() {
         });
 
         // Add the leg with the player prop data
+        const propSid = selection.sid || selection.propIdentifiers?.sid;
+        // Encode # to %23 in the SID if it exists
+        const encodedSid = propSid ? propSid.replace(/#/g, '%23') : propSid;
+        
         const newLeg: ParlayLeg = {
           id: propId,
           gameId: game.id,
@@ -732,7 +736,7 @@ export function ParlayBuilder() {
           type: "player-prop",
           description: `${game.homeTeam.abbreviation} vs ${game.awayTeam.abbreviation}: ${selection.selection}`,
           line: selection.line,
-          sid: selection.sid, // Add SID if available
+          sid: encodedSid, // Use the encoded SID
           // Add additional data for odds comparison
           propData: {
             player: playerName,
@@ -740,7 +744,7 @@ export function ParlayBuilder() {
             line: selection.line || selection.propIdentifiers?.line,
             betType: selection.betType || selection.propIdentifiers?.betType,
             sportId: game.sportId,
-            sid: selection.sid || selection.propIdentifiers?.sid, // Add SID to propData
+            sid: encodedSid, // Use the same encoded SID
           },
         };
 

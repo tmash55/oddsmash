@@ -112,7 +112,7 @@ export function Betslip({
   }, [wagerAmount])
 
   // Update the getPlayerPropOdds function to search across both standard and alternate markets
-  const getPlayerPropOdds = (leg: ParlayLeg, sportsbook: string): { odds?: number; link?: string } => {
+  const getPlayerPropOdds = (leg: ParlayLeg, sportsbook: string): { odds?: number; link?: string; sid?: string } => {
     if (!leg.propData) return {}
 
     const { gameId, propData } = leg
@@ -144,11 +144,12 @@ export function Betslip({
           return o.description === propData.player && o.name === propData.betType && o.point === propData.line
         })
 
-        // If we found a matching outcome, return its price and link
+        // If we found a matching outcome, return its price, link and sid
         if (outcome) {
           return {
             odds: outcome.price,
             link: outcome.link,
+            sid: outcome.sid,
           }
         }
       }
@@ -169,11 +170,12 @@ export function Betslip({
         return o.description === propData.player && o.name === propData.betType && o.point === propData.line
       })
 
-      // If we found a matching outcome, return its price and link
+      // If we found a matching outcome, return its price, link and sid
       if (outcome) {
         return {
           odds: outcome.price,
           link: outcome.link,
+          sid: outcome.sid,
         }
       }
     }
@@ -541,7 +543,8 @@ export function Betslip({
       return ""
     }
 
-    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.join("+")}`
+    return `https://sportsbook.draftkings.com/event/${baseEventId}?outcomes=${sids.map(encodeURIComponent).join("+")}`
+
   }
 
   // Add this helper function to create Caesars parlay link
@@ -551,10 +554,10 @@ export function Betslip({
       console.error("No valid SIDs found for Caesars parlay")
       return ""
     }
-    return `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/bet/betslip?selectionIds=${sids.join(",")}`
+    return `https://sportsbook.caesars.com/us/${userState.toLowerCase()}/bet/betslip?selectionIds=${sids.map(encodeURIComponent).join(",")}`
   }
 
-  // Update the handlePlaceBet function
+  // Update the handlePlaceBet function to use the correct SIDs
   const handlePlaceBet = () => {
     if (!selectedSportsbook) return
 
@@ -572,8 +575,15 @@ export function Betslip({
           originalLink: leg.link,
           propDataLink: propData.link,
           sportsbook: selectedSportsbook,
+          propDataSid: propData.sid,
         })
         link = propData.link
+        // For player props, use the SID from the selected sportsbook's data
+        sid = propData.sid
+        // Encode # to %23 in the SID if it exists
+        if (sid) {
+          sid = sid.replace(/#/g, '%23')
+        }
       } else {
         // For standard markets, find the game and market
         const game = games.find((g) => g.id === leg.gameId)
@@ -591,6 +601,10 @@ export function Betslip({
                 })
                 link = market.links?.[selectedSportsbook]
                 sid = market.sids?.[selectedSportsbook]
+                // Encode # to %23 in the SID if it exists
+                if (sid) {
+                  sid = sid.replace(/#/g, '%23')
+                }
               }
             }
           })
@@ -620,8 +634,17 @@ export function Betslip({
     // Special handling for DraftKings parlays
     else if (selectedSportsbook === "draftkings" && legs.length > 1) {
       const parlayLegs = legsForSportsbook
-        .map((leg) => (leg.currentLink ? parseDraftkingsLink(leg.currentLink) : null))
-        .filter((leg) => leg && leg.eventId && leg.sid)
+        .map((leg) => {
+          // For DraftKings, we can use either the link parsing or direct SID
+          if (leg.currentLink) {
+            return parseDraftkingsLink(leg.currentLink)
+          } else if (leg.sid) {
+            // If we have a direct SID, use it (it's already encoded)
+            return { eventId: leg.gameId, sid: leg.sid }
+          }
+          return null
+        })
+        .filter((leg) => leg && (leg.eventId || leg.sid))
 
       if (parlayLegs.length > 0) {
         betLink = createDraftkingsLink(parlayLegs)
@@ -633,7 +656,9 @@ export function Betslip({
     }
     // Special handling for Caesars parlays
     else if (selectedSportsbook === "williamhill_us" && legs.length > 1) {
-      const parlayLegs = legsForSportsbook.map((leg) => ({ sid: leg.sid })).filter((leg) => leg.sid)
+      const parlayLegs = legsForSportsbook
+        .map((leg) => ({ sid: leg.sid }))
+        .filter((leg) => leg.sid)
 
       if (parlayLegs.length > 0) {
         betLink = createCaesarsLink(parlayLegs)
@@ -860,10 +885,11 @@ export function Betslip({
             {/* Deep linking explanation at the top of the betslip */}
             {legs.length > 0 && (
               <div className="px-4 pt-4 pb-2 bg-muted/20 border-b">
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2">
                   <Zap className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground">
-                    This symbol indicates sportsbooks that support deep linking, which automatically fills your bet slip with your
+                   
+                    This indicates sportsbooks that support deep linking, which automatically fills your bet slip with your
                     selections.
                   </p>
                 </div>
@@ -1201,46 +1227,47 @@ export function Betslip({
                                         transition={{ duration: 0.2 }}
                                         className="w-full"
                                       >
-                                        <div className="flex items-start justify-between p-2 sm:p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full overflow-hidden">
-                                          <div className="space-y-1 flex-1 min-w-0 mr-2 overflow-hidden">
-                                            <div className="flex items-center justify-between flex-wrap gap-1 w-full">
-                                              <div className="text-base font-medium truncate max-w-[calc(100%-80px)]">
-                                                {leg.selection}
-                                              </div>
-                                              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
-                                                {formatMarketDisplay(leg)}
+                                        <div className="p-3 mt-2 rounded-md border hover:border-border/80 hover:bg-muted/20 transition-colors w-full overflow-hidden">
+                                          {/* First line: Selection */}
+                                          <div className="text-base font-medium mb-1">{leg.selection}</div>
+
+                                          {/* Second line: Market • Sportsbook and Odds */}
+                                          <div className="flex items-center justify-between w-full">
+                                            <div className="flex items-center text-sm text-muted-foreground">
+                                              <span>{formatMarketDisplay(leg)}</span>
+                                              <span className="mx-1.5">•</span>
+                                              <span>
+                                                {sportsbooks.find((sb) => sb.id === leg.sportsbookId)?.name ||
+                                                  leg.sportsbookId}
                                               </span>
                                             </div>
 
-                                            <div className="flex items-center mt-2">
+                                            <div className="flex items-center gap-2">
+                                              {/* Odds */}
                                               <span
                                                 className={cn(
-                                                  "text-sm font-medium inline-flex items-center gap-1 px-2 py-1 rounded-md",
+                                                  "text-sm font-medium px-2 py-1 rounded-md",
                                                   "bg-background/80 border border-border/30",
                                                   leg.odds > 0
                                                     ? "text-green-600 dark:text-green-500"
                                                     : "text-blue-600 dark:text-blue-500",
                                                 )}
                                               >
-                                                {displayOdds(leg.odds)} ({leg.sportsbookId})
+                                                {displayOdds(leg.odds)}
                                               </span>
+
+                                              {/* Delete button with larger touch target */}
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onRemoveLeg(leg.id)}
+                                                className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive p-0"
+                                                aria-label="Remove selection"
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
                                             </div>
                                           </div>
-
-                                          <motion.div
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            className="flex-shrink-0 ml-auto"
-                                          >
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => onRemoveLeg(leg.id)}
-                                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                                            >
-                                              <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                                            </Button>
-                                          </motion.div>
                                         </div>
                                       </motion.div>
                                     ))}
