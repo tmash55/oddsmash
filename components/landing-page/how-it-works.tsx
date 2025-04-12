@@ -160,7 +160,7 @@ export function HowItWorks() {
           className="text-center mt-10"
         >
           <Button asChild size={isMobile ? "default" : "lg"} className="group">
-            <Link href="mlb/player-prop">
+            <Link href="mlb/player-props">
               Try It Now
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
