@@ -40,7 +40,7 @@ interface MarketOutcome {
 }
 
 export function ParlayBuilder() {
-  const [selectedSport, setSelectedSport] = useState("basketball_nba");
+  const [selectedSport, setSelectedSport] = useState("baseball_mlb");
   const [games, setGames] = useState<Game[]>([]);
   const [selectedLegs, setSelectedLegs] = useState<ParlayLeg[]>([]);
   const [isBetslipOpen, setIsBetslipOpen] = useState(false);
@@ -175,8 +175,8 @@ export function ParlayBuilder() {
   // Function to convert API event to our Game format
   const formatEventToGame = (event: any): Game => {
     // Add debug logging
-    console.log('Raw event data:', event);
-    console.log('Raw bookmakers data:', event.bookmakers);
+    console.log("Raw event data:", event);
+    console.log("Raw bookmakers data:", event.bookmakers);
 
     // Extract bookmakers data for odds
     const bookmakerData: { [key: string]: any } = {};
@@ -240,7 +240,7 @@ export function ParlayBuilder() {
   ): any[] => {
     console.log(`Creating spread markets for event: ${event.id}`);
     console.log(`Home team: ${event.home_team}, Away team: ${event.away_team}`);
-  
+
     const homeSpread: any = {
       id: `spread-home-${event.id}`,
       type: "spread",
@@ -252,7 +252,7 @@ export function ParlayBuilder() {
       line: null,
       team: event.home_team,
     };
-  
+
     const awaySpread: any = {
       id: `spread-away-${event.id}`,
       type: "spread",
@@ -264,7 +264,7 @@ export function ParlayBuilder() {
       line: null,
       team: event.away_team,
     };
-  
+
     Object.keys(bookmakerData).forEach((key) => {
       const bookmaker = bookmakerData[key];
       const spreadMarket =
@@ -272,21 +272,17 @@ export function ParlayBuilder() {
         bookmaker.markets.spread ||
         bookmaker.markets.run_line ||
         bookmaker.markets.runline;
-  
+
       if (!spreadMarket) return;
-  
+
       console.log(`Processing spread market from ${key}:`, spreadMarket);
-  
+
       const outcomes = spreadMarket.outcomes;
-  
+
       // Try to match outcomes to home and away teams
-      const homeOutcome = outcomes.find(
-        (o: any) => o.name === event.home_team
-      );
-      const awayOutcome = outcomes.find(
-        (o: any) => o.name === event.away_team
-      );
-  
+      const homeOutcome = outcomes.find((o: any) => o.name === event.home_team);
+      const awayOutcome = outcomes.find((o: any) => o.name === event.away_team);
+
       // Prefer team name match
       if (homeOutcome) {
         homeSpread.odds[key] = homeOutcome.price;
@@ -294,21 +290,21 @@ export function ParlayBuilder() {
         if (homeOutcome.sid) homeSpread.sids[key] = homeOutcome.sid;
         if (homeOutcome.link) homeSpread.links[key] = homeOutcome.link;
       }
-  
+
       if (awayOutcome) {
         awaySpread.odds[key] = awayOutcome.price;
         awaySpread.line = awayOutcome.point;
         if (awayOutcome.sid) awaySpread.sids[key] = awayOutcome.sid;
         if (awayOutcome.link) awaySpread.links[key] = awayOutcome.link;
       }
-  
+
       // If name match fails, fallback to position-based mapping
       if (!homeOutcome || !awayOutcome) {
         if (outcomes.length === 2) {
           console.warn(`Fallback to outcome order for spread on ${key}`);
-  
+
           const [first, second] = outcomes;
-  
+
           // If home isn't assigned yet
           if (!homeOutcome) {
             homeSpread.odds[key] = first.price;
@@ -316,7 +312,7 @@ export function ParlayBuilder() {
             if (first.sid) homeSpread.sids[key] = first.sid;
             if (first.link) homeSpread.links[key] = first.link;
           }
-  
+
           // If away isn't assigned yet
           if (!awayOutcome) {
             awaySpread.odds[key] = second.price;
@@ -329,7 +325,7 @@ export function ParlayBuilder() {
         }
       }
     });
-  
+
     console.log("Final spread assignments:", {
       home: {
         team: event.home_team,
@@ -342,10 +338,9 @@ export function ParlayBuilder() {
         odds: awaySpread.odds,
       },
     });
-  
+
     return [homeSpread, awaySpread];
   };
-  
 
   // Helper function to create moneyline markets
   const createMoneylineMarkets = (
@@ -756,8 +751,8 @@ export function ParlayBuilder() {
         // Add the leg with the player prop data
         const propSid = selection.sid || selection.propIdentifiers?.sid;
         // Encode # to %23 in the SID if it exists
-        const encodedSid = propSid ? propSid.replace(/#/g, '%23') : propSid;
-        
+        const encodedSid = propSid ? propSid.replace(/#/g, "%23") : propSid;
+
         const newLeg: ParlayLeg = {
           id: propId,
           gameId: game.id,

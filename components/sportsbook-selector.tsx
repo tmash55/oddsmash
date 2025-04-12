@@ -19,6 +19,7 @@ import {
   Info,
   AlertCircle,
   MapPin,
+  Save,
 } from "lucide-react";
 import { sportsbooks } from "@/data/sportsbooks";
 import {
@@ -217,7 +218,7 @@ export function SportsbookSelector() {
         className={cn(
           "p-0 overflow-hidden",
           isMobile
-            ? "w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] h-[80vh] max-h-[80vh] rounded-lg"
+            ? "w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] h-[80dvh] max-h-[80dvh] rounded-lg"
             : "sm:max-w-[450px] max-h-[85vh]"
         )}
       >
@@ -330,7 +331,7 @@ export function SportsbookSelector() {
             <ScrollArea
               className={cn(
                 "px-4 sm:px-6 py-4",
-                isMobile ? "flex-1 max-h-[calc(80vh-220px)]" : "max-h-[400px]"
+                isMobile ? "flex-1 max-h-[calc(80dvh-280px)]" : "max-h-[400px]"
               )}
             >
               <div className="space-y-2">
@@ -463,11 +464,46 @@ export function SportsbookSelector() {
                 </span>
               </div>
             )}
+
+            {/* Save button for sportsbooks tab */}
+            <div
+              className={cn(
+                "px-4 sm:px-6 py-4 border-t mt-auto",
+                isMobile && "py-3"
+              )}
+            >
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={cn(
+                  "w-full relative overflow-hidden transition-all",
+                  isSmallMobile ? "h-10 text-sm" : "h-11 text-base",
+                  isSaving ? "pl-10" : ""
+                )}
+              >
+                {isSaving && (
+                  <Loader2
+                    className={cn(
+                      "absolute left-3 h-5 w-5 animate-spin",
+                      isSmallMobile && "h-4 w-4"
+                    )}
+                  />
+                )}
+                {isSaving ? (
+                  "Saving Changes..."
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Sportsbook Selections
+                  </>
+                )}
+              </Button>
+            </div>
           </>
         )}
 
         {activeTab === "location" && (
-          <div className="px-4 sm:px-6 py-4 flex-1 overflow-y-auto max-h-[calc(80vh-180px)]">
+          <div className="px-4 sm:px-6 py-4 flex-1 overflow-y-auto max-h-[calc(80dvh-180px)]">
             <div className="space-y-4">
               <div>
                 <label
@@ -574,7 +610,8 @@ export function SportsbookSelector() {
         <DialogFooter
           className={cn(
             "px-4 sm:px-6 py-4 border-t",
-            isMobile && "flex-col gap-2"
+            isMobile && "flex-col gap-2",
+            activeTab === "sportsbooks" && "hidden" // Hide the footer on sportsbooks tab since we added a dedicated save button
           )}
         >
           {isMobile ? (
