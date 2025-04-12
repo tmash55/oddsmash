@@ -39,6 +39,7 @@
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.45.0",
     "@upstash/redis": "^1.28.4",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.6.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -64,6 +65,7 @@
     "resend": "^4.0.1",
     "sonner": "^2.0.2",
     "stripe": "^13.11.0",
+    "swiper": "^11.2.6",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.22.4"

@@ -14,13 +14,12 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  ArrowLeft,
-  ArrowRight,
   Search,
   SortAsc,
   RefreshCw,
   Clock,
   ExternalLink,
+  Zap,
 } from "lucide-react";
 import {
   Tooltip,
@@ -56,6 +55,7 @@ import {
   getDefaultMarket,
   getMarketApiKey,
 } from "@/lib/constants/markets";
+import { FilterControls } from "./filter-controls";
 
 export function PropComparisonTable({
   sport = "basketball_nba",
@@ -136,6 +136,11 @@ export function PropComparisonTable({
         return "Points";
     }
   }
+
+  // Function to check if an outcome has a deeplink
+  const hasDeeplink = (outcome?: Outcome) => {
+    return outcome && outcome.link && outcome.link.length > 0;
+  };
 
   // Function to handle clicking on a betting line
   const handleBetClick = (outcome?: Outcome, bookmakerKey?: string) => {
@@ -349,6 +354,26 @@ export function PropComparisonTable({
     fetchPlayerProps();
   }, [selectedEventId, statType, selectedSportsbooks, sport, currentMarket]);
 
+  // Add a ref for the slider
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Add this useEffect to scroll to the active player when it changes
+  useEffect(() => {
+    if (sliderRef.current && isMobile) {
+      const slider = sliderRef.current;
+      const activeItem = slider.children[activePlayerIndex] as HTMLElement;
+
+      if (activeItem) {
+        // Calculate the scroll position to center the active item
+        const scrollLeft =
+          activeItem.offsetLeft -
+          slider.offsetWidth / 2 +
+          activeItem.offsetWidth / 2;
+        slider.scrollTo({ left: scrollLeft, behavior: "smooth" });
+      }
+    }
+  }, [activePlayerIndex, isMobile]);
+
   // Transform API data into player props format
   const playerProps = useMemo(() => {
     if (!gameData) return [];
@@ -504,21 +529,47 @@ export function PropComparisonTable({
     const bestOver = findBestOdds(player, marketKey, "Over");
     const bestUnder = findBestOdds(player, marketKey, "Under");
 
-    const overSportsbook = sportsbooks.find(
-      (sb) => sb.id === bestOver?.bookmaker
-    );
-    const underSportsbook = sportsbooks.find(
-      (sb) => sb.id === bestUnder?.bookmaker
-    );
+    // Find all sportsbooks with the same best odds
+    const booksWithBestOverOdds = selectedSportsbooks.filter((book) => {
+      const bookmaker = player.bookmakers.find((b) => b.key === book);
+      if (!bookmaker) return false;
+
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (!market) return false;
+
+      const overOutcome = market.outcomes.find(
+        (o) => o.name === "Over" && o.point === bestOver?.line
+      );
+
+      return overOutcome && overOutcome.price === bestOver?.odds;
+    });
+
+    const booksWithBestUnderOdds = selectedSportsbooks.filter((book) => {
+      const bookmaker = player.bookmakers.find((b) => b.key === book);
+      if (!bookmaker) return false;
+
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (!market) return false;
+
+      const underOutcome = market.outcomes.find(
+        (o) => o.name === "Under" && o.point === bestUnder?.line
+      );
+
+      return underOutcome && underOutcome.price === bestUnder?.odds;
+    });
 
     return {
       over: {
-        sportsbook: overSportsbook,
+        sportsbooks: booksWithBestOverOdds.map((id) =>
+          sportsbooks.find((sb) => sb.id === id)
+        ),
         line: bestOver?.line || 0,
         odds: formatAmericanOdds(bestOver?.odds || 0),
       },
       under: {
-        sportsbook: underSportsbook,
+        sportsbooks: booksWithBestUnderOdds.map((id) =>
+          sportsbooks.find((sb) => sb.id === id)
+        ),
         line: bestUnder?.line || 0,
         odds: formatAmericanOdds(bestUnder?.odds || 0),
       },
@@ -575,7 +626,9 @@ export function PropComparisonTable({
             {outcome ? formatAmericanOdds(outcome.price) : "-"}
           </span>
           {hasLink && (
-            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+            <div className="flex items-center">
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
+            </div>
           )}
         </div>
       </div>
@@ -587,126 +640,319 @@ export function PropComparisonTable({
     if (!currentPlayer) return null;
 
     const marketKey = getMarketApiKey(sport, statType);
-    const bestOver = findBestOdds(currentPlayer, marketKey, "Over");
-    const bestUnder = findBestOdds(currentPlayer, marketKey, "Under");
+    const bestOddsInfo = getBestOddsInfo(currentPlayer);
 
     return (
       <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={prevPlayer}
-            disabled={activePlayerIndex === 0}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-center">
-            <h3 className="font-bold">{currentPlayer.player}</h3>
-            <p className="text-sm text-muted-foreground">
-              {currentPlayer.team}
-            </p>
+        {/* Explanation of Zap icon */}
+        <div className="mb-4 p-3 bg-muted/30 rounded-lg border text-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Zap className="h-4 w-4 text-primary" />
+            <p className="font-medium">Deeplink Available</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={nextPlayer}
-            disabled={activePlayerIndex === filteredProps.length - 1}
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <p className="text-muted-foreground text-xs">
+            Sportsbooks with the{" "}
+            <Zap className="h-3 w-3 text-primary inline-block mx-0.5" /> icon
+            support direct linking to pre-fill your bet slip. Click on the odds
+            or logo to open.
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            Note: Mobile deeplinking is a work in progress and may not work on
+            all devices.
+          </p>
         </div>
 
-        {/* Best Odds Summary */}
+        <div className="text-center mb-4">
+          <h3 className="font-bold text-lg">{currentPlayer.player}</h3>
+          <p className="text-sm text-muted-foreground">{currentPlayer.team}</p>
+        </div>
+
+        {/* Player selection slider */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-muted-foreground">Select a player:</p>
+            <p className="text-xs text-muted-foreground">
+              {activePlayerIndex + 1} of {filteredProps.length}
+            </p>
+          </div>
+          <div className="relative">
+            <div
+              ref={sliderRef}
+              className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent"
+              style={{ scrollBehavior: "smooth" }}
+            >
+              {filteredProps.map((prop, index) => (
+                <div
+                  key={prop.player}
+                  className={cn(
+                    "border rounded-md p-3 cursor-pointer flex-shrink-0 min-w-[120px] snap-start",
+                    index === activePlayerIndex
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  )}
+                  onClick={() => setActivePlayerIndex(index)}
+                >
+                  <p className="font-medium truncate">{prop.player}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Best Odds Summary - Condensed horizontal version */}
         <motion.div
-          className="grid grid-cols-2 gap-4 mb-6"
+          className="flex justify-between mb-4 p-2 bg-muted/30 rounded-lg border"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="p-4 bg-primary/5 rounded-lg border">
-            <div className="flex items-center gap-1 mb-2">
-              <ChevronUp className="h-4 w-4 text-[hsl(var(--emerald-green))]" />
-              <span className="font-medium">Best Over</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                {bestOver && (
-                  <>
-                    <div className="w-4 h-4">
-                      <img
-                        src={
-                          sportsbooks.find((sb) => sb.id === bestOver.bookmaker)
-                            ?.logo || "/placeholder.svg"
-                        }
-                        alt={
-                          sportsbooks.find((sb) => sb.id === bestOver.bookmaker)
-                            ?.name
-                        }
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <span>{bestOver.line}</span>
-                  </>
-                )}
-              </div>
-              <span
-                className={cn(
-                  "font-bold",
-                  bestOver && bestOver.odds > 0
-                    ? "text-primary"
-                    : "text-red-500"
-                )}
-              >
-                {bestOver ? formatAmericanOdds(bestOver.odds) : "-"}
-              </span>
-            </div>
+          <div className="flex items-center gap-1">
+            <ChevronUp className="h-3.5 w-3.5 text-[hsl(var(--emerald-green))]" />
+            <span className="text-xs font-medium">
+              Over {bestOddsInfo.over.line}
+            </span>
+            <span className="text-xs font-bold text-primary">
+              {bestOddsInfo.over.odds}
+            </span>
           </div>
-
-          <div className="p-4 bg-primary/5 rounded-lg border">
-            <div className="flex items-center gap-1 mb-2">
-              <ChevronDown className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Best Under</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                {bestUnder && (
-                  <>
-                    <div className="w-4 h-4">
-                      <img
-                        src={
-                          sportsbooks.find(
-                            (sb) => sb.id === bestUnder.bookmaker
-                          )?.logo || "/placeholder.svg"
-                        }
-                        alt={
-                          sportsbooks.find(
-                            (sb) => sb.id === bestUnder.bookmaker
-                          )?.name
-                        }
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <span>{bestUnder.line}</span>
-                  </>
-                )}
-              </div>
-              <span
-                className={cn(
-                  "font-bold",
-                  bestUnder && bestUnder.odds > 0
-                    ? "text-primary"
-                    : "text-red-500"
-                )}
-              >
-                {bestUnder ? formatAmericanOdds(bestUnder.odds) : "-"}
-              </span>
-            </div>
+          <div className="flex items-center gap-1">
+            <ChevronDown className="h-3.5 w-3.5 text-red-500" />
+            <span className="text-xs font-medium">
+              Under {bestOddsInfo.under.line}
+            </span>
+            <span className="text-xs font-bold text-red-500">
+              {bestOddsInfo.under.odds}
+            </span>
           </div>
         </motion.div>
 
-        {/* All Sportsbook Odds */}
-        <div className="space-y-4">
+        {/* Best Sportsbooks Logos */}
+        <div className="mb-4">
+          <div className="flex justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Best Over Odds:
+              </p>
+              <div className="flex items-center gap-2">
+                {bestOddsInfo.over.sportsbooks.length > 0 ? (
+                  bestOddsInfo.over.sportsbooks.map(
+                    (book) =>
+                      book && (
+                        <TooltipProvider key={book.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center hover:bg-primary/10 cursor-pointer transition-colors relative"
+                                onClick={() => {
+                                  // Find the outcome with the best odds for this book
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker) return;
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return;
+
+                                  const overOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Over" &&
+                                      o.point === bestOddsInfo.over.line
+                                  );
+
+                                  if (overOutcome && overOutcome.link) {
+                                    handleBetClick(overOutcome, book.id);
+                                  }
+                                }}
+                              >
+                                <img
+                                  src={book.logo || "/placeholder.svg"}
+                                  alt={book.name}
+                                  className="w-6 h-6 object-contain"
+                                />
+                                {/* Check if this book has a deeplink for the best over odds */}
+                                {(() => {
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker) return null;
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return null;
+
+                                  const overOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Over" &&
+                                      o.point === bestOddsInfo.over.line
+                                  );
+
+                                  return hasDeeplink(overOutcome) ? (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                                      <Zap className="w-2 h-2 text-white dark:text-secondary" />
+                                    </div>
+                                  ) : null;
+                                })()}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{book.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker)
+                                    return "No deeplink available";
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return "No deeplink available";
+
+                                  const overOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Over" &&
+                                      o.point === bestOddsInfo.over.line
+                                  );
+
+                                  return hasDeeplink(overOutcome)
+                                    ? "Click to open bet slip"
+                                    : "No deeplink available";
+                                })()}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
+                  )
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    None available
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Best Under Odds:
+              </p>
+              <div className="flex items-center gap-2">
+                {bestOddsInfo.under.sportsbooks.length > 0 ? (
+                  bestOddsInfo.under.sportsbooks.map(
+                    (book) =>
+                      book && (
+                        <TooltipProvider key={book.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center hover:bg-primary/10 cursor-pointer transition-colors relative"
+                                onClick={() => {
+                                  // Find the outcome with the best odds for this book
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker) return;
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return;
+
+                                  const underOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Under" &&
+                                      o.point === bestOddsInfo.under.line
+                                  );
+
+                                  if (underOutcome && underOutcome.link) {
+                                    handleBetClick(underOutcome, book.id);
+                                  }
+                                }}
+                              >
+                                <img
+                                  src={book.logo || "/placeholder.svg"}
+                                  alt={book.name}
+                                  className="w-6 h-6 object-contain"
+                                />
+                                {/* Check if this book has a deeplink for the best under odds */}
+                                {(() => {
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker) return null;
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return null;
+
+                                  const underOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Under" &&
+                                      o.point === bestOddsInfo.under.line
+                                  );
+
+                                  return hasDeeplink(underOutcome) ? (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                                      <Zap className="w-2 h-2 text-white dark:text-secondary" />
+                                    </div>
+                                  ) : null;
+                                })()}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{book.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const bookmaker =
+                                    currentPlayer.bookmakers.find(
+                                      (b) => b.key === book.id
+                                    );
+                                  if (!bookmaker)
+                                    return "No deeplink available";
+
+                                  const market = bookmaker.markets.find(
+                                    (m) => m.key === marketKey
+                                  );
+                                  if (!market) return "No deeplink available";
+
+                                  const underOutcome = market.outcomes.find(
+                                    (o) =>
+                                      o.name === "Under" &&
+                                      o.point === bestOddsInfo.under.line
+                                  );
+
+                                  return hasDeeplink(underOutcome)
+                                    ? "Click to open bet slip"
+                                    : "No deeplink available";
+                                })()}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
+                  )
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    None available
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* All Sportsbook Odds - Grid Layout */}
+        <div className="grid grid-cols-2 gap-3">
           <AnimatePresence>
             {selectedSportsbooks.map((bookmaker, index) => {
               const bookmakerData = currentPlayer.bookmakers.find(
@@ -726,69 +972,145 @@ export function PropComparisonTable({
               // Group outcomes by line for alternate markets
               const lines = new Set(outcomes.map((o) => o.point));
 
-              const isOverBest =
-                bestOver?.bookmaker === bookmaker &&
-                bestOver?.line === overOutcomes[0]?.point &&
-                bestOver?.odds === overOutcomes[0]?.price;
-
-              const isUnderBest =
-                bestUnder?.bookmaker === bookmaker &&
-                bestUnder?.line === underOutcomes[0]?.point &&
-                bestUnder?.odds === underOutcomes[0]?.price;
-
               const book = sportsbooks.find((sb) => sb.id === bookmaker);
+
+              // Find if this book has any best odds
+              const hasBestOver = bestOddsInfo.over.sportsbooks.some(
+                (sb) => sb?.id === bookmaker
+              );
+              const hasBestUnder = bestOddsInfo.under.sportsbooks.some(
+                (sb) => sb?.id === bookmaker
+              );
+              const hasBestOdds = hasBestOver || hasBestUnder;
+
+              // Check if any outcomes have deeplinks
+              const hasAnyDeeplinks = outcomes.some(hasDeeplink);
 
               return (
                 <motion.div
                   key={bookmaker}
-                  className="border rounded-lg p-4 bg-card"
+                  className={cn(
+                    "border rounded-lg p-3 bg-card",
+                    hasBestOdds && "border-primary/30"
+                  )}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-6 h-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-5 h-5 relative">
                       <img
                         src={book?.logo || "/placeholder.svg"}
                         alt={book?.name}
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <span className="font-medium">{book?.name}</span>
+                    <span className="text-xs font-medium truncate">
+                      {book?.name}
+                    </span>
+                    {hasAnyDeeplinks && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Zap className="h-3 w-3 text-primary" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Deeplinks available</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-1.5">
                     {Array.from(lines).map((line) => {
                       const over = overOutcomes.find((o) => o.point === line);
                       const under = underOutcomes.find((o) => o.point === line);
+
                       const isOverBest =
-                        bestOver?.bookmaker === bookmaker &&
-                        bestOver?.line === over?.point &&
-                        bestOver?.odds === over?.price;
+                        bestOddsInfo.over.sportsbooks.some(
+                          (sb) => sb?.id === bookmaker
+                        ) && over?.point === bestOddsInfo.over.line;
                       const isUnderBest =
-                        bestUnder?.bookmaker === bookmaker &&
-                        bestUnder?.line === under?.point &&
-                        bestUnder?.odds === under?.price;
+                        bestOddsInfo.under.sportsbooks.some(
+                          (sb) => sb?.id === bookmaker
+                        ) && under?.point === bestOddsInfo.under.line;
 
                       return (
-                        <div key={line} className="border-b last:border-0 py-1">
-                          {(showType === "both" || showType === "over") &&
-                            renderOddsButton(
-                              over,
-                              true,
-                              line,
-                              isOverBest,
-                              bookmaker
-                            )}
+                        <div key={line} className="flex gap-1">
+                          {(showType === "both" || showType === "over") && (
+                            <div
+                              className={cn(
+                                "flex-1 flex items-center justify-between p-1 rounded-md border text-xs",
+                                isOverBest
+                                  ? "bg-primary/10 border-primary"
+                                  : "border-border",
+                                !over && "opacity-40",
+                                hasDeeplink(over) &&
+                                  "hover:bg-accent/80 cursor-pointer"
+                              )}
+                              onClick={() =>
+                                hasDeeplink(over) &&
+                                handleBetClick(over, bookmaker)
+                              }
+                              role={hasDeeplink(over) ? "button" : undefined}
+                            >
+                              <span
+                                className={isOverBest ? "text-primary" : ""}
+                              >
+                                {line}
+                              </span>
+                              <div className="flex items-center">
+                                <span
+                                  className={
+                                    over?.price && over.price > 0
+                                      ? "text-primary"
+                                      : "text-red-500"
+                                  }
+                                >
+                                  {over ? formatAmericanOdds(over.price) : "-"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
 
-                          {(showType === "both" || showType === "under") &&
-                            renderOddsButton(
-                              under,
-                              false,
-                              line,
-                              isUnderBest,
-                              bookmaker
-                            )}
+                          {(showType === "both" || showType === "under") && (
+                            <div
+                              className={cn(
+                                "flex-1 flex items-center justify-between p-1 rounded-md border text-xs",
+                                isUnderBest
+                                  ? "bg-primary/10 border-primary"
+                                  : "border-border",
+                                !under && "opacity-40",
+                                hasDeeplink(under) &&
+                                  "hover:bg-accent/80 cursor-pointer"
+                              )}
+                              onClick={() =>
+                                hasDeeplink(under) &&
+                                handleBetClick(under, bookmaker)
+                              }
+                              role={hasDeeplink(under) ? "button" : undefined}
+                            >
+                              <span
+                                className={isUnderBest ? "text-primary" : ""}
+                              >
+                                {line}
+                              </span>
+                              <div className="flex items-center">
+                                <span
+                                  className={
+                                    under?.price && under.price > 0
+                                      ? "text-primary"
+                                      : "text-red-500"
+                                  }
+                                >
+                                  {under
+                                    ? formatAmericanOdds(under.price)
+                                    : "-"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -971,149 +1293,20 @@ export function PropComparisonTable({
     <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
       <div className="sticky top-0 z-20 bg-card">
         <div className="p-4 border-b flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Player Props Comparison</h2>
-            <div className="flex items-center gap-4">
-              {apiUsage && (
-                <div className="text-sm text-muted-foreground">
-                  API Calls: {apiUsage.used} /{" "}
-                  {apiUsage.used + apiUsage.remaining}
-                </div>
-              )}
-              {cacheStatus.lastUpdated && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <div
-                          className={cn(
-                            "w-2 h-2 rounded-full",
-                            cacheStatus.hit
-                              ? "bg-[hsl(var(--emerald-green))]"
-                              : "bg-[hsl(var(--maximum-yellow))]"
-                          )}
-                        />
-                        <Clock className="h-3 w-3 mr-1" />
-                        {new Date(cacheStatus.lastUpdated).toLocaleTimeString()}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Last updated at{" "}
-                        {new Date(cacheStatus.lastUpdated).toLocaleString()}
-                      </p>
-                      <p>Cache status: {cacheStatus.hit ? "HIT" : "MISS"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchPlayerProps(true)}
-                disabled={isRefreshing}
-              >
-                <RefreshCw
-                  className={cn("h-3 w-3 mr-1", isRefreshing && "animate-spin")}
-                />
-                {isRefreshing ? "Refreshing..." : "Refresh"}
-              </Button>
-              <SportsbookSelector />
-            </div>
-          </div>
-
           <GameSelector onGameSelect={setSelectedEventId} sport={sport} />
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            {sport === "baseball_mlb" && (
-              <div className="flex items-center gap-2">
-                <Tabs
-                  value={playerType}
-                  onValueChange={(value: "batter" | "pitcher") =>
-                    setPlayerType(value)
-                  }
-                >
-                  <TabsList>
-                    <TabsTrigger value="batter">Batter Props</TabsTrigger>
-                    <TabsTrigger value="pitcher">Pitcher Props</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Select
-                value={statType}
-                onValueChange={(value) => {
-                  setStatType(value);
-                }}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select stat type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statTypes.map((stat) => (
-                    <SelectItem key={stat.value} value={stat.value}>
-                      {stat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Select the type of player prop to compare</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Tabs
-                value={showType}
-                onValueChange={(value: "both" | "over" | "under") =>
-                  setShowType(value)
-                }
-              >
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="both">Both</TabsTrigger>
-                  <TabsTrigger value="over">Over</TabsTrigger>
-                  <TabsTrigger value="under">Under</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search players..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full sm:w-[200px] pl-8"
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <SortAsc className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setSortBy("name")}>
-                    Sort by Name
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("best-odds")}>
-                    Sort by Best Odds
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+          <FilterControls
+            sport={sport}
+            statType={statType}
+            setStatType={setStatType}
+            showType={showType}
+            setShowType={setShowType}
+            playerType={playerType}
+            setPlayerType={setPlayerType}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
         </div>
 
         {/* Sportsbook header row - kept outside the scrollable area */}

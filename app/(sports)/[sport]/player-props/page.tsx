@@ -60,11 +60,8 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
   const sportDisplayName = getSportDisplayName(sport);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="relative">
-        {/* Add the SportsSubNav component */}
-        <SportsSubNav baseRoute="player-props" />
-
+    <div className="flex min-h-screen flex-col overflow-hidden">
+      <div className="relative w-full max-w-full">
         <main className="container py-6 md:py-12">
           <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
             <div className="space-y-4">
@@ -137,7 +134,10 @@ export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
               </div>
             </div>
 
-            <PropComparisonTable sport={sport} />
+            {/* Prop Comparison Table - Full Width on Mobile */}
+            <div className="w-full px-0 mx-auto ">
+              <PropComparisonTable sport={sport} />
+            </div>
 
             <div className="bg-card rounded-lg border shadow-sm p-4 md:p-6 space-y-5 md:space-y-6">
               <h2 className="text-xl md:text-2xl font-bold">
