@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight, Mail, Twitter, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import config from "@/config";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -17,7 +18,7 @@ export function Footer() {
           <div className="md:col-span-5 space-y-6">
             <div className="flex flex-col space-y-4">
               <Link href="/" className="flex items-center space-x-2">
-                <span className="font-bold text-2xl">BetterOdds</span>
+                <span className="font-bold text-2xl">{config.appName}</span>
               </Link>
               <p className="text-muted-foreground text-sm">
                 Compare odds across sportsbooks to maximize your potential
@@ -81,7 +82,7 @@ export function Footer() {
             <h3 className="text-base font-semibold">Company</h3>
             <nav className="flex flex-col space-y-2">
               <Link
-                href="/about-us"
+                href="/about"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 About Us
@@ -91,13 +92,6 @@ export function Footer() {
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
-              </Link>
-
-              <Link
-                href="/blog"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Blog
               </Link>
             </nav>
           </div>
@@ -119,7 +113,7 @@ export function Footer() {
                 Privacy Policy
               </Link>
               <Link
-                href="/responsible-gambling"
+                href="https://www.responsiblegambling.org/"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Responsible Gambling
@@ -132,7 +126,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center mt-12 pt-8 border-t border-border/40">
           <div className="flex space-x-6 mb-4 md:mb-0">
             <a
-              href="https://twitter.com"
+              href="https://x.com/trackkotc"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Twitter"
@@ -140,24 +134,7 @@ export function Footer() {
             >
               <Twitter className="h-5 w-5" />
             </a>
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Instagram className="h-5 w-5" />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Facebook className="h-5 w-5" />
-            </a>
+
             <a
               href="mailto:info@betterodds.com"
               aria-label="Email"
@@ -169,15 +146,6 @@ export function Footer() {
 
           <div className="text-sm text-muted-foreground text-center md:text-right">
             <p>© {currentYear} OddSmash. All rights reserved.</p>
-            <p className="mt-1 text-xs">
-              21+ | Please gamble responsibly |{" "}
-              <Link
-                href="/responsible-gambling"
-                className="underline hover:text-foreground"
-              >
-                Get Help
-              </Link>
-            </p>
           </div>
         </div>
       </div>

@@ -81,7 +81,7 @@ export function Footer() {
             <h3 className="text-base font-semibold">Company</h3>
             <nav className="flex flex-col space-y-2">
               <Link
-                href="/about-us"
+                href="/about"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 About Us
