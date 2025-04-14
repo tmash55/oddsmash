@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SortAsc, Info } from "lucide-react";
+import { Search, SortAsc, Info, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,8 @@ interface FilterControlsProps {
   setSearchQuery: (value: string) => void;
   sortBy: "name" | "best-odds";
   setSortBy: (value: "name" | "best-odds") => void;
+  showAlternateLines?: boolean;
+  setShowAlternateLines?: (value: boolean) => void;
 }
 
 // Helper function to determine if a market is pitcher-specific
@@ -56,6 +58,8 @@ export function FilterControls({
   setSearchQuery,
   sortBy,
   setSortBy,
+  showAlternateLines = true,
+  setShowAlternateLines
 }: FilterControlsProps) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
 
@@ -86,6 +90,10 @@ export function FilterControls({
 
   // Make sure the current statType is valid for the current playerType
   const isStatTypeValid = statTypes.some(market => market.value === statType);
+
+  // Check if the current market has alternates
+  const currentMarket = statTypes.find(market => market.value === statType);
+  const hasAlternates = currentMarket?.hasAlternates || false;
 
   return (
     <div className="space-y-2">
@@ -256,6 +264,36 @@ export function FilterControls({
             Under
           </Button>
         </div>
+
+        {/* Alternate Lines Toggle - Only show if market has alternates */}
+        {hasAlternates && setShowAlternateLines && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-7 px-3 text-xs flex gap-1 items-center",
+                    !showAlternateLines && "bg-muted"
+                  )}
+                  onClick={() => setShowAlternateLines(!showAlternateLines)}
+                >
+                  <Filter className="h-3 w-3" />
+                  {showAlternateLines ? "All Lines" : "Standard Only"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">
+                  {showAlternateLines
+                    ? "Showing all available lines"
+                    : "Showing only standard lines"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         {/* Search + Sort */}
         <div className="relative flex-1">

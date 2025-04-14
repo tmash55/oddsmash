@@ -144,6 +144,9 @@ export function PropComparisonTable({
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // Add the showAlternateLines state
+  const [showAlternateLines, setShowAlternateLines] = useState(true);
+
   // Update statType when propType changes
   useEffect(() => {
     if (propType) {
@@ -361,11 +364,14 @@ export function PropComparisonTable({
       let data;
 
       const standardMarket = getMarketApiKey(sport, statType, false);
+      // Only fetch alternate markets if showAlternateLines is true
       const shouldFetchAlternate =
-        currentMarket?.hasAlternates ||
-        currentMarket?.alwaysFetchAlternate ||
-        statType === "batter_hits" ||
-        statType === "batter_home_runs";
+        showAlternateLines && (
+          currentMarket?.hasAlternates ||
+          currentMarket?.alwaysFetchAlternate ||
+          statType === "batter_hits" ||
+          statType === "batter_home_runs"
+        );
 
       if (shouldFetchAlternate) {
         // If market has alternates or should always fetch both, fetch both markets in a single call
@@ -509,10 +515,10 @@ export function PropComparisonTable({
     }
   };
 
-  // Fetch player props when event is selected
+  // Fetch player props when event is selected or when showAlternateLines changes
   useEffect(() => {
     fetchPlayerProps();
-  }, [selectedEventId, statType, selectedSportsbooks, sport, currentMarket]);
+  }, [selectedEventId, statType, selectedSportsbooks, sport, currentMarket, showAlternateLines]);
 
   // Add a ref for the slider
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -534,7 +540,7 @@ export function PropComparisonTable({
     }
   }, [activePlayerIndex, isMobile]);
 
-  // Transform API data into player props format
+  // Modify the playerProps useMemo to filter alternate lines when needed
   const playerProps = useMemo(() => {
     if (!gameData) return [];
 
@@ -556,13 +562,51 @@ export function PropComparisonTable({
       }
 
       // Combine outcomes from both markets
-      const allOutcomes = [
+      let allOutcomes = [
         ...(standardMarket?.outcomes || []),
-        ...(alternateMarket?.outcomes || []),
+        ...(showAlternateLines ? (alternateMarket?.outcomes || []) : []),
       ];
 
       if (allOutcomes.length === 0) {
         return;
+      }
+
+      // For standard lines only, find the main line for each player
+      if (!showAlternateLines && standardMarket) {
+        // Group outcomes by player to find the main/standard line
+        const playerOutcomesMap = new Map<string, Outcome[]>();
+        standardMarket.outcomes.forEach(outcome => {
+          if (!outcome.description) return;
+          
+          const outcomes = playerOutcomesMap.get(outcome.description) || [];
+          outcomes.push(outcome);
+          playerOutcomesMap.set(outcome.description, outcomes);
+        });
+
+        // Identify the main line for each player (typically the most common point value)
+        allOutcomes = [];
+        playerOutcomesMap.forEach((outcomes, player) => {
+          // Count frequency of each point value
+          const pointFrequency = new Map<number, number>();
+          outcomes.forEach(outcome => {
+            const count = pointFrequency.get(outcome.point) || 0;
+            pointFrequency.set(outcome.point, count + 1);
+          });
+
+          // Find the most common point value (the standard line)
+          let mainPoint = outcomes[0].point;
+          let maxFrequency = 0;
+          pointFrequency.forEach((count, point) => {
+            if (count > maxFrequency) {
+              maxFrequency = count;
+              mainPoint = point;
+            }
+          });
+
+          // Only include outcomes with the main point value
+          const mainOutcomes = outcomes.filter(o => o.point === mainPoint);
+          allOutcomes.push(...mainOutcomes);
+        });
       }
 
       // Group outcomes by player
@@ -631,7 +675,7 @@ export function PropComparisonTable({
     });
 
     return props;
-  }, [gameData, statType, sport]);
+  }, [gameData, statType, sport, showAlternateLines]);
 
   // Filter props by search query
   const filteredProps = useMemo(() => {
@@ -1466,6 +1510,8 @@ export function PropComparisonTable({
             setSearchQuery={setSearchQuery}
             sortBy={sortBy}
             setSortBy={setSortBy}
+            showAlternateLines={showAlternateLines}
+            setShowAlternateLines={setShowAlternateLines}
           />
         </div>
 
