@@ -58,7 +58,7 @@ import {
 import { FilterControls } from "./filter-controls";
 
 export function PropComparisonTable({
-  sport = "basketball_nba",
+  sport = "baseball_mlb",
 }: {
   sport?: string;
 }) {
