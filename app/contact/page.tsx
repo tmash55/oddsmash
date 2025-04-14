@@ -77,9 +77,9 @@ export default function ContactPage() {
               </div>
             </div>
             <div className="flex justify-center lg:justify-end">
-              <div className="relative w-full max-w-[500px] aspect-video rounded-lg overflow-hidden border-8 border-background shadow-xl">
+              <div className="relative w-full max-w-[500px] h-auto rounded-lg overflow-hidden border-8 border-background shadow-xl aspect-[4/3]">
                 <Image
-                  src="/placeholder.svg?height=600&width=800"
+                  src="/contact/contact-us.png"
                   alt="Contact support team"
                   fill
                   className="object-cover"
