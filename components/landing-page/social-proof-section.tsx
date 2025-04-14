@@ -10,23 +10,23 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 const testimonials = [
   {
     quote:
-      "I’ve saved hundreds already just by comparing odds here. I didn’t realize how much I was leaving on the table.",
-    author: "Michael T.",
-    role: "Daily Fantasy Player",
+      "I used to place bets without checking. Now I check OddSmash first — the difference in payouts adds up fast.",
+    author: "Chris D.",
+    role: "Casual Bettor Turned Sharp",
     rating: 5,
   },
   {
     quote:
-      "OddSmash is now part of my daily routine. Props, parlays — everything I need in one place.",
-    author: "PropWhiz23",
-    role: "Sports Bettor",
+      "The parlay builder is exactly what I didn’t know I needed. Seeing odds across books? Game-changer.",
+    author: "Alex G.",
+    role: "Fantasy Sports Enthusiast",
     rating: 5,
   },
   {
     quote:
-      "This tool is what every serious bettor has been waiting for. Slick interface, huge value, no fluff.",
-    author: "Sarah K.",
-    role: "NBA Props",
+      "Clean interface. Easy to use. I’m excited to see where this goes — it's already super useful.",
+    author: "Jordan P.",
+    role: "trackkotc User & Early Access Tester",
     rating: 5,
   },
 ];
@@ -84,6 +84,10 @@ export function SocialProofSection() {
               Trusted by <span className="text-primary">10,000+</span> bettors —
               and growing fast.
             </h2>
+            <p className="text-xs text-muted-foreground mt-2">
+              These testimonials were collected from users of our previous tool
+              (TrackKOTC.com) and early testers of OddSmash.
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
@@ -110,7 +114,7 @@ export function SocialProofSection() {
                 </p>
                 <p className="text-sm md:text-base font-medium">Tyler M.</p>
                 <p className="text-xs md:text-sm text-muted-foreground">
-                  Sports Bettor
+                  Early Beta Tester
                 </p>
               </div>
 
@@ -233,6 +237,10 @@ export function SocialProofSection() {
                       </button>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-4 text-center md:hidden">
+                    These testimonials were collected from users of our previous
+                    tool (TrackKOTC.com) and early testers of OddSmash.
+                  </p>
                 </div>
               </div>
             </motion.div>
