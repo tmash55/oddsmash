@@ -19,19 +19,26 @@ import { SportsbookSelector } from "@/components/sportsbook-selector";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useRouter, usePathname } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getMarketsForSport } from "@/lib/constants/markets";
 
 interface PlayerPropsPageProps {
   params: {
     sport: string;
   };
+  propType?: string;
 }
 
 export default function PlayerPropsClientPage({
   params,
+  propType,
 }: PlayerPropsPageProps) {
   const [showIntro, setShowIntro] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Map route param to API sport key
   const sportMap: { [key: string]: string } = {
@@ -58,6 +65,32 @@ export default function PlayerPropsClientPage({
 
   const sportDisplayName = getSportDisplayName(sport);
 
+  // Get available prop types for this sport
+  const propTypes = getMarketsForSport(sport).map((market) => {
+    // Special case for PTS+REB+AST
+    if (
+      market.label === "PTS+REB+AST" ||
+      market.label === "Points+Rebounds+Assists"
+    ) {
+      return {
+        value: "pra",
+        label: "PRA",
+      };
+    }
+
+    return {
+      value: market.label.toLowerCase().replace(/\s+/g, "-"),
+      label: market.label,
+    };
+  });
+
+  // Handle prop type change
+  const handlePropTypeChange = (newPropType: string) => {
+    router.push(`/${params.sport}/props/${newPropType}`, {
+      scroll: false,
+    });
+  };
+
   // On mobile, auto-collapse the intro section after the page loads
   useEffect(() => {
     if (isMobile) {
@@ -72,7 +105,7 @@ export default function PlayerPropsClientPage({
     <div className="flex min-h-screen flex-col">
       <div className="relative">
         {/* Add the SportsSubNav component */}
-        <SportsSubNav baseRoute="player-props" />
+        <SportsSubNav baseRoute="props" />
 
         <main className="container py-4 md:py-12">
           <div className="mx-auto max-w-6xl space-y-4 md:space-y-8">
@@ -179,7 +212,11 @@ export default function PlayerPropsClientPage({
 
             {/* Prop Comparison Table - Full Width on Mobile */}
             <div className="w-full px-0 mx-auto">
-              <PropComparisonTable sport={sport} />
+              <PropComparisonTable
+                sport={sport}
+                propType={propType}
+                onPropTypeChange={handlePropTypeChange}
+              />
             </div>
 
             {/* Collapsible Details Section - Hidden by default on mobile */}

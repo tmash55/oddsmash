@@ -88,7 +88,7 @@ export function Header() {
     return {
       title: sport.name,
       description,
-      href: `/${sportPath.toLowerCase()}/player-props/`,
+      href: `/${sportPath.toLowerCase()}/props/`,
       icon: <SportLogo sport={sport.id} size="xs" />,
     };
   });
@@ -103,9 +103,9 @@ export function Header() {
     },
     {
       title: "Player Props",
-      href: "//mlb/player-props",
+      href: "//mlb/props",
       icon: <BarChart3 className="h-5 w-5 text-primary" />,
-      isActive: pathname?.startsWith("/player-props"),
+      isActive: pathname?.startsWith("/props"),
       children: playerPropsItems,
     },
     {
@@ -156,7 +156,7 @@ export function Header() {
                 <NavigationMenuTrigger
                   className={cn(
                     "px-3 transition-all duration-300 group",
-                    pathname?.startsWith("/player-props") && "bg-muted"
+                    pathname?.startsWith("/props") && "bg-muted"
                   )}
                 >
                   Player Props
@@ -168,7 +168,7 @@ export function Header() {
                       <NavigationMenuLink asChild>
                         <a
                           className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
-                          href="//mlb/player-props"
+                          href="//mlb/props"
                         >
                           <div className="mt-4 mb-2 text-lg font-medium text-white">
                             Player Props

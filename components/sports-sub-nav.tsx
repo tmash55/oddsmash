@@ -11,7 +11,7 @@ import { sports } from "@/data/sports-data";
 import { getUrlPath } from "@/data/sport-mappings";
 
 type SportsSubNavProps = {
-  baseRoute: "player-props" | "hit-rates" | "parlay-builder" | "tracker";
+  baseRoute: "props" | "hit-rates" | "parlay-builder" | "tracker";
   className?: string;
 };
 

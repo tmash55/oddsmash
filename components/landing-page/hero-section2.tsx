@@ -40,7 +40,7 @@ const carouselItems = [
     description: "Shop for the best lines and never leave money on the table",
     image: "/landing-page/prop-table2.png",
     cta: "Compare Props",
-    link: "/mlb/player-props",
+    link: "/mlb/props",
     color: "from-emerald-500/20 to-emerald-600/5",
     icon: <Search className="h-5 w-5" />,
   },
@@ -174,7 +174,7 @@ export function HeroSection() {
               size="lg"
               className="text-base font-medium px-8 h-12 group"
             >
-              <Link href="/mlb/player-props">
+              <Link href="/mlb/props">
                 <Search className="mr-2 h-4 w-4" />
                 Compare Props
                 <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

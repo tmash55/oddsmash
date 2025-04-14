@@ -34,6 +34,16 @@ interface FilterControlsProps {
   setSortBy: (value: "name" | "best-odds") => void;
 }
 
+// Helper function to determine if a market is pitcher-specific
+const isPitcherMarket = (market: any): boolean => {
+  if (!market) return false;
+  const apiKey = market.apiKey.toLowerCase();
+  const label = market.label.toLowerCase();
+  return apiKey.startsWith("pitcher_") || 
+         apiKey.includes("strikeout") || 
+         label.includes("strikeout");
+};
+
 export function FilterControls({
   sport,
   statType,
@@ -53,12 +63,29 @@ export function FilterControls({
   const statTypes = getMarketsForSport(sport).filter((market) => {
     if (sport === "baseball_mlb") {
       const apiKey = market.apiKey.toLowerCase();
-      return playerType === "pitcher"
-        ? apiKey.startsWith("pitcher_")
-        : apiKey.startsWith("batter_");
+      const marketLabel = market.label.toLowerCase();
+
+      if (playerType === "pitcher") {
+        // Include markets that start with "pitcher_" OR contain "strikeout" for pitchers
+        return (
+          apiKey.startsWith("pitcher_") ||
+          apiKey.includes("strikeout") ||
+          marketLabel.includes("strikeout")
+        );
+      } else {
+        // For batters, exclude pitcher-specific markets and strikeouts
+        return (
+          apiKey.startsWith("batter_") &&
+          !apiKey.includes("strikeout") &&
+          !marketLabel.includes("strikeout")
+        );
+      }
     }
     return true;
   });
+
+  // Make sure the current statType is valid for the current playerType
+  const isStatTypeValid = statTypes.some(market => market.value === statType);
 
   return (
     <div className="space-y-2">
@@ -99,7 +126,10 @@ export function FilterControls({
 
           {/* Prop Type Dropdown - Now on its own row */}
           <div className="flex gap-2 items-center">
-            <Select value={statType} onValueChange={setStatType}>
+            <Select 
+              value={isStatTypeValid ? statType : (statTypes.length > 0 ? statTypes[0].value : '')} 
+              onValueChange={setStatType}
+            >
               <SelectTrigger className="h-9 text-xs sm:text-sm flex-1">
                 <SelectValue placeholder="Select stat" />
               </SelectTrigger>

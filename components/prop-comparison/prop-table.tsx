@@ -2,25 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Search,
-  SortAsc,
-  RefreshCw,
-  Clock,
-  ExternalLink,
-  Zap,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Zap } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -28,14 +10,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import { sportsbooks } from "@/data/sportsbooks";
 import { GameSelector } from "./game-selector";
@@ -49,22 +23,101 @@ import {
   formatAmericanOdds,
 } from "@/lib/odds-api";
 import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
-import { SportsbookSelector } from "@/components/sportsbook-selector";
 import {
   getMarketsForSport,
   getDefaultMarket,
   getMarketApiKey,
 } from "@/lib/constants/markets";
 import { FilterControls } from "./filter-controls";
+import { useRouter, usePathname } from "next/navigation";
+
+interface PropComparisonTableProps {
+  sport?: string;
+  propType?: string; // Add this prop
+  onPropTypeChange?: (propType: string) => void; // Add this callback
+}
+
+// Helper function to convert market label to URL-friendly format
+const marketLabelToUrl = (label: string): string => {
+  // Special case for PRA
+  if (label === "PTS+REB+AST" || label === "Points+Rebounds+Assists") {
+    return "pra";
+  }
+
+  // Replace + with - and convert to lowercase with spaces as dashes
+  return label.toLowerCase().replace(/\+/g, "-").replace(/\s+/g, "-");
+};
+
+// Helper function to find market by URL-friendly name
+const findMarketByUrlName = (
+  markets: any[],
+  urlName: string
+): any | undefined => {
+  // Special case for PRA
+  if (urlName === "pra") {
+    return markets.find(
+      (m) => m.label === "PTS+REB+AST" || m.label === "Points+Rebounds+Assists"
+    );
+  }
+
+  // Try direct match first
+  const directMatch = markets.find(
+    (m) => marketLabelToUrl(m.label) === urlName
+  );
+  if (directMatch) return directMatch;
+
+  // If no direct match, try replacing - with + to handle legacy URLs
+  return markets.find((m) => {
+    const normalizedLabel = m.label.toLowerCase().replace(/\s+/g, "-");
+    const normalizedUrlName = urlName.replace(/-/g, "+");
+    return normalizedLabel === normalizedUrlName;
+  });
+};
+
+// Helper function to determine if a market is pitcher-specific
+const isPitcherMarket = (market: any): boolean => {
+  if (!market) return false;
+  const apiKey = market.apiKey.toLowerCase();
+  const label = market.label.toLowerCase();
+  return apiKey.startsWith("pitcher_") || 
+         apiKey.includes("strikeout") || 
+         label.includes("strikeout");
+};
 
 export function PropComparisonTable({
   sport = "baseball_mlb",
-}: {
-  sport?: string;
-}) {
-  const [statType, setStatType] = useState(getDefaultMarket(sport));
+  propType, // Accept propType from URL
+  onPropTypeChange, // Accept callback for prop type changes
+}: PropComparisonTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Determine initial player type based on propType
+  const determineInitialPlayerType = (): "batter" | "pitcher" => {
+    if (propType && sport === "baseball_mlb") {
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      
+      if (market && isPitcherMarket(market)) {
+        return "pitcher";
+      }
+    }
+    return "batter";
+  };
+
+  // Initialize statType from propType if provided, otherwise use default
+  const [statType, setStatType] = useState(() => {
+    if (propType) {
+      // Map URL-friendly propType to API statType
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      return market?.value || getDefaultMarket(sport);
+    }
+    return getDefaultMarket(sport);
+  });
+
   const [showType, setShowType] = useState<"both" | "over" | "under">("both");
-  const [playerType, setPlayerType] = useState<"batter" | "pitcher">("batter");
+  const [playerType, setPlayerType] = useState<"batter" | "pitcher">(determineInitialPlayerType);
   const [activeSportsbook, setActiveSportsbook] = useState("draftkings");
   const [activePlayerIndex, setActivePlayerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,6 +144,26 @@ export function PropComparisonTable({
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // Update statType when propType changes
+  useEffect(() => {
+    if (propType) {
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      if (market) {
+        setStatType(market.value);
+        
+        // Also update playerType if in MLB and the market is pitcher-specific
+        if (sport === "baseball_mlb") {
+          if (isPitcherMarket(market)) {
+            setPlayerType("pitcher");
+          } else {
+            setPlayerType("batter");
+          }
+        }
+      }
+    }
+  }, [propType, sport]);
+
   // Get available stat types for the current sport and player type
   const statTypes = useMemo(() => {
     const markets = getMarketsForSport(sport);
@@ -98,9 +171,23 @@ export function PropComparisonTable({
     if (sport === "baseball_mlb") {
       return markets.filter((market) => {
         const apiKey = market.apiKey.toLowerCase();
-        return playerType === "pitcher"
-          ? apiKey.startsWith("pitcher_")
-          : apiKey.startsWith("batter_");
+        const marketLabel = market.label.toLowerCase();
+        
+        if (playerType === "pitcher") {
+          // Include markets that start with "pitcher_" OR contain "strikeout" for pitchers
+          return (
+            apiKey.startsWith("pitcher_") ||
+            apiKey.includes("strikeout") ||
+            marketLabel.includes("strikeout")
+          );
+        } else {
+          // For batters, exclude pitcher-specific markets and strikeouts
+          return (
+            apiKey.startsWith("batter_") &&
+            !apiKey.includes("strikeout") &&
+            !marketLabel.includes("strikeout")
+          );
+        }
       });
     }
 
@@ -115,21 +202,94 @@ export function PropComparisonTable({
   // Determine if alternate lines are available
   const hasAlternateLines = currentMarket?.hasAlternates || false;
 
-  // Update stat type when player type changes
-  useEffect(() => {
-    if (sport === "baseball_mlb") {
-      const validMarket = statTypes.find((market) => market.value === statType);
-      if (!validMarket && statTypes.length > 0) {
-        setStatType(statTypes[0].value);
+  // Custom playerType setter that also updates statType as needed
+  const handlePlayerTypeChange = (newPlayerType: "batter" | "pitcher") => {
+    setPlayerType(newPlayerType);
+    
+    // If changing player type, we need to set the appropriate default stat type
+    if (newPlayerType === "pitcher") {
+      // Find a default pitcher stat, preferably "Strikeouts"
+      const pitcherStats = statTypes.filter(stat => 
+        isPitcherMarket(stat)
+      );
+      
+      if (pitcherStats.length > 0) {
+        // First try to find Strikeouts
+        const strikeouts = pitcherStats.find(stat => 
+          stat.label === "Strikeouts" || 
+          stat.value === "Strikeouts"
+        );
+        
+        const newStatType = strikeouts?.value || pitcherStats[0].value;
+        handleStatTypeChange(newStatType);
+      }
+    } else {
+      // For batters, prefer Home Runs or Hits as default
+      const batterStats = statTypes.filter(stat => 
+        !isPitcherMarket(stat)
+      );
+      
+      if (batterStats.length > 0) {
+        // Try to find Home Runs or Hits
+        const homeRuns = batterStats.find(stat => 
+          stat.label === "Home Runs" || 
+          stat.value === "Home_Runs"
+        );
+        
+        const hits = batterStats.find(stat => 
+          stat.label === "Hits" || 
+          stat.value === "Hits"
+        );
+        
+        const newStatType = homeRuns?.value || hits?.value || batterStats[0].value;
+        handleStatTypeChange(newStatType);
       }
     }
-  }, [playerType, sport, statTypes, statType]);
+  };
+
+  // Custom statType setter that also calls onPropTypeChange
+  const handleStatTypeChange = (newStatType: string) => {
+    setStatType(newStatType);
+
+    if (onPropTypeChange) {
+      // Find the market to get the label
+      const markets = getMarketsForSport(sport);
+      const market = markets.find((m) => m.value === newStatType);
+      if (market) {
+        // Convert label to URL-friendly format
+        const urlPropType = marketLabelToUrl(market.label);
+        onPropTypeChange(urlPropType);
+        
+        // Also update playerType if this is a MLB market with a specific player type
+        if (sport === "baseball_mlb") {
+          if (isPitcherMarket(market) && playerType !== "pitcher") {
+            setPlayerType("pitcher");
+          } else if (!isPitcherMarket(market) && playerType !== "batter") {
+            setPlayerType("batter");
+          }
+        }
+      }
+    }
+  };
+
+  // Update stat type when player type changes
+  useEffect(() => {
+    if (sport === "baseball_mlb" && statTypes.length > 0) {
+      const isCurrentValid = statTypes.some(
+        (market) => market.value === statType
+      );
+      if (!isCurrentValid) {
+        handleStatTypeChange(statTypes[0].value);
+      }
+    }
+    // Only run when statTypes updates
+  }, [statTypes]);
 
   // Helper function to get default stat type for a sport
   function getDefaultStatType(sport: string) {
     switch (sport) {
       case "baseball_mlb":
-        return "Strikeouts";
+        return playerType === "pitcher" ? "Strikeouts" : "Home_Runs";
       case "hockey_nhl":
         return "Points";
       default:
@@ -1297,11 +1457,11 @@ export function PropComparisonTable({
           <FilterControls
             sport={sport}
             statType={statType}
-            setStatType={setStatType}
+            setStatType={handleStatTypeChange}
             showType={showType}
             setShowType={setShowType}
             playerType={playerType}
-            setPlayerType={setPlayerType}
+            setPlayerType={handlePlayerTypeChange}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             sortBy={sortBy}
@@ -1448,7 +1608,7 @@ export function PropComparisonTable({
                                 const isUnderBest =
                                   underOutcome &&
                                   bestOdds &&
-                                  overOutcome.price === bestOdds.under;
+                                  underOutcome.price === bestOdds.under;
 
                                 return (
                                   <div

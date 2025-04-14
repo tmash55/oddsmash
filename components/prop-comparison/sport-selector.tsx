@@ -74,7 +74,7 @@ export function SportSelector({
     }
 
     // Navigate to the sport's player props page
-    router.push(`/${sportId}/player-props`);
+    router.push(`/${sportId}/props`);
   };
 
   // Check if we can scroll left or right

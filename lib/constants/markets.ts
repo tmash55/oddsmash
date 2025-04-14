@@ -106,7 +106,7 @@ export const SPORT_MARKETS: SportMarkets = {
     },
     {
       value: "Blocks_steals",
-      label: "Blocks + Steals",
+      label: "Blocks+Steals",
       apiKey: "player_blocks_steals",
     },
     {

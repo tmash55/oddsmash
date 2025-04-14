@@ -45,55 +45,48 @@ export function GameCard({
 
   // Get the spread, moneyline, and total markets
   // Get the spread, moneyline, and total markets
-const spreads = game.markets.spread || [];
+  const spreads = game.markets.spread || [];
 
-// Add detailed logging for debugging
-console.log(
-  `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
-);
-console.log(`Sport ID: ${game.sportId}`);
-console.log(`Raw spreads data:`, spreads);
+  // Add detailed logging for debugging
+  console.log(
+    `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
+  );
+  console.log(`Sport ID: ${game.sportId}`);
+  console.log(`Raw spreads data:`, spreads);
 
-// Always use team name to match spreads
-const awaySpread = spreads.find(
-  (s: any) => s.team === game.awayTeam.name
-);
-const homeSpread = spreads.find(
-  (s: any) => s.team === game.homeTeam.name
-);
+  // Always use team name to match spreads
+  const awaySpread = spreads.find((s: any) => s.team === game.awayTeam.name);
+  const homeSpread = spreads.find((s: any) => s.team === game.homeTeam.name);
 
-// Log warning if a spread is missing
-if (!awaySpread || !homeSpread) {
-  console.warn("Warning: Could not match all spreads by team name", {
-    awaySpreadFound: !!awaySpread,
-    homeSpreadFound: !!homeSpread,
-    spreads,
-  });
-}
-
+  // Log warning if a spread is missing
+  if (!awaySpread || !homeSpread) {
+    console.warn("Warning: Could not match all spreads by team name", {
+      awaySpreadFound: !!awaySpread,
+      homeSpreadFound: !!homeSpread,
+      spreads,
+    });
+  }
 
   // Log the final spread assignments for verification
   console.log("Final spread assignments:", {
     away: {
       team: game.awayTeam.name,
       line: awaySpread?.line,
-      odds: awaySpread?.odds?.[activeSportsbook]
+      odds: awaySpread?.odds?.[activeSportsbook],
     },
     home: {
       team: game.homeTeam.name,
       line: homeSpread?.line,
-      odds: homeSpread?.odds?.[activeSportsbook]
-    }
+      odds: homeSpread?.odds?.[activeSportsbook],
+    },
   });
 
   // Find moneyline markets by matching team names
   const moneylineMarkets = game.markets.moneyline || [];
-  const awayMoneyline = moneylineMarkets.find(
-    (m: any) => m.team === game.awayTeam.name
-  ) || null;
-  const homeMoneyline = moneylineMarkets.find(
-    (m: any) => m.team === game.homeTeam.name
-  ) || null;
+  const awayMoneyline =
+    moneylineMarkets.find((m: any) => m.team === game.awayTeam.name) || null;
+  const homeMoneyline =
+    moneylineMarkets.find((m: any) => m.team === game.homeTeam.name) || null;
 
   const overTotal = game.markets.total?.[0] || null;
   const underTotal = game.markets.total?.[1] || null;
