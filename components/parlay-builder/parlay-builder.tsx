@@ -23,7 +23,23 @@ interface ApiEvent {
   commence_time: string;
   home_team: string;
   away_team: string;
-  bookmakers?: any[];
+  bookmakers?: Array<{
+    key: string;
+    title: string;
+    markets: Array<{
+      key: string;
+      outcomes: Array<{
+        name: string;
+        price: number;
+        point?: number;
+        sid?: string;
+        link?: string;
+        description?: string;
+      }>;
+      sid?: string;
+    }>;
+    sid?: string;
+  }>;
 }
 
 // Define a type for the date filter
@@ -37,6 +53,29 @@ interface MarketOutcome {
   point?: number;
   sid?: string;
   link?: string;
+}
+
+// Define a type for the bookmaker data
+interface BookmakerData {
+  [key: string]: {
+    key: string;
+    title: string;
+    markets: {
+      [key: string]: {
+        key: string;
+        outcomes: Array<{
+          name: string;
+          price: number;
+          point?: number;
+          sid?: string;
+          link?: string;
+          description?: string;
+        }>;
+        sid?: string | null;
+      };
+    };
+    sid: string | null;
+  };
 }
 
 export function ParlayBuilder() {
@@ -149,7 +188,7 @@ export function ParlayBuilder() {
         }
 
         // Convert API events to our Game format
-        const formattedGames = data.events.map((event: any) =>
+        const formattedGames = data.events.map((event: ApiEvent) =>
           formatEventToGame(event)
         );
 
@@ -188,15 +227,13 @@ export function ParlayBuilder() {
   }, [selectedSport, selectedSportsbooks]); // Remove allGames from dependency array
 
   // Function to convert API event to our Game format
-  const formatEventToGame = (event: any): Game => {
-    // Add debug logging
-
+  const formatEventToGame = (event: ApiEvent): Game => {
     // Extract bookmakers data for odds
-    const bookmakerData: { [key: string]: any } = {};
+    const bookmakerData: BookmakerData = {};
 
     // Process bookmakers data if available
     if (event.bookmakers && Array.isArray(event.bookmakers)) {
-      event.bookmakers.forEach((bookmaker: any) => {
+      event.bookmakers.forEach((bookmaker) => {
         bookmakerData[bookmaker.key] = {
           key: bookmaker.key,
           title: bookmaker.title,
@@ -205,7 +242,7 @@ export function ParlayBuilder() {
         };
 
         // Process markets
-        bookmaker.markets.forEach((market: any) => {
+        bookmaker.markets.forEach((market) => {
           bookmakerData[bookmaker.key].markets[market.key] = {
             key: market.key,
             outcomes: market.outcomes,
@@ -248,8 +285,8 @@ export function ParlayBuilder() {
 
   // Helper function to create spread markets
   const createSpreadMarkets = (
-    event: any,
-    bookmakerData: { [key: string]: any }
+    event: ApiEvent,
+    bookmakerData: BookmakerData
   ): any[] => {
     const homeSpread: any = {
       id: `spread-home-${event.id}`,
@@ -288,8 +325,8 @@ export function ParlayBuilder() {
       const outcomes = spreadMarket.outcomes;
 
       // Try to match outcomes to home and away teams
-      const homeOutcome = outcomes.find((o: any) => o.name === event.home_team);
-      const awayOutcome = outcomes.find((o: any) => o.name === event.away_team);
+      const homeOutcome = outcomes.find((o) => o.name === event.home_team);
+      const awayOutcome = outcomes.find((o) => o.name === event.away_team);
 
       // Prefer team name match
       if (homeOutcome) {
@@ -325,8 +362,8 @@ export function ParlayBuilder() {
           if (!awayOutcome) {
             awaySpread.odds[key] = second.price;
             awaySpread.line = second.point;
-            if (second.sid) homeSpread.sids[key] = second.sid;
-            if (second.link) homeSpread.links[key] = second.link;
+            if (second.sid) awaySpread.sids[key] = second.sid;
+            if (second.link) awaySpread.links[key] = second.link;
           }
         } else {
           console.warn(`Spread market from ${key} does not have 2 outcomes.`);
@@ -339,8 +376,8 @@ export function ParlayBuilder() {
 
   // Helper function to create moneyline markets
   const createMoneylineMarkets = (
-    event: any,
-    bookmakerData: { [key: string]: any }
+    event: ApiEvent,
+    bookmakerData: BookmakerData
   ): any[] => {
     // For NHL games, we need to swap home and away teams
     const isNHL = selectedSport === "icehockey_nhl";
@@ -375,10 +412,10 @@ export function ParlayBuilder() {
       if (bookmaker.markets.h2h) {
         // For NHL games, we need to swap which team we look for in the outcomes
         const homeOutcome = bookmaker.markets.h2h.outcomes.find(
-          (o: any) => o.name === homeTeam
+          (o) => o.name === homeTeam
         );
         const awayOutcome = bookmaker.markets.h2h.outcomes.find(
-          (o: any) => o.name === awayTeam
+          (o) => o.name === awayTeam
         );
 
         if (homeOutcome) {
@@ -410,8 +447,8 @@ export function ParlayBuilder() {
 
   // Helper function to create total markets
   const createTotalMarkets = (
-    event: any,
-    bookmakerData: { [key: string]: any }
+    event: ApiEvent,
+    bookmakerData: BookmakerData
   ): any[] => {
     const overTotal: any = {
       id: `total-over-${event.id}`,
@@ -444,11 +481,9 @@ export function ParlayBuilder() {
         bookmaker.markets.total ||
         bookmaker.markets.over_under;
       if (totalMarket) {
-        const overOutcome = totalMarket.outcomes.find(
-          (o: any) => o.name === "Over"
-        );
+        const overOutcome = totalMarket.outcomes.find((o) => o.name === "Over");
         const underOutcome = totalMarket.outcomes.find(
-          (o: any) => o.name === "Under"
+          (o) => o.name === "Under"
         );
 
         if (overOutcome) {
@@ -893,9 +928,6 @@ export function ParlayBuilder() {
     }
   }, [logState]);
 
-  // Add this function to the ParlayBuilder component
-  // Place it where the other handler functions are defined
-
   // Clear all legs from the betslip
   const clearAllLegs = () => {
     setSelectedLegs([]);
@@ -1037,7 +1069,7 @@ export function ParlayBuilder() {
                   if (!data.events || !Array.isArray(data.events)) {
                     throw new Error("Invalid response format");
                   }
-                  const formattedGames = data.events.map((event) =>
+                  const formattedGames = data.events.map((event: ApiEvent) =>
                     formatEventToGame(event)
                   );
                   setAllGames((prev) => ({
@@ -1121,8 +1153,8 @@ export function ParlayBuilder() {
                         if (!data.events || !Array.isArray(data.events)) {
                           throw new Error("Invalid response format");
                         }
-                        const formattedGames = data.events.map((event) =>
-                          formatEventToGame(event)
+                        const formattedGames = data.events.map(
+                          (event: ApiEvent) => formatEventToGame(event)
                         );
                         setAllGames((prev) => ({
                           ...prev,
