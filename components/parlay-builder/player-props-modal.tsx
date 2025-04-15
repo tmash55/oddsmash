@@ -365,7 +365,6 @@ export function PlayerPropsModal({
             }
           });
         });
-      } else {
       }
     });
 

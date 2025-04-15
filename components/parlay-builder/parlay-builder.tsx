@@ -912,8 +912,7 @@ export function ParlayBuilder() {
           const nextDay = new Date(tomorrow);
           nextDay.setDate(nextDay.getDate() + 1);
           const isTomorrow = gameDate >= tomorrow && gameDate < nextDay;
-          if (isTomorrow) {
-          }
+
           return isTomorrow;
         });
         break;
