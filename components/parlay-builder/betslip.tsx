@@ -117,7 +117,10 @@ export function Betslip({
   // Add logging for debugging
   useEffect(() => {
     if (open) {
-      // console.log("Betslip - User's selected sportsbooks:", userSportsbooks);      // console.log("Betslip - Selected legs:", legs);      // console.log("Betslip - Player props data:", playerPropsData);    }
+      console.log("Betslip - User's selected sportsbooks:", userSportsbooks);
+      console.log("Betslip - Selected legs:", legs);
+      console.log("Betslip - Player props data:", playerPropsData);
+    }
   }, [open, userSportsbooks, legs, playerPropsData]);
 
   // Trigger payout animation when wager amount changes
@@ -616,7 +619,10 @@ export function Betslip({
   const handlePlaceBet = () => {
     if (!selectedSportsbook) return;
 
-    // console.log("=== Place Bet Button Clicked ===");    // console.log(`Selected Sportsbook: ${selectedSportsbook}`);    // console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`);
+    console.log("=== Place Bet Button Clicked ===");
+    console.log(`Selected Sportsbook: ${selectedSportsbook}`);
+    console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`);
+
     // Get all legs for the selected sportsbook
     const legsForSportsbook = legs.map((leg) => {
       let link;
@@ -665,7 +671,8 @@ export function Betslip({
       return { ...leg, currentLink: link, sid };
     });
 
-    // console.log("All legs with current sportsbook links:", legsForSportsbook);
+    console.log("All legs with current sportsbook links:", legsForSportsbook);
+
     let betLink: string;
 
     // Special handling for FanDuel parlays
@@ -678,9 +685,11 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createFanduelParlayLink(parlayLegs);
-        // console.log("Created FanDuel parlay link:", betLink);      } else {
+        console.log("Created FanDuel parlay link:", betLink);
+      } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        // console.log("No valid FanDuel legs found, using homepage:", betLink);      }
+        console.log("No valid FanDuel legs found, using homepage:", betLink);
+      }
     }
     // Special handling for DraftKings parlays
     else if (selectedSportsbook === "draftkings" && legs.length > 1) {
@@ -699,9 +708,11 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createDraftkingsLink(parlayLegs);
-        // console.log("Created DraftKings parlay link:", betLink);      } else {
+        console.log("Created DraftKings parlay link:", betLink);
+      } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        // console.log("No valid DraftKings legs found, using homepage:", betLink);      }
+        console.log("No valid DraftKings legs found, using homepage:", betLink);
+      }
     }
     // Special handling for Caesars parlays
     else if (selectedSportsbook === "williamhill_us" && legs.length > 1) {
@@ -711,9 +722,11 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createCaesarsLink(parlayLegs);
-        // console.log("Created Caesars parlay link:", betLink);      } else {
+        console.log("Created Caesars parlay link:", betLink);
+      } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        // console.log("No valid Caesars legs found, using homepage:", betLink);      }
+        console.log("No valid Caesars legs found, using homepage:", betLink);
+      }
     } else {
       // For other sportsbooks or single bets, use the first valid link
       const firstValidLink = legsForSportsbook.find(
@@ -722,7 +735,8 @@ export function Betslip({
       betLink = firstValidLink || getSportsbookLink(selectedSportsbook);
     }
 
-    // console.log("Final bet link to be opened:", betLink);
+    console.log("Final bet link to be opened:", betLink);
+
     // Handle state-specific URLs
     const sportsbook = sportsbooks.find((sb) => sb.id === selectedSportsbook);
     if (sportsbook && sportsbook.requiresState && betLink) {
@@ -774,7 +788,8 @@ export function Betslip({
             "{state}.betrivers.com",
             `${userState.toLowerCase()}.betrivers.com`
           );
-          // console.log("BetRivers URL after state replacement:", betUrl);        }
+          console.log("BetRivers URL after state replacement:", betUrl);
+        }
       } else if (
         bookmakerKey === "williamhill_us" ||
         bookmakerKey === "hardrockbet"

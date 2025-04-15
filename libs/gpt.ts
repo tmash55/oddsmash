@@ -9,7 +9,8 @@ export const sendOpenAi = async (
 ) => {
   const url = 'https://api.openai.com/v1/chat/completions';
 
-  // console.log('Ask GPT >>>');  messages.map((m) =>
+  console.log('Ask GPT >>>');
+  messages.map((m) =>
     console.log(' - ' + m.role.toUpperCase() + ': ' + m.content)
   );
 
@@ -34,7 +35,8 @@ export const sendOpenAi = async (
     const answer = res.data.choices[0].message.content;
     const usage = res?.data?.usage;
 
-    // console.log('>>> ' + answer);    console.log(
+    console.log('>>> ' + answer);
+    console.log(
       'TOKENS USED: ' +
         usage?.total_tokens +
         ' (prompt: ' +
@@ -43,7 +45,8 @@ export const sendOpenAi = async (
         usage?.completion_tokens +
         ')'
     );
-    // console.log('\n');
+    console.log('\n');
+
     return answer;
   } catch (e) {
     console.error('GPT Error: ' + e?.response?.status, e?.response?.data);

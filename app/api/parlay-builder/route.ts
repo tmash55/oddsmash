@@ -47,7 +47,8 @@ export async function GET(request: Request) {
     // Try to get from cache first
     const cachedData = await getCachedData<CachedOddsData>(cacheKey);
     if (cachedData) {
-      // console.log(`Cache hit for ${sport}`);
+      console.log(`Cache hit for ${sport}`);
+
       // Filter the cached events to include only the user's selected bookmakers
       const filteredEvents = filterCachedOddsBySelectedSportsbooks(
         cachedData.events,
@@ -72,7 +73,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // console.log(`Cache miss for ${sport}, fetching from API`);
+    console.log(`Cache miss for ${sport}, fetching from API`);
+
     // If not in cache, fetch from API using our enhanced getOdds function
     // Note: getOdds now fetches ALL bookmakers and filters the response
     const oddsData = await getOdds(sport, userSelectedBookmakers, markets);
@@ -87,7 +89,8 @@ export async function GET(request: Request) {
     // Cache the complete data (with all bookmakers)
     // Note: We're caching the unfiltered data in getOdds, so we don't need to cache here
 
-    // console.log(`Fetched ${oddsData.length} events for ${sport}`);
+    console.log(`Fetched ${oddsData.length} events for ${sport}`);
+
     return NextResponse.json(responseData, {
       headers: {
         "x-last-updated": new Date().toISOString(),

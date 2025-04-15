@@ -89,7 +89,8 @@ export function ParlayBuilder() {
 
   // Handle sport selection
   const handleSportSelect = (sportId: string) => {
-    // console.log(`Selected sport: ${sportId}`);    setSelectedSport(sportId);
+    console.log(`Selected sport: ${sportId}`);
+    setSelectedSport(sportId);
     // No longer clearing selections when changing sports
     // Instead, we'll show the games for the selected sport
     if (allGames[sportId]) {
@@ -117,7 +118,8 @@ export function ParlayBuilder() {
       setError(null);
 
       try {
-        // console.log(`Fetching events for sport: ${selectedSport}`);
+        console.log(`Fetching events for sport: ${selectedSport}`);
+
         // Use the user's selected sportsbooks
         const bookmakers = selectedSportsbooks.join(",");
 
@@ -173,7 +175,9 @@ export function ParlayBuilder() {
   // Function to convert API event to our Game format
   const formatEventToGame = (event: any): Game => {
     // Add debug logging
-    // console.log("Raw event data:", event);    // console.log("Raw bookmakers data:", event.bookmakers);
+    console.log("Raw event data:", event);
+    console.log("Raw bookmakers data:", event.bookmakers);
+
     // Extract bookmakers data for odds
     const bookmakerData: { [key: string]: any } = {};
 
@@ -234,7 +238,9 @@ export function ParlayBuilder() {
     event: any,
     bookmakerData: { [key: string]: any }
   ): any[] => {
-    // console.log(`Creating spread markets for event: ${event.id}`);    // console.log(`Home team: ${event.home_team}, Away team: ${event.away_team}`);
+    console.log(`Creating spread markets for event: ${event.id}`);
+    console.log(`Home team: ${event.home_team}, Away team: ${event.away_team}`);
+
     const homeSpread: any = {
       id: `spread-home-${event.id}`,
       type: "spread",
@@ -269,7 +275,8 @@ export function ParlayBuilder() {
 
       if (!spreadMarket) return;
 
-      // console.log(`Processing spread market from ${key}:`, spreadMarket);
+      console.log(`Processing spread market from ${key}:`, spreadMarket);
+
       const outcomes = spreadMarket.outcomes;
 
       // Try to match outcomes to home and away teams
@@ -498,7 +505,8 @@ export function ParlayBuilder() {
 
     // Check if we already have this data cached
     if (playerPropsData[cacheKey]) {
-      // console.log(`Using cached player props data for ${cacheKey}`);      return playerPropsData[cacheKey];
+      console.log(`Using cached player props data for ${cacheKey}`);
+      return playerPropsData[cacheKey];
     }
 
     try {
@@ -516,7 +524,8 @@ export function ParlayBuilder() {
       }
 
       const data = await response.json();
-      // console.log(`Received player props data:`, data);
+      console.log(`Received player props data:`, data);
+
       // Cache the data
       setPlayerPropsData((prev) => ({
         ...prev,
@@ -714,7 +723,8 @@ export function ParlayBuilder() {
 
       // For player props
       if (isPlayerProp) {
-        // console.log("Processing player prop selection:", selection);
+        console.log("Processing player prop selection:", selection);
+
         // Get the player name and normalized market key
         const playerName =
           selection.player || selection.propIdentifiers?.player;
@@ -765,9 +775,11 @@ export function ParlayBuilder() {
           },
         };
 
-        // console.log("ParlayBuilder - Adding player prop leg:", newLeg);
+        console.log("ParlayBuilder - Adding player prop leg:", newLeg);
+
         // Log odds from all selected sportsbooks
-        // console.log("Player Prop Odds Comparison:");
+        console.log("Player Prop Odds Comparison:");
+
         // Fetch player props data for all sportsbooks if we don't have it yet
         if (marketKey) {
           const propsData = await fetchPlayerPropsData(
@@ -803,11 +815,14 @@ export function ParlayBuilder() {
                       }) ${outcome.sid ? `SID: ${outcome.sid}` : ""}`
                     );
                   } else {
-                    // console.log(`  ${sportsbook}: No exact line match`);                  }
+                    console.log(`  ${sportsbook}: No exact line match`);
+                  }
                 } else {
-                  // console.log(`  ${sportsbook}: Market not found`);                }
+                  console.log(`  ${sportsbook}: Market not found`);
+                }
               } else {
-                // console.log(`  ${sportsbook}: Bookmaker not found`);              }
+                console.log(`  ${sportsbook}: Bookmaker not found`);
+              }
             });
           }
         }
@@ -833,9 +848,12 @@ export function ParlayBuilder() {
           link: market.links?.[sportsbookId], // Store the link if available
         };
 
-        // console.log("ParlayBuilder - Adding leg:", newLeg);        // console.log("ParlayBuilder - Using sportsbook:", sportsbookId);
+        console.log("ParlayBuilder - Adding leg:", newLeg);
+        console.log("ParlayBuilder - Using sportsbook:", sportsbookId);
+
         // Log odds from all selected sportsbooks
-        // console.log("Standard Market Odds Comparison:");        selectedSportsbooks.forEach((sportsbook) => {
+        console.log("Standard Market Odds Comparison:");
+        selectedSportsbooks.forEach((sportsbook) => {
           const odds = market.odds?.[sportsbook];
           const sid = market.sids?.[sportsbook];
           if (odds !== undefined) {
@@ -845,7 +863,8 @@ export function ParlayBuilder() {
               }) ${sid ? `SID: ${sid}` : ""}`
             );
           } else {
-            // console.log(`  ${sportsbook}: Not available`);          }
+            console.log(`  ${sportsbook}: Not available`);
+          }
         });
 
         setSelectedLegs((prev) => [...prev, newLeg]);
@@ -853,7 +872,8 @@ export function ParlayBuilder() {
 
       // Calculate and log potential parlay odds
       if (selectedLegs.length > 0) {
-        // console.log("Potential Parlay Odds (after adding this leg):");        // This is just a placeholder - the actual calculation happens in the Betslip component
+        console.log("Potential Parlay Odds (after adding this leg):");
+        // This is just a placeholder - the actual calculation happens in the Betslip component
         console.log(
           "  Check Betslip component for full parlay odds calculation"
         );
@@ -945,7 +965,8 @@ export function ParlayBuilder() {
   // Clear all legs from the betslip
   const clearAllLegs = () => {
     setSelectedLegs([]);
-    // console.log("Cleared all legs from betslip");  };
+    console.log("Cleared all legs from betslip");
+  };
 
   // Add this helper function near the other formatting functions
   const formatDateForDebug = (date: Date): string => {
@@ -966,7 +987,10 @@ export function ParlayBuilder() {
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
 
-    // console.log(`Date filtering: Today is ${formatDateForDebug(today)}`);    // console.log(`Tomorrow starts at ${formatDateForDebug(tomorrow)}`);    // console.log(`Next week ends at ${formatDateForDebug(nextWeek)}`);
+    console.log(`Date filtering: Today is ${formatDateForDebug(today)}`);
+    console.log(`Tomorrow starts at ${formatDateForDebug(tomorrow)}`);
+    console.log(`Next week ends at ${formatDateForDebug(nextWeek)}`);
+
     let filtered;
     switch (dateFilter) {
       case "today":
@@ -974,7 +998,8 @@ export function ParlayBuilder() {
           const gameDate = new Date(game.startTime);
           const isToday = gameDate >= today && gameDate < tomorrow;
           if (isToday) {
-            // console.log(`Game at ${formatDateForDebug(gameDate)} is TODAY`);          }
+            console.log(`Game at ${formatDateForDebug(gameDate)} is TODAY`);
+          }
           return isToday;
         });
         break;
@@ -985,7 +1010,8 @@ export function ParlayBuilder() {
           nextDay.setDate(nextDay.getDate() + 1);
           const isTomorrow = gameDate >= tomorrow && gameDate < nextDay;
           if (isTomorrow) {
-            // console.log(`Game at ${formatDateForDebug(gameDate)} is TOMORROW`);          }
+            console.log(`Game at ${formatDateForDebug(gameDate)} is TOMORROW`);
+          }
           return isTomorrow;
         });
         break;
@@ -994,7 +1020,8 @@ export function ParlayBuilder() {
           const gameDate = new Date(game.startTime);
           const isThisWeek = gameDate >= today && gameDate < nextWeek;
           if (isThisWeek) {
-            // console.log(`Game at ${formatDateForDebug(gameDate)} is THIS WEEK`);          }
+            console.log(`Game at ${formatDateForDebug(gameDate)} is THIS WEEK`);
+          }
           return isThisWeek;
         });
         break;
