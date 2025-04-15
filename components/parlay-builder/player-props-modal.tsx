@@ -150,8 +150,7 @@ export function PlayerPropsModal({
         setLoading(true);
 
         // Fetch immediately instead of using setTimeout
-        console.log("Fetching new data for changed sportsbook");
-        fetchPlayerProps().catch((err) => {
+        // console.log("Fetching new data for changed sportsbook");        fetchPlayerProps().catch((err) => {
           console.error("Error fetching props after sportsbook change:", err);
           setError("Failed to load props for this sportsbook");
           setLoading(false);
@@ -188,8 +187,7 @@ export function PlayerPropsModal({
   useEffect(() => {
     // This effect specifically handles sport changes (like NBA to NCAAB)
     if (open && sportId && sportId.includes("ncaab")) {
-      console.log("NCAAB detected, ensuring fresh data load");
-
+      // console.log("NCAAB detected, ensuring fresh data load");
       // Clear any cached data for NCAAB to ensure fresh load
       setPropData(null);
 
@@ -200,8 +198,7 @@ export function PlayerPropsModal({
 
         // Small delay to ensure state updates before fetch
         const timer = setTimeout(() => {
-          console.log("Forcing fresh NCAAB data fetch");
-          fetchPlayerProps();
+          // console.log("Forcing fresh NCAAB data fetch");          fetchPlayerProps();
         }, 100);
 
         return () => clearTimeout(timer);
@@ -228,8 +225,7 @@ export function PlayerPropsModal({
 
     // Set a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.log("Fetch timeout reached");
-      setLoading(false);
+      // console.log("Fetch timeout reached");      setLoading(false);
       setError("Request timed out. Please try again.");
     }, 15000);
 
@@ -270,8 +266,7 @@ export function PlayerPropsModal({
 
       // Check if we already have this data in memory
       if (propData && propData._cacheKey === cacheKey) {
-        console.log("Using cached prop data for:", cacheKey);
-        // Process the data to extract player props
+        // console.log("Using cached prop data for:", cacheKey);        // Process the data to extract player props
         const processedProps = processPlayerProps(propData, marketsToFetch);
         setPlayerProps(processedProps);
         clearTimeout(timeoutId);
@@ -285,8 +280,7 @@ export function PlayerPropsModal({
       }/props?sport=${sportId}&markets=${marketsToFetch.join(
         ","
       )}&bookmakers=${activeSportsbook}`;
-      console.log("API URL:", apiUrl);
-
+      // console.log("API URL:", apiUrl);
       const response = await fetch(apiUrl);
 
       clearTimeout(timeoutId); // Clear timeout once we get a response
@@ -296,8 +290,7 @@ export function PlayerPropsModal({
       }
 
       const data = await response.json();
-      console.log("Received player props data:", data);
-
+      // console.log("Received player props data:", data);
       // Log the structure of the data to help debug
       console.log("Data structure:", {
         hasBookmakers: !!data.bookmakers,
@@ -314,8 +307,7 @@ export function PlayerPropsModal({
 
       // Process the data to extract player props
       const processedProps = processPlayerProps(data, marketsToFetch);
-      console.log(`Processed ${processedProps.length} player props`);
-      setPlayerProps(processedProps);
+      // console.log(`Processed ${processedProps.length} player props`);      setPlayerProps(processedProps);
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error("Error fetching player props:", err);
@@ -324,8 +316,7 @@ export function PlayerPropsModal({
     } finally {
       clearTimeout(timeoutId);
       setLoading(false);
-      console.log(`Fetch completed for ${activeSportsbook}`);
-    }
+      // console.log(`Fetch completed for ${activeSportsbook}`);    }
   };
 
   // Process the API response to extract player props
@@ -339,8 +330,7 @@ export function PlayerPropsModal({
     });
 
     if (!data || !data.bookmakers || data.bookmakers.length === 0) {
-      console.log("No bookmakers data found");
-      return [];
+      // console.log("No bookmakers data found");      return [];
     }
 
     const props: any[] = [];
@@ -365,8 +355,7 @@ export function PlayerPropsModal({
 
     // Special handling for empty markets
     if (!bookmaker.markets || bookmaker.markets.length === 0) {
-      console.log(`No markets found for ${activeSportsbook}`);
-      return [];
+      // console.log(`No markets found for ${activeSportsbook}`);      return [];
     }
 
     // Process each market
@@ -404,8 +393,7 @@ export function PlayerPropsModal({
         playerOutcomes.forEach((outcomes, player) => {
           // Find over/under outcomes for each line
           const lines = new Set(outcomes.map((o) => o.point));
-          console.log(`Player ${player} has ${lines.size} different lines`);
-
+          // console.log(`Player ${player} has ${lines.size} different lines`);
           lines.forEach((line) => {
             const overOutcome = outcomes.find(
               (o) =>
@@ -598,8 +586,7 @@ export function PlayerPropsModal({
       sportsbookId: activeSportsbook,
     };
 
-    console.log("Selected player prop:", selectedProp);
-
+    // console.log("Selected player prop:", selectedProp);
     onSelectProp(selectedProp);
   };
 
@@ -913,8 +900,7 @@ export function PlayerPropsModal({
           size="lg"
           className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
           onClick={() => {
-            console.log("Floating betslip button clicked");
-            onOpenChange(false); // Close the dialog
+            // console.log("Floating betslip button clicked");            onOpenChange(false); // Close the dialog
             setTimeout(() => {
               if (onOpenBetslip) onOpenBetslip(); // Open the betslip
             }, 100);
@@ -1032,8 +1018,7 @@ export function PlayerPropsModal({
               <Select
                 value={activeMarket}
                 onValueChange={(value) => {
-                  console.log("Market changed to:", value);
-                  setActiveMarket(value);
+                  // console.log("Market changed to:", value);                  setActiveMarket(value);
 
                   // Clear existing data when changing markets
                   setPlayerProps([]);
@@ -1042,8 +1027,7 @@ export function PlayerPropsModal({
 
                   // Force a re-fetch by adding a timestamp to break cache
                   const timestamp = Date.now();
-                  console.log(`Forcing re-fetch at ${timestamp}`);
-                }}
+                  // console.log(`Forcing re-fetch at ${timestamp}`);                }}
               >
                 <SelectTrigger className="w-[130px] h-7 text-xs hover:text-foreground focus:text-foreground">
                   <SelectValue placeholder="Select prop type" />

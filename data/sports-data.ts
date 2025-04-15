@@ -158,9 +158,7 @@ export function calculateParlayOdds(
 ): {
   [key: string]: number;
 } {
-  console.log("calculateParlayOdds - Input legs:", legs);
-  console.log("calculateParlayOdds - User sportsbooks:", userSportsbooks);
-
+  // console.log("calculateParlayOdds - Input legs:", legs);  // console.log("calculateParlayOdds - User sportsbooks:", userSportsbooks);
   const sportsbookOdds: { [key: string]: number } = {};
 
   // Skip if no legs
@@ -230,8 +228,7 @@ export function calculateParlayOdds(
     }
   });
 
-  console.log("calculateParlayOdds - Final odds:", sportsbookOdds);
-
+  // console.log("calculateParlayOdds - Final odds:", sportsbookOdds);
   return sportsbookOdds;
 }
 

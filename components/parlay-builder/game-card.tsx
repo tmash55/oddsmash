@@ -51,9 +51,7 @@ export function GameCard({
   console.log(
     `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
   );
-  console.log(`Sport ID: ${game.sportId}`);
-  console.log(`Raw spreads data:`, spreads);
-
+  // console.log(`Sport ID: ${game.sportId}`);  // console.log(`Raw spreads data:`, spreads);
   // Always use team name to match spreads
   const awaySpread = spreads.find((s: any) => s.team === game.awayTeam.name);
   const homeSpread = spreads.find((s: any) => s.team === game.homeTeam.name);

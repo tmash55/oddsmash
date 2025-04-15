@@ -68,8 +68,7 @@ export async function GET(
     );
 
     if (cachedData) {
-      console.log("Cache hit for:", cacheKey);
-
+      // console.log("Cache hit for:", cacheKey);
       // Filter the cached data to include only the user's selected bookmakers
       const filteredData = filterCachedOddsBySelectedSportsbooks(
         cachedData,
@@ -104,8 +103,7 @@ export async function GET(
       return response;
     }
 
-    console.log("Cache miss for:", cacheKey);
-
+    // console.log("Cache miss for:", cacheKey);
     // Use the markets constants to determine which markets to fetch
     const sportMarkets = getMarketsForSport(sport);
     const marketsToFetch = new Set<string>();
@@ -154,8 +152,7 @@ export async function GET(
 
     // Convert Set to Array for the API call
     const marketsToFetchArray = Array.from(marketsToFetch);
-    console.log(`Fetching markets: ${marketsToFetchArray.join(", ")}`);
-
+    // console.log(`Fetching markets: ${marketsToFetchArray.join(", ")}`);
     // Fetch fresh data from the Odds API with ALL bookmakers
     const props = await getEventPlayerProps(
       sport,
