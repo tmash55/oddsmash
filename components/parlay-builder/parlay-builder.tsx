@@ -901,8 +901,7 @@ export function ParlayBuilder() {
         filtered = games.filter((game) => {
           const gameDate = new Date(game.startTime);
           const isToday = gameDate >= today && gameDate < tomorrow;
-          if (isToday) {
-          }
+
           return isToday;
         });
         break;
@@ -920,8 +919,7 @@ export function ParlayBuilder() {
         filtered = games.filter((game) => {
           const gameDate = new Date(game.startTime);
           const isThisWeek = gameDate >= today && gameDate < nextWeek;
-          if (isThisWeek) {
-          }
+
           return isThisWeek;
         });
         break;
