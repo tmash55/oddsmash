@@ -109,12 +109,6 @@ export function PlayerPropsModal({
   // Add this near the top of the component, after the state declarations
   useEffect(() => {
     // Log props for debugging betslipCount
-    console.log("PlayerPropsModal mounted/updated with props:", {
-      betslipCount,
-      hasOpenBetslipFn: !!onOpenBetslip,
-      isMobile:
-        typeof window !== "undefined" ? window.innerWidth <= 640 : false,
-    });
   }, [betslipCount, onOpenBetslip]);
 
   // Get available markets for this sport
@@ -133,10 +127,6 @@ export function PlayerPropsModal({
   useEffect(() => {
     // If the sportsbook has changed, we need to refresh the data
     if (activeSportsbook !== lastActiveSportsbook) {
-      console.log(
-        `Sportsbook changed from ${lastActiveSportsbook} to ${activeSportsbook}, refreshing data`
-      );
-
       // Clear existing data
       setPropData(null);
       setPlayerProps([]);
@@ -150,7 +140,6 @@ export function PlayerPropsModal({
         setLoading(true);
 
         // Fetch immediately instead of using setTimeout
-        console.log("Fetching new data for changed sportsbook");
         fetchPlayerProps().catch((err) => {
           console.error("Error fetching props after sportsbook change:", err);
           setError("Failed to load props for this sportsbook");
@@ -163,12 +152,6 @@ export function PlayerPropsModal({
   // Fetch player props when the modal opens or market changes
   useEffect(() => {
     if (open && game && activeMarket) {
-      console.log("Fetching props for", {
-        game,
-        activeMarket,
-        activeSportsbook,
-      });
-
       // Reset state before fetching new data
       setPlayerProps([]);
       setError(null);
@@ -188,8 +171,6 @@ export function PlayerPropsModal({
   useEffect(() => {
     // This effect specifically handles sport changes (like NBA to NCAAB)
     if (open && sportId && sportId.includes("ncaab")) {
-      console.log("NCAAB detected, ensuring fresh data load");
-
       // Clear any cached data for NCAAB to ensure fresh load
       setPropData(null);
 
@@ -200,7 +181,6 @@ export function PlayerPropsModal({
 
         // Small delay to ensure state updates before fetch
         const timer = setTimeout(() => {
-          console.log("Forcing fresh NCAAB data fetch");
           fetchPlayerProps();
         }, 100);
 
@@ -222,13 +202,8 @@ export function PlayerPropsModal({
       return;
     }
 
-    console.log(
-      `Starting fetch for ${activeSportsbook}, market: ${activeMarket}`
-    );
-
     // Set a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.log("Fetch timeout reached");
       setLoading(false);
       setError("Request timed out. Please try again.");
     }, 15000);
@@ -255,14 +230,6 @@ export function PlayerPropsModal({
         marketsToFetch.push(market.alternateKey);
       }
 
-      console.log(
-        `Fetching player props for game ${
-          game.id
-        }, sport: ${sportId}, markets: ${marketsToFetch.join(
-          ","
-        )}, sportsbook: ${activeSportsbook}`
-      );
-
       // Add a cache key to prevent redundant API calls - include the sportsbook in the cache key
       const cacheKey = `${game.id}-${marketsToFetch.join(
         "-"
@@ -270,7 +237,6 @@ export function PlayerPropsModal({
 
       // Check if we already have this data in memory
       if (propData && propData._cacheKey === cacheKey) {
-        console.log("Using cached prop data for:", cacheKey);
         // Process the data to extract player props
         const processedProps = processPlayerProps(propData, marketsToFetch);
         setPlayerProps(processedProps);
@@ -285,7 +251,6 @@ export function PlayerPropsModal({
       }/props?sport=${sportId}&markets=${marketsToFetch.join(
         ","
       )}&bookmakers=${activeSportsbook}`;
-      console.log("API URL:", apiUrl);
 
       const response = await fetch(apiUrl);
 
@@ -296,15 +261,8 @@ export function PlayerPropsModal({
       }
 
       const data = await response.json();
-      console.log("Received player props data:", data);
 
       // Log the structure of the data to help debug
-      console.log("Data structure:", {
-        hasBookmakers: !!data.bookmakers,
-        bookmakerCount: data.bookmakers?.length || 0,
-        firstBookmaker: data.bookmakers?.[0]?.key || "none",
-        marketsInFirstBookmaker: data.bookmakers?.[0]?.markets?.length || 0,
-      });
 
       // Add cache key to the data
       data._cacheKey = cacheKey;
@@ -314,7 +272,6 @@ export function PlayerPropsModal({
 
       // Process the data to extract player props
       const processedProps = processPlayerProps(data, marketsToFetch);
-      console.log(`Processed ${processedProps.length} player props`);
       setPlayerProps(processedProps);
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -324,22 +281,12 @@ export function PlayerPropsModal({
     } finally {
       clearTimeout(timeoutId);
       setLoading(false);
-      console.log(`Fetch completed for ${activeSportsbook}`);
     }
   };
 
   // Process the API response to extract player props
   const processPlayerProps = (data: any, marketKeys: string[]) => {
-    console.log("Processing player props data:", {
-      hasData: !!data,
-      hasBookmakers: data?.bookmakers?.length > 0,
-      marketKeys,
-      sportId, // Log the sport ID to help debug NCAAB issues
-      activeSportsbook, // Log the active sportsbook
-    });
-
     if (!data || !data.bookmakers || data.bookmakers.length === 0) {
-      console.log("No bookmakers data found");
       return [];
     }
 
@@ -350,33 +297,16 @@ export function PlayerPropsModal({
       (b: any) => b.key === activeSportsbook
     );
     if (!bookmaker) {
-      console.log(
-        `Active sportsbook ${activeSportsbook} not found in data. Available bookmakers:`,
-        data.bookmakers.map((b: any) => b.key).join(", ")
-      );
       return [];
     }
 
-    console.log(
-      `Found bookmaker ${bookmaker.key} with ${
-        bookmaker.markets?.length || 0
-      } markets`
-    );
-
     // Special handling for empty markets
     if (!bookmaker.markets || bookmaker.markets.length === 0) {
-      console.log(`No markets found for ${activeSportsbook}`);
       return [];
     }
 
     // Process each market
     bookmaker.markets.forEach((market: any) => {
-      console.log(
-        `Processing market: ${market.key}, outcomes: ${
-          market.outcomes?.length || 0
-        }`
-      );
-
       if (marketKeys.includes(market.key)) {
         // Group outcomes by player and line
         const playerOutcomes = new Map<string, any[]>();
@@ -384,9 +314,6 @@ export function PlayerPropsModal({
         market.outcomes.forEach((outcome: any) => {
           // Extract player name
           const playerName = outcome.description || outcome.name;
-          console.log(
-            `Found outcome for player: ${playerName}, type: ${outcome.name}, point: ${outcome.point}`
-          );
 
           if (!playerOutcomes.has(playerName)) {
             playerOutcomes.set(playerName, []);
@@ -404,7 +331,6 @@ export function PlayerPropsModal({
         playerOutcomes.forEach((outcomes, player) => {
           // Find over/under outcomes for each line
           const lines = new Set(outcomes.map((o) => o.point));
-          console.log(`Player ${player} has ${lines.size} different lines`);
 
           lines.forEach((line) => {
             const overOutcome = outcomes.find(
@@ -440,17 +366,9 @@ export function PlayerPropsModal({
           });
         });
       } else {
-        console.log(
-          `Market ${market.key} not in requested markets: ${marketKeys.join(
-            ", "
-          )}`
-        );
       }
     });
 
-    console.log(
-      `Returning ${props.length} processed props for ${activeSportsbook}`
-    );
     return props;
   };
 
@@ -597,8 +515,6 @@ export function PlayerPropsModal({
       // Add the sportsbook ID
       sportsbookId: activeSportsbook,
     };
-
-    console.log("Selected player prop:", selectedProp);
 
     onSelectProp(selectedProp);
   };
@@ -892,11 +808,6 @@ export function PlayerPropsModal({
   // Add a floating betslip button for mobile
   const FloatingBetslipButton = () => {
     // Add more logging to debug the betslipCount
-    console.log("FloatingBetslipButton rendering with:", {
-      isMobile,
-      betslipCount,
-      hasOpenBetslipFn: !!onOpenBetslip,
-    });
 
     // Only show on mobile and when onOpenBetslip is available
     if (!isMobile || !onOpenBetslip) return null;
@@ -913,7 +824,6 @@ export function PlayerPropsModal({
           size="lg"
           className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
           onClick={() => {
-            console.log("Floating betslip button clicked");
             onOpenChange(false); // Close the dialog
             setTimeout(() => {
               if (onOpenBetslip) onOpenBetslip(); // Open the betslip
@@ -1032,7 +942,6 @@ export function PlayerPropsModal({
               <Select
                 value={activeMarket}
                 onValueChange={(value) => {
-                  console.log("Market changed to:", value);
                   setActiveMarket(value);
 
                   // Clear existing data when changing markets
@@ -1042,7 +951,6 @@ export function PlayerPropsModal({
 
                   // Force a re-fetch by adding a timestamp to break cache
                   const timestamp = Date.now();
-                  console.log(`Forcing re-fetch at ${timestamp}`);
                 }}
               >
                 <SelectTrigger className="w-[130px] h-7 text-xs hover:text-foreground focus:text-foreground">
@@ -1207,9 +1115,6 @@ export function PlayerPropsModal({
                                         size="sm"
                                         className="flex items-center gap-1.5"
                                         onClick={() => {
-                                          console.log(
-                                            `Switching to sportsbook: ${sb.id}`
-                                          );
                                           // Clear any existing data and errors before switching
                                           setPropData(null);
                                           setPlayerProps([]);

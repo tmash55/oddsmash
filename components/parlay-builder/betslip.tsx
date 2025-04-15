@@ -114,15 +114,6 @@ export function Betslip({
     {}
   );
 
-  // Add logging for debugging
-  useEffect(() => {
-    if (open) {
-      console.log("Betslip - User's selected sportsbooks:", userSportsbooks);
-      console.log("Betslip - Selected legs:", legs);
-      console.log("Betslip - Player props data:", playerPropsData);
-    }
-  }, [open, userSportsbooks, legs, playerPropsData]);
-
   // Trigger payout animation when wager amount changes
   useEffect(() => {
     setAnimatePayouts(true);
@@ -507,10 +498,6 @@ export function Betslip({
     if (open && legs.length > 0 && bestOdds.sportsbook) {
       // Always select the best odds sportsbook when betslip is opened
       setSelectedSportsbook(bestOdds.sportsbook);
-      console.log(
-        "Betslip - Auto-selecting best sportsbook:",
-        bestOdds.sportsbook
-      );
     }
   }, [open, legs, bestOdds.sportsbook]);
 
@@ -619,22 +606,13 @@ export function Betslip({
   const handlePlaceBet = () => {
     if (!selectedSportsbook) return;
 
-    console.log("=== Place Bet Button Clicked ===");
-    console.log(`Selected Sportsbook: ${selectedSportsbook}`);
-    console.log(`Parlay Odds: ${parlayOdds[selectedSportsbook]}`);
-
     // Get all legs for the selected sportsbook
     const legsForSportsbook = legs.map((leg) => {
       let link;
       let sid;
       if (leg.type === "player-prop") {
         const propData = getPlayerPropOdds(leg, selectedSportsbook);
-        console.log(`Player Prop Leg - ${leg.selection}:`, {
-          originalLink: leg.link,
-          propDataLink: propData.link,
-          sportsbook: selectedSportsbook,
-          propDataSid: propData.sid,
-        });
+
         link = propData.link;
         // For player props, use the SID from the selected sportsbook's data
         sid = propData.sid;
@@ -652,11 +630,7 @@ export function Betslip({
               const found = marketGroup.find((m) => m.id === leg.marketId);
               if (found) {
                 market = found;
-                console.log(`Standard Market Leg - ${leg.selection}:`, {
-                  marketLink: market.links?.[selectedSportsbook],
-                  marketSid: market.sids?.[selectedSportsbook],
-                  sportsbook: selectedSportsbook,
-                });
+
                 link = market.links?.[selectedSportsbook];
                 sid = market.sids?.[selectedSportsbook];
                 // Encode # to %23 in the SID if it exists
@@ -671,8 +645,6 @@ export function Betslip({
       return { ...leg, currentLink: link, sid };
     });
 
-    console.log("All legs with current sportsbook links:", legsForSportsbook);
-
     let betLink: string;
 
     // Special handling for FanDuel parlays
@@ -685,10 +657,8 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createFanduelParlayLink(parlayLegs);
-        console.log("Created FanDuel parlay link:", betLink);
       } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        console.log("No valid FanDuel legs found, using homepage:", betLink);
       }
     }
     // Special handling for DraftKings parlays
@@ -708,10 +678,8 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createDraftkingsLink(parlayLegs);
-        console.log("Created DraftKings parlay link:", betLink);
       } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        console.log("No valid DraftKings legs found, using homepage:", betLink);
       }
     }
     // Special handling for Caesars parlays
@@ -722,10 +690,8 @@ export function Betslip({
 
       if (parlayLegs.length > 0) {
         betLink = createCaesarsLink(parlayLegs);
-        console.log("Created Caesars parlay link:", betLink);
       } else {
         betLink = getSportsbookLink(selectedSportsbook);
-        console.log("No valid Caesars legs found, using homepage:", betLink);
       }
     } else {
       // For other sportsbooks or single bets, use the first valid link
@@ -734,8 +700,6 @@ export function Betslip({
       )?.currentLink;
       betLink = firstValidLink || getSportsbookLink(selectedSportsbook);
     }
-
-    console.log("Final bet link to be opened:", betLink);
 
     // Handle state-specific URLs
     const sportsbook = sportsbooks.find((sb) => sb.id === selectedSportsbook);
@@ -748,10 +712,6 @@ export function Betslip({
           betLink = betLink.replace(
             "{state}.betrivers.com",
             `${userState.toLowerCase()}.betrivers.com`
-          );
-          console.log(
-            "BetRivers URL after state replacement in handlePlaceBet:",
-            betLink
           );
         }
       } else if (
@@ -788,7 +748,6 @@ export function Betslip({
             "{state}.betrivers.com",
             `${userState.toLowerCase()}.betrivers.com`
           );
-          console.log("BetRivers URL after state replacement:", betUrl);
         }
       } else if (
         bookmakerKey === "williamhill_us" ||

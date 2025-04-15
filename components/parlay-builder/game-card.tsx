@@ -47,13 +47,7 @@ export function GameCard({
   // Get the spread, moneyline, and total markets
   const spreads = game.markets.spread || [];
 
-  // Add detailed logging for debugging
-  console.log(
-    `Game: ${game.awayTeam.name} @ ${game.homeTeam.name} (ID: ${game.id})`
-  );
-  console.log(`Sport ID: ${game.sportId}`);
-  console.log(`Raw spreads data:`, spreads);
-
+  // console.log(`Sport ID: ${game.sportId}`);  // console.log(`Raw spreads data:`, spreads);
   // Always use team name to match spreads
   const awaySpread = spreads.find((s: any) => s.team === game.awayTeam.name);
   const homeSpread = spreads.find((s: any) => s.team === game.homeTeam.name);
@@ -66,20 +60,6 @@ export function GameCard({
       spreads,
     });
   }
-
-  // Log the final spread assignments for verification
-  console.log("Final spread assignments:", {
-    away: {
-      team: game.awayTeam.name,
-      line: awaySpread?.line,
-      odds: awaySpread?.odds?.[activeSportsbook],
-    },
-    home: {
-      team: game.homeTeam.name,
-      line: homeSpread?.line,
-      odds: homeSpread?.odds?.[activeSportsbook],
-    },
-  });
 
   // Find moneyline markets by matching team names
   const moneylineMarkets = game.markets.moneyline || [];
@@ -426,18 +406,6 @@ function MarketButton({
   const hasOdds = odds !== null && odds !== undefined;
 
   // Add logging for the market button
-  console.log(
-    `Market Button for ${market.team || market.selection || "unknown team"}:`,
-    {
-      marketId: market.id,
-      type: market.type,
-      line: market.line,
-      point: market.point,
-      odds: odds,
-      selected: selected,
-      hasOdds: hasOdds,
-    }
-  );
 
   return (
     <motion.div whileTap={{ scale: 0.97 }}>
