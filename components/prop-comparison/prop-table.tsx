@@ -39,39 +39,79 @@ interface PropComparisonTableProps {
 
 // Helper function to convert market label to URL-friendly format
 const marketLabelToUrl = (label: string): string => {
+  console.log("PropTable marketLabelToUrl input:", label);
+
   // Special case for PRA
-  if (label === "PTS+REB+AST" || label === "Points+Rebounds+Assists") {
+  if (
+    label === "PTS+REB+AST" ||
+    label === "Points+Rebounds+Assists" ||
+    label === "Pts+Reb+Ast"
+  ) {
+    console.log("PropTable marketLabelToUrl output (special case):", "pra");
     return "pra";
   }
 
-  // Replace + with - and convert to lowercase with spaces as dashes
-  return label.toLowerCase().replace(/\+/g, "-").replace(/\s+/g, "-");
+  // Replace + with -plus- and convert to lowercase with spaces as dashes
+  const result = label
+    .toLowerCase()
+    .replace(/\+/g, "-plus-")
+    .replace(/\s+/g, "-");
+  console.log("PropTable marketLabelToUrl output:", result);
+  return result;
 };
 
-// Helper function to find market by URL-friendly name
+// Update the findMarketByUrlName function
 const findMarketByUrlName = (
   markets: any[],
   urlName: string
 ): any | undefined => {
+  console.log("findMarketByUrlName checking:", urlName);
+
   // Special case for PRA
   if (urlName === "pra") {
+    console.log("Special case for PRA");
     return markets.find(
-      (m) => m.label === "PTS+REB+AST" || m.label === "Points+Rebounds+Assists"
+      (m) =>
+        m.label === "PTS+REB+AST" ||
+        m.label === "Points+Rebounds+Assists" ||
+        m.label === "Pts+Reb+Ast"
     );
   }
 
   // Try direct match first
-  const directMatch = markets.find(
-    (m) => marketLabelToUrl(m.label) === urlName
-  );
-  if (directMatch) return directMatch;
+  const directMatch = markets.find((m) => {
+    const urlLabel = marketLabelToUrl(m.label);
+    const matches = urlLabel === urlName;
+    console.log(
+      `Checking market: ${m.label} (URL: ${urlLabel}) - Match: ${matches}`
+    );
+    return matches;
+  });
+
+  if (directMatch) {
+    console.log("Found direct match:", directMatch.label);
+    return directMatch;
+  }
 
   // If no direct match, try replacing - with + to handle legacy URLs
-  return markets.find((m) => {
+  console.log("No direct match, trying legacy format");
+  const legacyMatch = markets.find((m) => {
     const normalizedLabel = m.label.toLowerCase().replace(/\s+/g, "-");
-    const normalizedUrlName = urlName.replace(/-/g, "+");
-    return normalizedLabel === normalizedUrlName;
+    const normalizedUrlName = urlName.replace(/-plus-/g, "+");
+    const matches = normalizedLabel === normalizedUrlName;
+    console.log(
+      `Checking legacy format: ${normalizedLabel} vs ${normalizedUrlName} - Match: ${matches}`
+    );
+    return matches;
   });
+
+  if (legacyMatch) {
+    console.log("Found legacy match:", legacyMatch.label);
+  } else {
+    console.log("No match found for:", urlName);
+  }
+
+  return legacyMatch;
 };
 
 export function PropComparisonTable({

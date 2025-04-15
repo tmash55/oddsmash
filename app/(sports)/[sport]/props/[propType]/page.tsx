@@ -31,30 +31,80 @@ const getSportDisplayName = (sportKey: string) => {
   return displayNames[sportKey] || "NBA";
 };
 
-// Update the isValidPropType function to handle special cases like "pra"
+// Helper function to convert URL-friendly propType to market label format
+function urlPropTypeToMarketLabel(propType: string): string {
+  console.log("urlPropTypeToMarketLabel input:", propType);
+
+  // Handle special cases first
+  if (propType === "pra") {
+    return "Pts+Reb+Ast";
+  }
+
+  // Replace "-plus-" with "+" and hyphens with spaces
+  const result = propType.replace(/-plus-/g, "+").replace(/-/g, " ");
+  console.log("urlPropTypeToMarketLabel output:", result);
+  return result;
+}
+
+// Helper function to convert market label to URL-friendly format
+function marketLabelToUrlPropType(label: string): string {
+  console.log("marketLabelToUrlPropType input:", label);
+
+  // Handle special cases first
+  if (
+    label === "PTS+REB+AST" ||
+    label === "Points+Rebounds+Assists" ||
+    label === "Pts+Reb+Ast"
+  ) {
+    return "pra";
+  }
+
+  // Replace plus signs with "-plus-" and spaces with hyphens
+  const result = label
+    .toLowerCase()
+    .replace(/\+/g, "-plus-")
+    .replace(/\s+/g, "-");
+  console.log("marketLabelToUrlPropType output:", result);
+  return result;
+}
+
+// Update the isValidPropType function to handle the new URL format
 function isValidPropType(sport: string, propType: string): boolean {
+  console.log("isValidPropType checking:", propType, "for sport:", sport);
   const markets = getMarketsForSport(sport);
 
-  // Check for direct match
-  const directMatch = markets.some(
-    (market) => market.label.toLowerCase().replace(/\s+/g, "-") === propType
-  );
-
-  if (directMatch) return true;
-
-  // Check for special cases
+  // Special case for PRA
   if (propType === "pra") {
+    console.log("Special case for PRA");
     return markets.some(
       (market) =>
         market.label === "PTS+REB+AST" ||
-        market.label === "Points+Rebounds+Assists"
+        market.label === "Points+Rebounds+Assists" ||
+        market.label === "Pts+Reb+Ast"
     );
   }
 
-  return false;
+  // Convert URL propType to a format that can be compared with market labels
+  const normalizedPropType = urlPropTypeToMarketLabel(propType);
+  console.log("Normalized propType:", normalizedPropType);
+
+  // Check if any market matches this normalized prop type
+  const isValid = markets.some((market) => {
+    const marketUrl = marketLabelToUrlPropType(market.label);
+    const matchesLabel =
+      market.label.toLowerCase() === normalizedPropType.toLowerCase();
+    const matchesUrl = marketUrl === propType;
+
+    console.log(`Checking market: ${market.label} (URL: ${marketUrl})`);
+    console.log(`- Matches label: ${matchesLabel}, Matches URL: ${matchesUrl}`);
+
+    return matchesLabel || matchesUrl;
+  });
+
+  console.log("isValidPropType result:", isValid);
+  return isValid;
 }
 
-// Also update the generateMetadata function to handle special cases
 export async function generateMetadata({
   params,
 }: PlayerPropsPageProps): Promise<Metadata> {
@@ -63,7 +113,7 @@ export async function generateMetadata({
   const sportDisplayName = getSportDisplayName(apiSport);
 
   // Convert URL-friendly propType to display name
-  let propTypeDisplay = propType.replace(/-/g, " ");
+  let propTypeDisplay = urlPropTypeToMarketLabel(propType);
 
   // Handle special cases
   if (propType === "pra") {
@@ -71,7 +121,7 @@ export async function generateMetadata({
   } else {
     const markets = getMarketsForSport(apiSport);
     const market = markets.find(
-      (m) => m.label.toLowerCase().replace(/\s+/g, "-") === propType
+      (m) => marketLabelToUrlPropType(m.label) === propType
     );
     if (market) {
       propTypeDisplay = market.label;
@@ -87,23 +137,30 @@ export async function generateMetadata({
 
 export default function PlayerPropsPage({ params }: PlayerPropsPageProps) {
   const { sport, propType } = params;
+  console.log("Page rendering with propType:", propType);
 
   // Map route param to API sport key
   const apiSport = sportMap[sport];
 
   // If sport is invalid, return 404
   if (!apiSport) {
+    console.log("Invalid sport, returning 404");
     notFound();
   }
 
   // If propType is invalid, redirect to default
   if (!isValidPropType(apiSport, propType)) {
+    console.log("Invalid propType, redirecting to default");
+
     // Get default prop type for this sport
     const defaultMarket = getMarketsForSport(apiSport).find(
       (m) => m.value === getDefaultMarket(apiSport)
     );
-    const defaultPropType =
-      defaultMarket?.label.toLowerCase().replace(/\s+/g, "-") || "points";
+    const defaultPropType = defaultMarket
+      ? marketLabelToUrlPropType(defaultMarket.label)
+      : "points";
+
+    console.log("Redirecting to:", `/${sport}/props/${defaultPropType}`);
 
     // Redirect to the default prop type
     redirect(`/${sport}/props/${defaultPropType}`);

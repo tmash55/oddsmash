@@ -30,6 +30,20 @@ interface PlayerPropsPageProps {
   propType?: string;
 }
 
+function marketLabelToUrlPropType(label: string): string {
+  // Handle special cases first
+  if (
+    label === "PTS+REB+AST" ||
+    label === "Points+Rebounds+Assists" ||
+    label === "Pts+Reb+Ast"
+  ) {
+    return "pra";
+  }
+
+  // Replace plus signs with "-plus-" and spaces with hyphens
+  return label.toLowerCase().replace(/\+/g, "-plus-").replace(/\s+/g, "-");
+}
+
 export default function PlayerPropsClientPage({
   params,
   propType,
@@ -79,7 +93,7 @@ export default function PlayerPropsClientPage({
     }
 
     return {
-      value: market.label.toLowerCase().replace(/\s+/g, "-"),
+      value: marketLabelToUrlPropType(market.label),
       label: market.label,
     };
   });
