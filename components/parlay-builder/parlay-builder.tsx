@@ -57,6 +57,10 @@ export function ParlayBuilder() {
   );
   // Add a new state for filtered games
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
+  // Add a new state to track fetched sports near the other state declarations
+  const [fetchedSports, setFetchedSports] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Get user's selected sportsbooks from hook
   const { selectedSportsbooks } = useSportsbookPreferences();
@@ -84,7 +88,7 @@ export function ParlayBuilder() {
     }
   }, [selectedSport, sports]);
 
-  // Handle sport selection
+  // Modify the handleSportSelect function to reset the fetched state when changing sports
   const handleSportSelect = (sportId: string) => {
     setSelectedSport(sportId);
     // No longer clearing selections when changing sports
@@ -100,12 +104,21 @@ export function ParlayBuilder() {
     }
   };
 
-  // Load events when sport changes
+  // Modify the useEffect that fetches events to prevent continuous fetching
   useEffect(() => {
     async function fetchEvents() {
       // If we already have this sport's games, no need to fetch again
       if (allGames[selectedSport] && allGames[selectedSport].length > 0) {
         setGames(allGames[selectedSport]);
+        setIsLoading(false);
+        return;
+      }
+
+      // If we've already attempted to fetch this sport and got no results, don't fetch again
+      if (
+        fetchedSports[selectedSport] &&
+        allGames[selectedSport]?.length === 0
+      ) {
         setIsLoading(false);
         return;
       }
@@ -146,12 +159,24 @@ export function ParlayBuilder() {
           [selectedSport]: formattedGames,
         }));
         setGames(formattedGames);
+
+        // Mark this sport as fetched
+        setFetchedSports((prev) => ({
+          ...prev,
+          [selectedSport]: true,
+        }));
       } catch (err: any) {
         console.error("Error fetching events:", err);
         setError(
           err.message || "Failed to load events. Please try again later."
         );
         setGames([]);
+
+        // Mark this sport as fetched even on error
+        setFetchedSports((prev) => ({
+          ...prev,
+          [selectedSport]: true,
+        }));
       } finally {
         setIsLoading(false);
       }
@@ -160,7 +185,7 @@ export function ParlayBuilder() {
     if (selectedSport) {
       fetchEvents();
     }
-  }, [selectedSport, selectedSportsbooks, allGames]);
+  }, [selectedSport, selectedSportsbooks]); // Remove allGames from dependency array
 
   // Function to convert API event to our Game format
   const formatEventToGame = (event: any): Game => {
@@ -300,8 +325,8 @@ export function ParlayBuilder() {
           if (!awayOutcome) {
             awaySpread.odds[key] = second.price;
             awaySpread.line = second.point;
-            if (second.sid) awaySpread.sids[key] = second.sid;
-            if (second.link) awaySpread.links[key] = second.link;
+            if (second.sid) homeSpread.sids[key] = second.sid;
+            if (second.link) homeSpread.links[key] = second.link;
           }
         } else {
           console.warn(`Spread market from ${key} does not have 2 outcomes.`);
@@ -932,6 +957,7 @@ export function ParlayBuilder() {
     setFilteredGames(filtered);
   }, [games, dateFilter]);
 
+  // Modify the retry button click handler to reset the fetched state for the current sport
   return (
     <div className="relative bg-background sm:rounded-lg sm:border p-0 sm:p-4 w-full max-w-full overflow-hidden">
       <div className="mb-3 sm:mb-6">
@@ -987,6 +1013,11 @@ export function ParlayBuilder() {
             variant="outline"
             className="mt-2"
             onClick={() => {
+              // Reset the fetched state for this sport to allow fetching again
+              setFetchedSports((prev) => ({
+                ...prev,
+                [selectedSport]: false,
+              }));
               setIsLoading(true);
               setError(null);
               // Retry fetching events
@@ -994,9 +1025,19 @@ export function ParlayBuilder() {
               fetch(
                 `/api/parlay-builder?sport=${selectedSport}&bookmakers=${bookmakers}`
               )
-                .then((res) => res.json())
+                .then((res) => {
+                  if (!res.ok) {
+                    throw new Error(
+                      `Failed to fetch events: ${res.statusText}`
+                    );
+                  }
+                  return res.json();
+                })
                 .then((data) => {
-                  const formattedGames = data.events.map((event: any) =>
+                  if (!data.events || !Array.isArray(data.events)) {
+                    throw new Error("Invalid response format");
+                  }
+                  const formattedGames = data.events.map((event) =>
                     formatEventToGame(event)
                   );
                   setAllGames((prev) => ({
@@ -1004,12 +1045,21 @@ export function ParlayBuilder() {
                     [selectedSport]: formattedGames,
                   }));
                   setGames(formattedGames);
-                  setIsLoading(false);
                 })
                 .catch((err) => {
                   console.error("Error retrying fetch:", err);
-                  setError("Failed to load events. Please try again later.");
+                  setError(
+                    err.message ||
+                      "Failed to load events. Please try again later."
+                  );
+                })
+                .finally(() => {
                   setIsLoading(false);
+                  // Mark as fetched again after retry
+                  setFetchedSports((prev) => ({
+                    ...prev,
+                    [selectedSport]: true,
+                  }));
                 });
             }}
           >
@@ -1040,9 +1090,66 @@ export function ParlayBuilder() {
                   : `There are no games available for ${
                       sports.find((s) => s.id === selectedSport)?.name ||
                       selectedSport
-                    } at
-                the moment.`}
+                    } at the moment.`}
               </p>
+              {games.length === 0 && !isLoading && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    // Reset the fetched state for this sport to allow fetching again
+                    setFetchedSports((prev) => ({
+                      ...prev,
+                      [selectedSport]: false,
+                    }));
+                    setIsLoading(true);
+                    setError(null);
+                    // Retry fetching events
+                    const bookmakers = selectedSportsbooks.join(",");
+                    fetch(
+                      `/api/parlay-builder?sport=${selectedSport}&bookmakers=${bookmakers}`
+                    )
+                      .then((res) => {
+                        if (!res.ok) {
+                          throw new Error(
+                            `Failed to fetch events: ${res.statusText}`
+                          );
+                        }
+                        return res.json();
+                      })
+                      .then((data) => {
+                        if (!data.events || !Array.isArray(data.events)) {
+                          throw new Error("Invalid response format");
+                        }
+                        const formattedGames = data.events.map((event) =>
+                          formatEventToGame(event)
+                        );
+                        setAllGames((prev) => ({
+                          ...prev,
+                          [selectedSport]: formattedGames,
+                        }));
+                        setGames(formattedGames);
+                      })
+                      .catch((err) => {
+                        console.error("Error retrying fetch:", err);
+                        setError(
+                          err.message ||
+                            "Failed to load events. Please try again later."
+                        );
+                      })
+                      .finally(() => {
+                        setIsLoading(false);
+                        // Mark as fetched again after retry
+                        setFetchedSports((prev) => ({
+                          ...prev,
+                          [selectedSport]: true,
+                        }));
+                      });
+                  }}
+                >
+                  Retry
+                </Button>
+              )}
             </div>
           ) : (
             filteredGames.map((game) => (
