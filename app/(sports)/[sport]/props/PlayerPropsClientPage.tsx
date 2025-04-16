@@ -100,8 +100,11 @@ export default function PlayerPropsClientPage({
 
   // Handle prop type change
   const handlePropTypeChange = (newPropType: string) => {
-    router.push(`/${params.sport}/props/${newPropType}`, {
-      scroll: false,
+    // Use shallow routing to prevent a full page reload
+    // This helps maintain component state during navigation
+    router.push(`/${params.sport}/props/${newPropType}`, undefined, {
+      shallow: false, // We actually want a full route change to ensure server-side code runs
+      scroll: false
     });
   };
 

@@ -1,0 +1,1057 @@
+{
+   "activeSportsbooks" : [
+      "draftkings",
+      "fanduel",
+      "betmgm",
+      "betrivers",
+      "williamhill_us",
+      "espnbet",
+      "fanatics",
+      "hardrockbet",
+      "pinnacle"
+   ],
+   "count" : 19,
+   "data" : [
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -110,
+               "point" : 216.5
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -105,
+               "point" : 216.5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : 216.5
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -105,
+               "point" : 216.5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : 103,
+               "point" : 216.5
+            }
+         ],
+         "awayTeam" : "Minnesota Timberwolves",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : 103,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-20T00:30:00Z",
+         "evPercentage" : 2.03131883535584,
+         "formattedEV" : "2.0%",
+         "homeTeam" : "Los Angeles Lakers",
+         "id" : "c019c951794fe3ac022feda8e4c52310",
+         "market" : "Total",
+         "marketAverageProb" : 0.512924025791982,
+         "marketKey" : "totals",
+         "outcomeName" : "Over",
+         "point" : 216.5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -190
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -195
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -195
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -190
+            },
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -205
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -180
+            }
+         ],
+         "awayTeam" : "Minnesota Timberwolves",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -180,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-20T00:30:00Z",
+         "evPercentage" : 1.7961414508348,
+         "formattedEV" : "1.8%",
+         "homeTeam" : "Los Angeles Lakers",
+         "id" : "c019c951794fe3ac022feda8e4c52310",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.660818557365491,
+         "marketKey" : "h2h",
+         "outcomeName" : "Los Angeles Lakers",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -112,
+               "point" : 7
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -110,
+               "point" : 7
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -109,
+               "point" : 7
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -115,
+               "point" : 7
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -102,
+               "point" : 7
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : 7
+            }
+         ],
+         "awayTeam" : "Memphis Grizzlies",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -102,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-16T02:10:00Z",
+         "evPercentage" : 1.79305467621128,
+         "formattedEV" : "1.8%",
+         "homeTeam" : "Golden State Warriors",
+         "id" : "8b5bcf5d08d87972e11a5d1a36d46367",
+         "market" : "Spread",
+         "marketAverageProb" : 0.522881041811618,
+         "marketKey" : "spreads",
+         "outcomeName" : "Memphis Grizzlies",
+         "point" : 7,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -115,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -102,
+               "point" : -5
+            }
+         ],
+         "awayTeam" : "Dallas Mavericks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -102,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-17T02:10:00Z",
+         "evPercentage" : 1.62640848802488,
+         "formattedEV" : "1.6%",
+         "homeTeam" : "Sacramento Kings",
+         "id" : "a22635f3bf66e2b73ef464e660fa3f41",
+         "market" : "Spread",
+         "marketAverageProb" : 0.521214579929754,
+         "marketKey" : "spreads",
+         "outcomeName" : "Sacramento Kings",
+         "point" : -5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -105,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -112,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : 5.5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -103,
+               "point" : 5.5
+            }
+         ],
+         "awayTeam" : "Atlanta Hawks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -103,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-15T23:40:00Z",
+         "evPercentage" : 1.38045390120226,
+         "formattedEV" : "1.4%",
+         "homeTeam" : "Orlando Magic",
+         "id" : "12b46f184c1fdead46e57fbcea9406ad",
+         "market" : "Spread",
+         "marketAverageProb" : 0.521193701573599,
+         "marketKey" : "spreads",
+         "outcomeName" : "Atlanta Hawks",
+         "point" : 5.5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : 245
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : 245
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : 240
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : 250
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : 235
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : 260
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : 240
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : 252
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : 225
+            }
+         ],
+         "awayTeam" : "Memphis Grizzlies",
+         "bestBookmaker" : "Caesars",
+         "bestOdds" : 260,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-16T02:10:00Z",
+         "evPercentage" : 1.35253535563368,
+         "formattedEV" : "1.4%",
+         "homeTeam" : "Golden State Warriors",
+         "id" : "8b5bcf5d08d87972e11a5d1a36d46367",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.291303131334115,
+         "marketKey" : "h2h",
+         "outcomeName" : "Memphis Grizzlies",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -112,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -114,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -115,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -110,
+               "point" : -7
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -105,
+               "point" : -7
+            }
+         ],
+         "awayTeam" : "Detroit Pistons",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -105,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T22:10:00Z",
+         "evPercentage" : 1.34505325453959,
+         "formattedEV" : "1.3%",
+         "homeTeam" : "New York Knicks",
+         "id" : "c4de550e514303c8312d6220eb4e7b81",
+         "market" : "Spread",
+         "marketAverageProb" : 0.525645654496615,
+         "marketKey" : "spreads",
+         "outcomeName" : "New York Knicks",
+         "point" : -7,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -105
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : 102
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -105
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -105
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -104
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -105
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : 100
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : 101
+            }
+         ],
+         "awayTeam" : "Miami Heat",
+         "bestBookmaker" : "FanDuel",
+         "bestOdds" : 102,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-16T23:40:00Z",
+         "evPercentage" : 1.32789257100017,
+         "formattedEV" : "1.3%",
+         "homeTeam" : "Chicago Bulls",
+         "id" : "bd807e6a63c25eaf7a43a16336214448",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.508328430660497,
+         "marketKey" : "h2h",
+         "outcomeName" : "Miami Heat",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -110,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -108,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -109,
+               "point" : -5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -103,
+               "point" : -5
+            }
+         ],
+         "awayTeam" : "Milwaukee Bucks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -103,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T17:10:00Z",
+         "evPercentage" : 1.30949985111251,
+         "formattedEV" : "1.3%",
+         "homeTeam" : "Indiana Pacers",
+         "id" : "dd4fe49dffbd03c82bc2ab06ea1caaac",
+         "market" : "Spread",
+         "marketAverageProb" : 0.520484161072701,
+         "marketKey" : "spreads",
+         "outcomeName" : "Indiana Pacers",
+         "point" : -5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -205
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -190
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -195
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -195
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -195
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -200
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -185
+            }
+         ],
+         "awayTeam" : "Milwaukee Bucks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -185,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T17:10:00Z",
+         "evPercentage" : 1.30413280723737,
+         "formattedEV" : "1.3%",
+         "homeTeam" : "Indiana Pacers",
+         "id" : "dd4fe49dffbd03c82bc2ab06ea1caaac",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.662164135089918,
+         "marketKey" : "h2h",
+         "outcomeName" : "Indiana Pacers",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -108,
+               "point" : 219
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -110,
+               "point" : 219
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : 219
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -109,
+               "point" : 219
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : 219
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -103,
+               "point" : 219
+            }
+         ],
+         "awayTeam" : "Atlanta Hawks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -103,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-15T23:40:00Z",
+         "evPercentage" : 1.25407713883213,
+         "formattedEV" : "1.3%",
+         "homeTeam" : "Orlando Magic",
+         "id" : "12b46f184c1fdead46e57fbcea9406ad",
+         "market" : "Total",
+         "marketAverageProb" : 0.519929933949898,
+         "marketKey" : "totals",
+         "outcomeName" : "Over",
+         "point" : 219,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -108,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -109,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : -2.5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -104,
+               "point" : -2.5
+            }
+         ],
+         "awayTeam" : "Los Angeles Clippers",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -104,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T19:40:00Z",
+         "evPercentage" : 1.16875155574846,
+         "formattedEV" : "1.2%",
+         "homeTeam" : "Denver Nuggets",
+         "id" : "9af0bd13c98119058a3c2f75cbf455bb",
+         "market" : "Spread",
+         "marketAverageProb" : 0.521491437126112,
+         "marketKey" : "spreads",
+         "outcomeName" : "Denver Nuggets",
+         "point" : -2.5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -290
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -300
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -285
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -290
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -305
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -300
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -286
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -295
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -275
+            }
+         ],
+         "awayTeam" : "Detroit Pistons",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -275,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T22:10:00Z",
+         "evPercentage" : 1.12918962278521,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "New York Knicks",
+         "id" : "c4de550e514303c8312d6220eb4e7b81",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.744625229561185,
+         "marketKey" : "h2h",
+         "outcomeName" : "New York Knicks",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -115
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -120
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -115
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -115
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -115
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -115
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -120
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -111
+            }
+         ],
+         "awayTeam" : "Miami Heat",
+         "bestBookmaker" : "Hard Rock Bet",
+         "bestOdds" : -110,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-16T23:40:00Z",
+         "evPercentage" : 1.12130950883292,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "Chicago Bulls",
+         "id" : "bd807e6a63c25eaf7a43a16336214448",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.535022618897853,
+         "marketKey" : "h2h",
+         "outcomeName" : "Chicago Bulls",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : 160
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : 158
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : 165
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : 160
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : 155
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : 165
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : 162
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : 165
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : 170
+            }
+         ],
+         "awayTeam" : "Dallas Mavericks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : 170,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-17T02:10:00Z",
+         "evPercentage" : 1.10862699165334,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "Sacramento Kings",
+         "id" : "a22635f3bf66e2b73ef464e660fa3f41",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.381456640286904,
+         "marketKey" : "h2h",
+         "outcomeName" : "Dallas Mavericks",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : -305
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -300
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -300
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -315
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -286
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -335
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -300
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -292
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -300
+            }
+         ],
+         "awayTeam" : "Memphis Grizzlies",
+         "bestBookmaker" : "BetRivers",
+         "bestOdds" : -286,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-16T02:10:00Z",
+         "evPercentage" : 1.1074925127493,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "Golden State Warriors",
+         "id" : "8b5bcf5d08d87972e11a5d1a36d46367",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.75200756761454,
+         "marketKey" : "h2h",
+         "outcomeName" : "Golden State Warriors",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -112,
+               "point" : -4.5
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -115,
+               "point" : -4.5
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -115,
+               "point" : -4.5
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -112,
+               "point" : -4.5
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : -4.5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -107,
+               "point" : -4.5
+            }
+         ],
+         "awayTeam" : "Minnesota Timberwolves",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -107,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-20T00:30:00Z",
+         "evPercentage" : 1.09399460754938,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "Los Angeles Lakers",
+         "id" : "c019c951794fe3ac022feda8e4c52310",
+         "market" : "Spread",
+         "marketAverageProb" : 0.52784815863588,
+         "marketKey" : "spreads",
+         "outcomeName" : "Los Angeles Lakers",
+         "point" : -4.5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : -112,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : -110,
+               "point" : 220.5
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : -105,
+               "point" : 220.5
+            }
+         ],
+         "awayTeam" : "Detroit Pistons",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : -105,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-19T22:10:00Z",
+         "evPercentage" : 1.07241469988824,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "New York Knicks",
+         "id" : "c4de550e514303c8312d6220eb4e7b81",
+         "market" : "Total",
+         "marketAverageProb" : 0.522919268950102,
+         "marketKey" : "totals",
+         "outcomeName" : "Under",
+         "point" : 220.5,
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      },
+      {
+         "allBookmakerOdds" : [
+            {
+               "bookmaker" : "DraftKings",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "FanDuel",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "Fanatics",
+               "odds" : 185
+            },
+            {
+               "bookmaker" : "ESPN BET",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "Hard Rock Bet",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "BetRivers",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "BetMGM",
+               "odds" : 180
+            },
+            {
+               "bookmaker" : "Caesars",
+               "odds" : 185
+            },
+            {
+               "bookmaker" : "Pinnacle",
+               "odds" : 191
+            }
+         ],
+         "awayTeam" : "Atlanta Hawks",
+         "bestBookmaker" : "Pinnacle",
+         "bestOdds" : 191,
+         "bookmakerCount" : 9,
+         "commenceTime" : "2025-04-15T23:40:00Z",
+         "evPercentage" : 1.06078483723627,
+         "formattedEV" : "1.1%",
+         "homeTeam" : "Orlando Magic",
+         "id" : "12b46f184c1fdead46e57fbcea9406ad",
+         "market" : "Moneyline",
+         "marketAverageProb" : 0.354250460056212,
+         "marketKey" : "h2h",
+         "outcomeName" : "Atlanta Hawks",
+         "sport" : "basketball_nba",
+         "sportTitle" : "NBA"
+      }
+   ],
+   "message" : "Found 19 EV bets.",
+   "options" : {
+      "forceFresh" : true,
+      "includePlayerProps" : true,
+      "markets" : [
+         "h2h",
+         "spreads",
+         "totals"
+      ],
+      "minEVThreshold" : 1,
+      "sports" : [
+         "basketball_nba"
+      ]
+   },
+   "sportsbookCount" : 9,
+   "success" : true
+}

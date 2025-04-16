@@ -415,7 +415,8 @@ export function formatAmericanOdds(odds: number): string {
 export function findBestOdds(
   prop: PlayerProp,
   marketKey: string,
-  outcomeType: "Over" | "Under"
+  outcomeType: "Over" | "Under",
+  specificLine?: number
 ): { bookmaker: string; odds: number; line: number } | null {
   let bestOdds = null;
   let bestBookmaker = null;
@@ -425,13 +426,20 @@ export function findBestOdds(
     const market = bookmaker.markets.find((m) => m.key === marketKey);
     if (!market) continue;
 
-    const outcome = market.outcomes.find((o) => o.name === outcomeType);
-    if (!outcome) continue;
+    // If specificLine is provided, only consider outcomes with that line
+    const outcomes =
+      specificLine !== undefined
+        ? market.outcomes.filter(
+            (o) => o.name === outcomeType && o.point === specificLine
+          )
+        : market.outcomes.filter((o) => o.name === outcomeType);
 
-    if (bestOdds === null || outcome.price > bestOdds) {
-      bestOdds = outcome.price;
-      bestBookmaker = bookmaker.key;
-      bestLine = outcome.point;
+    for (const outcome of outcomes) {
+      if (bestOdds === null || outcome.price > bestOdds) {
+        bestOdds = outcome.price;
+        bestBookmaker = bookmaker.key;
+        bestLine = outcome.point;
+      }
     }
   }
 

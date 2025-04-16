@@ -91,14 +91,13 @@ export function SportsbookSelector() {
         if (prev.length === 1) return prev;
         return prev.filter((sbId) => sbId !== id);
       }
-      // Don't allow adding if already at max selections
-      if (prev.length >= maxSelections) return prev;
+      // No max selection limit
       return [...prev, id];
     });
   };
 
   const handleSelectAll = () => {
-    setTempSelections(sportsbooks.map((sb) => sb.id).slice(0, maxSelections));
+    setTempSelections(sportsbooks.map((sb) => sb.id));
   };
 
   const handleClearAll = () => {
@@ -172,8 +171,8 @@ export function SportsbookSelector() {
     }
   }, [showTooltip]);
 
-  // Calculate selection percentage for progress bar
-  const selectionPercentage = (tempSelections.length / maxSelections) * 100;
+  // Calculate selection percentage for progress bar (now based on total sportsbooks)
+  const selectionPercentage = (tempSelections.length / sportsbooks.length) * 100;
 
   // Group states by legal status
   const legalStates = Object.entries(STATE_CODES)
@@ -205,11 +204,11 @@ export function SportsbookSelector() {
               className={cn(
                 "ml-1 bg-primary/10 text-primary text-xs",
                 isSmallMobile && "text-[10px] px-1.5 py-0",
-                tempSelections.length === maxSelections &&
+                tempSelections.length === sportsbooks.length &&
                   "bg-green-500/10 text-green-500"
               )}
             >
-              {selectedSportsbooks.length}/{maxSelections}
+              {selectedSportsbooks.length}
             </Badge>
           </Button>
         </motion.div>
@@ -287,7 +286,7 @@ export function SportsbookSelector() {
                     isSmallMobile && "text-xs"
                   )}
                 >
-                  {tempSelections.length} of {maxSelections} selected
+                  {tempSelections.length} of {sportsbooks.length} selected
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -302,9 +301,9 @@ export function SportsbookSelector() {
                         ? "text-[11px] px-2"
                         : "text-xs"
                     )}
-                    disabled={tempSelections.length === maxSelections}
+                    disabled={tempSelections.length === sportsbooks.length}
                   >
-                    Select First {maxSelections}
+                    Select All
                   </Button>
                   <Button
                     variant="ghost"
@@ -338,9 +337,8 @@ export function SportsbookSelector() {
                 <AnimatePresence initial={false}>
                   {sportsbooks.map((sportsbook) => {
                     const isSelected = tempSelections.includes(sportsbook.id);
-                    const atMaxSelections =
-                      tempSelections.length >= maxSelections;
-                    const disabled = !isSelected && atMaxSelections;
+                    // No longer need a disabled state since there's no max limit
+                    const disabled = false;
 
                     return (
                       <motion.div
@@ -441,7 +439,7 @@ export function SportsbookSelector() {
               </div>
             </ScrollArea>
 
-            {tempSelections.length === maxSelections && (
+            {tempSelections.length === sportsbooks.length && (
               <div
                 className={cn(
                   "px-4 sm:px-6 py-2 bg-green-500/10 border-t border-green-500/20 flex items-center gap-2",
@@ -460,7 +458,7 @@ export function SportsbookSelector() {
                     isSmallMobile && "text-xs"
                   )}
                 >
-                  Maximum number of sportsbooks selected
+                  All sportsbooks selected
                 </span>
               </div>
             )}

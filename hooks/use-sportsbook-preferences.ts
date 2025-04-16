@@ -5,14 +5,9 @@ import { sportsbooks as defaultSportsbooks } from "@/data/sportsbooks";
 
 const SPORTSBOOKS_STORAGE_KEY = "oddsmash-sportsbook-preferences";
 const STATE_STORAGE_KEY = "oddsmash-user-state";
-const MAX_SELECTIONS = 5;
-const DEFAULT_SELECTIONS = [
-  "draftkings",
-  "fanduel",
-  "fanatics",
-  "espnbet",
-  "williamhill_us",
-];
+// No more MAX_SELECTIONS constant
+// Get all sportsbook IDs for default selection
+const DEFAULT_SELECTIONS = defaultSportsbooks.map(sb => sb.id);
 const DEFAULT_STATE = "NJ"; // Default state if none is selected
 
 // Map of state names to their two-letter codes
@@ -112,8 +107,8 @@ export function useSportsbookPreferences() {
       const storedSportsbooks = localStorage.getItem(SPORTSBOOKS_STORAGE_KEY);
       if (storedSportsbooks) {
         const parsed = JSON.parse(storedSportsbooks);
-        // Ensure stored preferences don't exceed MAX_SELECTIONS
-        setSelectedSportsbooks(parsed.slice(0, MAX_SELECTIONS));
+        // No more limit on the number of selections
+        setSelectedSportsbooks(parsed);
       }
 
       // Load state preference
@@ -147,8 +142,8 @@ export function useSportsbookPreferences() {
 
   const toggleSportsbook = (idOrIds: string | string[]) => {
     if (Array.isArray(idOrIds)) {
-      // Bulk update
-      setSelectedSportsbooks(idOrIds.slice(0, MAX_SELECTIONS));
+      // Bulk update, no limit on selections
+      setSelectedSportsbooks(idOrIds);
     } else {
       // Single toggle
       setSelectedSportsbooks((prev) => {
@@ -157,18 +152,15 @@ export function useSportsbookPreferences() {
           if (prev.length === 1) return prev;
           return prev.filter((sbId) => sbId !== idOrIds);
         }
-        // Don't allow adding if already at max selections
-        if (prev.length >= MAX_SELECTIONS) return prev;
+        // No limit on max selections
         return [...prev, idOrIds];
       });
     }
   };
 
   const selectAll = () => {
-    // Only select up to MAX_SELECTIONS books
-    setSelectedSportsbooks(
-      defaultSportsbooks.map((sb) => sb.id).slice(0, MAX_SELECTIONS)
-    );
+    // Select all books with no limit
+    setSelectedSportsbooks(defaultSportsbooks.map((sb) => sb.id));
   };
 
   const clearAll = () => {
@@ -232,7 +224,7 @@ export function useSportsbookPreferences() {
     toggleSportsbook,
     selectAll,
     clearAll,
-    maxSelections: MAX_SELECTIONS,
+    maxSelections: defaultSportsbooks.length, // Return total number of sportsbooks instead of fixed limit
     userState,
     setUserState: setUserStateCode,
     isBettingLegalInUserState,

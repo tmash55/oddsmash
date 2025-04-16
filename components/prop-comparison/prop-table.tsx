@@ -1,16 +1,17 @@
 "use client";
 
+import React from "react";
+
 import { useState, useRef, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, ExternalLink, Zap } from "lucide-react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Zap,
+  RefreshCw,
+} from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { motion, AnimatePresence } from "framer-motion";
 import { sportsbooks } from "@/data/sportsbooks";
 import { GameSelector } from "./game-selector";
 import {
@@ -30,34 +31,29 @@ import {
 } from "@/lib/constants/markets";
 import { FilterControls } from "./filter-controls";
 import { useRouter, usePathname } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 interface PropComparisonTableProps {
   sport?: string;
-  propType?: string; // Add this prop
-  onPropTypeChange?: (propType: string) => void; // Add this callback
+  propType?: string;
+  onPropTypeChange?: (propType: string) => void;
 }
 
 // Helper function to convert market label to URL-friendly format
 const marketLabelToUrl = (label: string): string => {
-  console.log("PropTable marketLabelToUrl input:", label);
-
   // Special case for PRA
   if (
     label === "PTS+REB+AST" ||
     label === "Points+Rebounds+Assists" ||
     label === "Pts+Reb+Ast"
   ) {
-    console.log("PropTable marketLabelToUrl output (special case):", "pra");
     return "pra";
   }
 
   // Replace + with -plus- and convert to lowercase with spaces as dashes
-  const result = label
-    .toLowerCase()
-    .replace(/\+/g, "-plus-")
-    .replace(/\s+/g, "-");
-  console.log("PropTable marketLabelToUrl output:", result);
-  return result;
+  return label.toLowerCase().replace(/\+/g, "-plus-").replace(/\s+/g, "-");
 };
 
 // Update the findMarketByUrlName function
@@ -65,11 +61,8 @@ const findMarketByUrlName = (
   markets: any[],
   urlName: string
 ): any | undefined => {
-  console.log("findMarketByUrlName checking:", urlName);
-
   // Special case for PRA
   if (urlName === "pra") {
-    console.log("Special case for PRA");
     return markets.find(
       (m) =>
         m.label === "PTS+REB+AST" ||
@@ -81,43 +74,25 @@ const findMarketByUrlName = (
   // Try direct match first
   const directMatch = markets.find((m) => {
     const urlLabel = marketLabelToUrl(m.label);
-    const matches = urlLabel === urlName;
-    console.log(
-      `Checking market: ${m.label} (URL: ${urlLabel}) - Match: ${matches}`
-    );
-    return matches;
+    return urlLabel === urlName;
   });
 
   if (directMatch) {
-    console.log("Found direct match:", directMatch.label);
     return directMatch;
   }
 
   // If no direct match, try replacing - with + to handle legacy URLs
-  console.log("No direct match, trying legacy format");
-  const legacyMatch = markets.find((m) => {
+  return markets.find((m) => {
     const normalizedLabel = m.label.toLowerCase().replace(/\s+/g, "-");
     const normalizedUrlName = urlName.replace(/-plus-/g, "+");
-    const matches = normalizedLabel === normalizedUrlName;
-    console.log(
-      `Checking legacy format: ${normalizedLabel} vs ${normalizedUrlName} - Match: ${matches}`
-    );
-    return matches;
+    return normalizedLabel === normalizedUrlName;
   });
-
-  if (legacyMatch) {
-    console.log("Found legacy match:", legacyMatch.label);
-  } else {
-    console.log("No match found for:", urlName);
-  }
-
-  return legacyMatch;
 };
 
 export function PropComparisonTable({
   sport = "baseball_mlb",
-  propType, // Accept propType from URL
-  onPropTypeChange, // Accept callback for prop type changes
+  propType,
+  onPropTypeChange,
 }: PropComparisonTableProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -133,6 +108,35 @@ export function PropComparisonTable({
     return getDefaultMarket(sport);
   });
 
+  // Get initial player type from localStorage or prop type
+  const getInitialPlayerType = (): "batter" | "pitcher" => {
+    // First try to get from localStorage if in baseball
+    if (sport === "baseball_mlb" && typeof window !== 'undefined') {
+      const savedPlayerType = localStorage.getItem('baseball_playerType');
+      if (savedPlayerType === 'pitcher' || savedPlayerType === 'batter') {
+        return savedPlayerType as "pitcher" | "batter";
+      }
+    }
+    
+    // Fall back to determining from prop type
+    if (propType && sport === "baseball_mlb") {
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      
+      if (market) {
+        const apiKey = market.apiKey.toLowerCase();
+        // If it's a pitcher market, set initial player type to pitcher
+        if (apiKey.startsWith("pitcher_") || apiKey.includes("strikeout")) {
+          return "pitcher";
+        }
+      }
+    }
+    return "batter";
+  };
+
+  // Determine initial player type
+  const [playerType, setPlayerType] = useState<"batter" | "pitcher">(getInitialPlayerType());
+  
   // Update statType when propType changes
   useEffect(() => {
     if (propType) {
@@ -140,6 +144,17 @@ export function PropComparisonTable({
       const market = findMarketByUrlName(markets, propType);
       if (market) {
         setStatType(market.value);
+        
+        // Also update player type based on the market
+        if (sport === "baseball_mlb") {
+          const apiKey = market.apiKey.toLowerCase();
+          const isPitcherMarket = apiKey.startsWith("pitcher_") || apiKey.includes("strikeout");
+          if (isPitcherMarket && playerType !== "pitcher") {
+            setPlayerType("pitcher");
+          } else if (!isPitcherMarket && playerType !== "batter") {
+            setPlayerType("batter");
+          }
+        }
       }
     }
   }, [propType, sport]);
@@ -160,8 +175,81 @@ export function PropComparisonTable({
     }
   };
 
-  const [showType, setShowType] = useState<"both" | "over" | "under">("both");
-  const [playerType, setPlayerType] = useState<"batter" | "pitcher">("batter");
+  const [showType, setShowType] = useState<"both" | "over" | "under">("over");
+  
+  // Add a custom setter for playerType that also updates the statType appropriately
+  const handlePlayerTypeChange = (newPlayerType: "batter" | "pitcher") => {
+    // Don't proceed if player type isn't changing or if sport isn't baseball
+    if (playerType === newPlayerType || sport !== "baseball_mlb") {
+      return;
+    }
+    
+    setPlayerType(newPlayerType);
+    
+    // Get available stat types for the new player type
+    const newStatTypes = getMarketsForSport(sport).filter((market) => {
+      const apiKey = market.apiKey.toLowerCase();
+      const marketLabel = market.label.toLowerCase();
+      
+      if (newPlayerType === "pitcher") {
+        // Include markets that start with "pitcher_" OR contain "strikeout" for pitchers
+        return (
+          apiKey.startsWith("pitcher_") || 
+          apiKey.includes("strikeout") || 
+          marketLabel.includes("strikeout")
+        );
+      } else {
+        // For batters, exclude pitcher-specific markets and strikeouts
+        return (
+          apiKey.startsWith("batter_") &&
+          !apiKey.includes("strikeout") &&
+          !marketLabel.includes("strikeout")
+        );
+      }
+    });
+    
+    // Always switch to the first available market for the new player type
+    // This ensures a clean transition between player types
+    if (newStatTypes.length > 0) {
+      handleStatTypeChange(newStatTypes[0].value);
+    }
+  };
+  
+  // Persist player type to localStorage when it changes
+  useEffect(() => {
+    if (sport === "baseball_mlb" && typeof window !== 'undefined') {
+      localStorage.setItem('baseball_playerType', playerType);
+      
+      // If player type changed but we need to update the URL/market
+      const currentMarkets = getMarketsForSport(sport).filter(market => {
+        const apiKey = market.apiKey.toLowerCase();
+        const marketLabel = market.label.toLowerCase();
+        
+        if (playerType === "pitcher") {
+          return (
+            apiKey.startsWith("pitcher_") || 
+            apiKey.includes("strikeout") || 
+            marketLabel.includes("strikeout")
+          );
+        } else {
+          return (
+            apiKey.startsWith("batter_") &&
+            !apiKey.includes("strikeout") &&
+            !marketLabel.includes("strikeout")
+          );
+        }
+      });
+      
+      // Check if current statType is valid for this player type
+      const isStatTypeValid = currentMarkets.some(m => m.value === statType);
+      
+      // If not valid, switch to the first valid market
+      if (!isStatTypeValid && currentMarkets.length > 0 && onPropTypeChange) {
+        handleStatTypeChange(currentMarkets[0].value);
+      }
+    }
+  }, [playerType, sport, statType, onPropTypeChange]);
+
   const [activeSportsbook, setActiveSportsbook] = useState("draftkings");
   const [activePlayerIndex, setActivePlayerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -185,8 +273,10 @@ export function PropComparisonTable({
   const tableRef = useRef<HTMLDivElement>(null);
   const { selectedSportsbooks, userState, formatSportsbookUrl } =
     useSportsbookPreferences();
+  const [mobileView, setMobileView] = useState<"all" | "best">("best");
 
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const isTablet = useMediaQuery("(max-width: 1024px)");
 
   // Get available stat types for the current sport and player type
   const statTypes = useMemo(() => {
@@ -195,9 +285,23 @@ export function PropComparisonTable({
     if (sport === "baseball_mlb") {
       return markets.filter((market) => {
         const apiKey = market.apiKey.toLowerCase();
-        return playerType === "pitcher"
-          ? apiKey.startsWith("pitcher_")
-          : apiKey.startsWith("batter_");
+        const marketLabel = market.label.toLowerCase();
+        
+        if (playerType === "pitcher") {
+          // Include markets that start with "pitcher_" OR contain "strikeout" for pitchers
+          return (
+            apiKey.startsWith("pitcher_") || 
+            apiKey.includes("strikeout") || 
+            marketLabel.includes("strikeout")
+          );
+        } else {
+          // For batters, exclude pitcher-specific markets and strikeouts
+          return (
+            apiKey.startsWith("batter_") &&
+            !apiKey.includes("strikeout") &&
+            !marketLabel.includes("strikeout")
+          );
+        }
       });
     }
 
@@ -211,31 +315,6 @@ export function PropComparisonTable({
 
   // Determine if alternate lines are available
   const hasAlternateLines = currentMarket?.hasAlternates || false;
-
-  // Update stat type when player type changes
-  useEffect(() => {
-    if (sport === "baseball_mlb" && statTypes.length > 0) {
-      const isCurrentValid = statTypes.some(
-        (market) => market.value === statType
-      );
-      if (!isCurrentValid) {
-        handleStatTypeChange(statTypes[0].value);
-      }
-    }
-    // Only run when statTypes updates
-  }, [statTypes]);
-
-  // Helper function to get default stat type for a sport
-  function getDefaultStatType(sport: string) {
-    switch (sport) {
-      case "baseball_mlb":
-        return "Strikeouts";
-      case "hockey_nhl":
-        return "Points";
-      default:
-        return "Points";
-    }
-  }
 
   // Function to check if an outcome has a deeplink
   const hasDeeplink = (outcome?: Outcome) => {
@@ -282,7 +361,6 @@ export function PropComparisonTable({
         bookmakerKey === "hardrockbet"
       ) {
         // Handle other sportsbooks that might need state information
-        // This is a placeholder - implement specific logic as needed
         betUrl = betUrl.replace(/{state}/g, userState.toLowerCase());
       }
     }
@@ -400,7 +478,6 @@ export function PropComparisonTable({
         };
       } else {
         // If no alternates, fetch only standard market
-
         const response = await fetch(
           `/api/events/${selectedEventId}/props?sport=${sport}&markets=${standardMarket}&bookmakers=${selectedSportsbooks.join(
             ","
@@ -436,6 +513,11 @@ export function PropComparisonTable({
       setLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  // Refresh data manually
+  const handleRefresh = () => {
+    fetchPlayerProps(true);
   };
 
   // Fetch player props when event is selected
@@ -591,11 +673,6 @@ export function PropComparisonTable({
     return filtered;
   }, [playerProps, searchQuery, sortBy, statType, sport]);
 
-  // Determine which sportsbooks to show based on screen size
-  const visibleSportsbooks = isMobile
-    ? sportsbooks.slice(0, 3) // Show fewer on mobile
-    : sportsbooks;
-
   // Handle navigation for mobile card view
   const nextPlayer = () => {
     if (activePlayerIndex < filteredProps.length - 1) {
@@ -612,6 +689,36 @@ export function PropComparisonTable({
   // Get the current player for mobile view
   const currentPlayer = filteredProps[activePlayerIndex];
 
+  // Find all bookmakers with the best odds for a specific line and bet type
+  const findAllBookmakersWithBestOdds = (
+    prop: PlayerProp,
+    marketKey: string,
+    betType: "Over" | "Under",
+    line?: number
+  ) => {
+    const bestOddsResult = findBestOdds(prop, marketKey, betType, line);
+    if (!bestOddsResult) return [];
+
+    const bestOdds = bestOddsResult.odds;
+    const bestLine = line !== undefined ? line : bestOddsResult.line;
+    const bookmakers: string[] = [];
+
+    // Find all bookmakers that have the same best odds
+    prop.bookmakers.forEach((bookmaker) => {
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (!market) return;
+
+      const outcome = market.outcomes.find(
+        (o) => o.name === betType && o.point === bestLine
+      );
+      if (outcome && outcome.price === bestOdds) {
+        bookmakers.push(bookmaker.key);
+      }
+    });
+
+    return bookmakers;
+  };
+
   // Find best odds for current player
   const getBestOddsInfo = (player: PlayerProp) => {
     const marketKey = getMarketApiKey(sport, statType);
@@ -619,33 +726,16 @@ export function PropComparisonTable({
     const bestUnder = findBestOdds(player, marketKey, "Under");
 
     // Find all sportsbooks with the same best odds
-    const booksWithBestOverOdds = selectedSportsbooks.filter((book) => {
-      const bookmaker = player.bookmakers.find((b) => b.key === book);
-      if (!bookmaker) return false;
-
-      const market = bookmaker.markets.find((m) => m.key === marketKey);
-      if (!market) return false;
-
-      const overOutcome = market.outcomes.find(
-        (o) => o.name === "Over" && o.point === bestOver?.line
-      );
-
-      return overOutcome && overOutcome.price === bestOver?.odds;
-    });
-
-    const booksWithBestUnderOdds = selectedSportsbooks.filter((book) => {
-      const bookmaker = player.bookmakers.find((b) => b.key === book);
-      if (!bookmaker) return false;
-
-      const market = bookmaker.markets.find((m) => m.key === marketKey);
-      if (!market) return false;
-
-      const underOutcome = market.outcomes.find(
-        (o) => o.name === "Under" && o.point === bestUnder?.line
-      );
-
-      return underOutcome && underOutcome.price === bestUnder?.odds;
-    });
+    const booksWithBestOverOdds = findAllBookmakersWithBestOdds(
+      player,
+      marketKey,
+      "Over"
+    );
+    const booksWithBestUnderOdds = findAllBookmakersWithBestOdds(
+      player,
+      marketKey,
+      "Under"
+    );
 
     return {
       over: {
@@ -665,11 +755,63 @@ export function PropComparisonTable({
     };
   };
 
+  // Calculate average odds for a player and line
+  const getAverageOdds = (
+    player: PlayerProp,
+    line: number,
+    betType: "Over" | "Under"
+  ) => {
+    const marketKey = getMarketApiKey(sport, statType);
+    let totalDecimalOdds = 0;
+    let count = 0;
+
+    // Convert American odds to decimal odds for accurate averaging
+    const americanToDecimal = (americanOdds: number): number => {
+      if (americanOdds >= 0) {
+        return americanOdds / 100 + 1;
+      } else {
+        return 100 / Math.abs(americanOdds) + 1;
+      }
+    };
+
+    // Convert decimal odds back to American
+    const decimalToAmerican = (decimalOdds: number): number => {
+      if (decimalOdds >= 2) {
+        return Math.round((decimalOdds - 1) * 100);
+      } else {
+        return Math.round(-100 / (decimalOdds - 1));
+      }
+    };
+
+    player.bookmakers.forEach((bookmaker) => {
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (market) {
+        const outcome = market.outcomes.find(
+          (o) => o.name === betType && o.point === line
+        );
+        if (outcome) {
+          totalDecimalOdds += americanToDecimal(outcome.price);
+          count++;
+        }
+      }
+    });
+
+    if (count === 0) return null;
+
+    // Calculate average in decimal odds
+    const averageDecimal = totalDecimalOdds / count;
+    // Convert back to American odds
+    const averageAmerican = decimalToAmerican(averageDecimal);
+
+    return {
+      odds: averageAmerican,
+      formatted: formatAmericanOdds(averageAmerican),
+    };
+  };
+
   // Render a clickable odds button
   const renderOddsButton = (
     outcome: Outcome | null | undefined,
-    isOver: boolean,
-    line: number,
     isBest: boolean,
     bookmakerKey: string
   ) => {
@@ -678,8 +820,8 @@ export function PropComparisonTable({
     return (
       <div
         className={cn(
-          "flex items-center justify-between p-1.5 rounded-md border text-sm",
-          isBest ? "bg-primary/10 border-primary text-primary-foreground" : "",
+          "flex items-center justify-center p-1.5 rounded-md border text-sm",
+          isBest ? "bg-primary/10 border-primary" : "border-border",
           !outcome && "opacity-40",
           hasLink && "hover:bg-accent/80 cursor-pointer transition-colors"
         )}
@@ -687,41 +829,125 @@ export function PropComparisonTable({
         role={hasLink ? "button" : undefined}
         tabIndex={hasLink ? 0 : undefined}
       >
-        <div className="flex items-center gap-1">
-          {isOver ? (
-            <ChevronUp className="h-3 w-3 text-primary" />
-          ) : (
-            <ChevronDown className="h-3 w-3 text-red-500" />
+        <span
+          className={cn(
+            "font-medium",
+            isBest ? "text-primary" : "text-foreground" // Use consistent text color
           )}
-          <span
-            className={cn(
-              isBest ? "text-primary font-medium" : "text-foreground"
-            )}
-          >
-            {line}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span
-            className={cn(
-              "font-medium",
-              outcome
-                ? outcome.price > 0
-                  ? "text-primary"
-                  : "text-red-500"
-                : "text-muted-foreground"
-            )}
-          >
-            {outcome ? formatAmericanOdds(outcome.price) : "-"}
-          </span>
-          {hasLink && (
-            <div className="flex items-center">
-              <ExternalLink className="h-3 w-3 text-muted-foreground" />
-            </div>
-          )}
-        </div>
+        >
+          {outcome ? formatAmericanOdds(outcome.price) : "-"}
+        </span>
+        {hasLink && (
+          <ExternalLink className="h-3 w-3 text-muted-foreground ml-1" />
+        )}
       </div>
     );
+  };
+
+  // Track expanded lines in mobile view
+  const [expandedLines, setExpandedLines] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  // Toggle line expansion
+  const toggleLineExpansion = (line: number) => {
+    setExpandedLines((prev) => ({
+      ...prev,
+      [line]: !prev[line],
+    }));
+  };
+
+  // Get top 4 sportsbooks for mobile view
+  const getTopSportsbooks = (player: PlayerProp, line: number) => {
+    const marketKey = getMarketApiKey(sport, statType);
+
+    // First, get all sportsbooks that have odds for this line
+    const availableSportsbooks = selectedSportsbooks.filter((bookmaker) => {
+      const bookmakerData = player.bookmakers.find((b) => b.key === bookmaker);
+      if (!bookmakerData) return false;
+
+      const market = bookmakerData.markets.find((m) => m.key === marketKey);
+      if (!market) return false;
+
+      const hasOver = market.outcomes.some(
+        (o) => o.name === "Over" && o.point === line
+      );
+      const hasUnder = market.outcomes.some(
+        (o) => o.name === "Under" && o.point === line
+      );
+
+      return hasOver || hasUnder;
+    });
+
+    // If we have 4 or fewer, return all of them
+    if (availableSportsbooks.length <= 4) {
+      return availableSportsbooks;
+    }
+
+    // Otherwise, find the best odds for over and under
+    const overOdds = new Map<string, number>();
+    const underOdds = new Map<string, number>();
+
+    availableSportsbooks.forEach((bookmaker) => {
+      const bookmakerData = player.bookmakers.find((b) => b.key === bookmaker);
+      if (!bookmakerData) return;
+
+      const market = bookmakerData.markets.find((m) => m.key === marketKey);
+      if (!market) return;
+
+      const overOutcome = market.outcomes.find(
+        (o) => o.name === "Over" && o.point === line
+      );
+      const underOutcome = market.outcomes.find(
+        (o) => o.name === "Under" && o.point === line
+      );
+
+      if (overOutcome) {
+        overOdds.set(bookmaker, overOutcome.price);
+      }
+      if (underOutcome) {
+        underOdds.set(bookmaker, underOutcome.price);
+      }
+    });
+
+    // Sort by best odds
+    const sortedByOverOdds = Array.from(overOdds.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([key]) => key);
+    const sortedByUnderOdds = Array.from(underOdds.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([key]) => key);
+
+    // Combine the best from both lists, prioritizing those that appear in both
+    const combined = new Set<string>();
+
+    // First add sportsbooks that have both over and under odds
+    for (const book of availableSportsbooks) {
+      if (overOdds.has(book) && underOdds.has(book)) {
+        combined.add(book);
+        if (combined.size >= 4) break;
+      }
+    }
+
+    // Then add the best over odds
+    for (const book of sortedByOverOdds) {
+      combined.add(book);
+      if (combined.size >= 4) break;
+    }
+
+    // Then add the best under odds
+    for (const book of sortedByUnderOdds) {
+      combined.add(book);
+      if (combined.size >= 4) break;
+    }
+
+    // Finally, add any remaining sportsbooks if we still don't have 4
+    for (const book of availableSportsbooks) {
+      combined.add(book);
+      if (combined.size >= 4) break;
+    }
+
+    return Array.from(combined).slice(0, 4);
   };
 
   // Render the mobile card view
@@ -730,6 +956,41 @@ export function PropComparisonTable({
 
     const marketKey = getMarketApiKey(sport, statType);
     const bestOddsInfo = getBestOddsInfo(currentPlayer);
+
+    // Get all unique lines for this player
+    const allLines = new Set<number>();
+    currentPlayer.bookmakers.forEach((bookmaker) => {
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (market) {
+        market.outcomes.forEach((outcome) => {
+          allLines.add(outcome.point);
+        });
+      }
+    });
+
+    // Sort lines in ascending order
+    const sortedLines = Array.from(allLines).sort((a, b) => a - b);
+
+    // Find the standard line (most common)
+    const lineFrequency = new Map<number, number>();
+    currentPlayer.bookmakers.forEach((bookmaker) => {
+      const market = bookmaker.markets.find((m) => m.key === marketKey);
+      if (market) {
+        market.outcomes.forEach((outcome) => {
+          const count = lineFrequency.get(outcome.point) || 0;
+          lineFrequency.set(outcome.point, count + 1);
+        });
+      }
+    });
+
+    let standardLine = 0;
+    let maxCount = 0;
+    lineFrequency.forEach((count, line) => {
+      if (count > maxCount) {
+        maxCount = count;
+        standardLine = line;
+      }
+    });
 
     return (
       <div className="p-4">
@@ -743,17 +1004,12 @@ export function PropComparisonTable({
             Sportsbooks with the{" "}
             <Zap className="h-3 w-3 text-primary inline-block mx-0.5" /> icon
             support direct linking to pre-fill your bet slip. Click on the odds
-            or logo to open.
-          </p>
-          <p className="text-muted-foreground text-xs mt-1">
-            Note: Mobile deeplinking is a work in progress and may not work on
-            all devices.
+            or logo.
           </p>
         </div>
 
         <div className="text-center mb-4">
           <h3 className="font-bold text-lg">{currentPlayer.player}</h3>
-          <p className="text-sm text-muted-foreground">{currentPlayer.team}</p>
         </div>
 
         {/* Player selection slider */}
@@ -787,590 +1043,986 @@ export function PropComparisonTable({
             </div>
           </div>
         </div>
+        {/* Mobile view tabs */}
+        <Tabs defaultValue="best" className="mb-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="best" onClick={() => setMobileView("best")}>
+              Best Odds
+            </TabsTrigger>
+            <TabsTrigger value="all" onClick={() => setMobileView("all")}>
+              All Sportsbooks
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        {/* Best Odds Summary - Condensed horizontal version */}
-        <motion.div
-          className="flex justify-between mb-4 p-2 bg-muted/30 rounded-lg border"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center gap-1">
-            <ChevronUp className="h-3.5 w-3.5 text-[hsl(var(--emerald-green))]" />
-            <span className="text-xs font-medium">
-              Over {bestOddsInfo.over.line}
-            </span>
-            <span className="text-xs font-bold text-primary">
-              {bestOddsInfo.over.odds}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <ChevronDown className="h-3.5 w-3.5 text-red-500" />
-            <span className="text-xs font-medium">
-              Under {bestOddsInfo.under.line}
-            </span>
-            <span className="text-xs font-bold text-red-500">
-              {bestOddsInfo.under.odds}
-            </span>
-          </div>
-        </motion.div>
+        {/* Mobile view content */}
+        <div className="space-y-4">
+          {sortedLines.map((line) => {
+            const isStandardLine = line === standardLine;
+            const averageOver = getAverageOdds(currentPlayer, line, "Over");
+            const averageUnder = getAverageOdds(currentPlayer, line, "Under");
+            const bestOver = findBestOdds(
+              currentPlayer,
+              marketKey,
+              "Over",
+              line
+            );
+            const bestUnder = findBestOdds(
+              currentPlayer,
+              marketKey,
+              "Under",
+              line
+            );
 
-        {/* Best Sportsbooks Logos */}
-        <div className="mb-4">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Best Over Odds:
-              </p>
-              <div className="flex items-center gap-2">
-                {bestOddsInfo.over.sportsbooks.length > 0 ? (
-                  bestOddsInfo.over.sportsbooks.map(
-                    (book) =>
-                      book && (
-                        <TooltipProvider key={book.id}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center hover:bg-primary/10 cursor-pointer transition-colors relative"
-                                onClick={() => {
-                                  // Find the outcome with the best odds for this book
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker) return;
+            // Find all bookmakers with the best odds
+            const bestOverBookmakers = findAllBookmakersWithBestOdds(
+              currentPlayer,
+              marketKey,
+              "Over",
+              line
+            );
+            const bestUnderBookmakers = findAllBookmakersWithBestOdds(
+              currentPlayer,
+              marketKey,
+              "Under",
+              line
+            );
 
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return;
+            // Determine which sportsbooks to show
+            const displaySportsbooks =
+              mobileView === "best"
+                ? getTopSportsbooks(currentPlayer, line)
+                : selectedSportsbooks;
 
-                                  const overOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Over" &&
-                                      o.point === bestOddsInfo.over.line
-                                  );
-
-                                  if (overOutcome && overOutcome.link) {
-                                    handleBetClick(overOutcome, book.id);
-                                  }
-                                }}
-                              >
-                                <img
-                                  src={book.logo || "/placeholder.svg"}
-                                  alt={book.name}
-                                  className="w-6 h-6 object-contain"
-                                />
-                                {/* Check if this book has a deeplink for the best over odds */}
-                                {(() => {
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker) return null;
-
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return null;
-
-                                  const overOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Over" &&
-                                      o.point === bestOddsInfo.over.line
-                                  );
-
-                                  return hasDeeplink(overOutcome) ? (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-                                      <Zap className="w-2 h-2 text-white dark:text-secondary" />
-                                    </div>
-                                  ) : null;
-                                })()}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{book.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker)
-                                    return "No deeplink available";
-
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return "No deeplink available";
-
-                                  const overOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Over" &&
-                                      o.point === bestOddsInfo.over.line
-                                  );
-
-                                  return hasDeeplink(overOutcome)
-                                    ? "Click to open bet slip"
-                                    : "No deeplink available";
-                                })()}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )
-                  )
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    None available
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Best Under Odds:
-              </p>
-              <div className="flex items-center gap-2">
-                {bestOddsInfo.under.sportsbooks.length > 0 ? (
-                  bestOddsInfo.under.sportsbooks.map(
-                    (book) =>
-                      book && (
-                        <TooltipProvider key={book.id}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center hover:bg-primary/10 cursor-pointer transition-colors relative"
-                                onClick={() => {
-                                  // Find the outcome with the best odds for this book
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker) return;
-
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return;
-
-                                  const underOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Under" &&
-                                      o.point === bestOddsInfo.under.line
-                                  );
-
-                                  if (underOutcome && underOutcome.link) {
-                                    handleBetClick(underOutcome, book.id);
-                                  }
-                                }}
-                              >
-                                <img
-                                  src={book.logo || "/placeholder.svg"}
-                                  alt={book.name}
-                                  className="w-6 h-6 object-contain"
-                                />
-                                {/* Check if this book has a deeplink for the best under odds */}
-                                {(() => {
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker) return null;
-
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return null;
-
-                                  const underOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Under" &&
-                                      o.point === bestOddsInfo.under.line
-                                  );
-
-                                  return hasDeeplink(underOutcome) ? (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-                                      <Zap className="w-2 h-2 text-white dark:text-secondary" />
-                                    </div>
-                                  ) : null;
-                                })()}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{book.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const bookmaker =
-                                    currentPlayer.bookmakers.find(
-                                      (b) => b.key === book.id
-                                    );
-                                  if (!bookmaker)
-                                    return "No deeplink available";
-
-                                  const market = bookmaker.markets.find(
-                                    (m) => m.key === marketKey
-                                  );
-                                  if (!market) return "No deeplink available";
-
-                                  const underOutcome = market.outcomes.find(
-                                    (o) =>
-                                      o.name === "Under" &&
-                                      o.point === bestOddsInfo.under.line
-                                  );
-
-                                  return hasDeeplink(underOutcome)
-                                    ? "Click to open bet slip"
-                                    : "No deeplink available";
-                                })()}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )
-                  )
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    None available
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* All Sportsbook Odds - Grid Layout */}
-        <div className="grid grid-cols-2 gap-3">
-          <AnimatePresence>
-            {selectedSportsbooks.map((bookmaker, index) => {
-              const bookmakerData = currentPlayer.bookmakers.find(
-                (b) => b.key === bookmaker
-              );
-              if (!bookmakerData) return null;
-
-              const market = bookmakerData.markets.find(
-                (m) => m.key === marketKey
-              );
-              if (!market) return null;
-
-              const outcomes = market.outcomes;
-              const overOutcomes = outcomes.filter((o) => o.name === "Over");
-              const underOutcomes = outcomes.filter((o) => o.name === "Under");
-
-              // Group outcomes by line for alternate markets
-              const lines = new Set(outcomes.map((o) => o.point));
-
-              const book = sportsbooks.find((sb) => sb.id === bookmaker);
-
-              // Find if this book has any best odds
-              const hasBestOver = bestOddsInfo.over.sportsbooks.some(
-                (sb) => sb?.id === bookmaker
-              );
-              const hasBestUnder = bestOddsInfo.under.sportsbooks.some(
-                (sb) => sb?.id === bookmaker
-              );
-              const hasBestOdds = hasBestOver || hasBestUnder;
-
-              // Check if any outcomes have deeplinks
-              const hasAnyDeeplinks = outcomes.some(hasDeeplink);
-
-              return (
-                <motion.div
-                  key={bookmaker}
-                  className={cn(
-                    "border rounded-lg p-3 bg-card",
-                    hasBestOdds && "border-primary/30"
-                  )}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+            return (
+              <div key={line} className="border rounded-lg overflow-hidden">
+                <div
+                  className="bg-muted/30 p-3 border-b flex justify-between items-center cursor-pointer"
+                  onClick={() => toggleLineExpansion(line)}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-5 h-5 relative">
-                      <img
-                        src={book?.logo || "/placeholder.svg"}
-                        alt={book?.name}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <span className="text-xs font-medium truncate">
-                      {book?.name}
-                    </span>
-                    {hasAnyDeeplinks && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Zap className="h-3 w-3 text-primary" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Deeplinks available</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{line}</span>
+                    {isStandardLine && (
+                      <Badge variant="outline" className="text-xs">
+                        Standard Line
+                      </Badge>
                     )}
                   </div>
+                  <div className="flex gap-2">
+                    {expandedLines[line] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" />
+                    )}
+                  </div>
+                </div>
 
-                  <div className="space-y-1.5">
-                    {Array.from(lines).map((line) => {
-                      const over = overOutcomes.find((o) => o.point === line);
-                      const under = underOutcomes.find((o) => o.point === line);
+                {/* Best odds summary (always visible) */}
+                <div
+                  className={cn(
+                    "p-3 border-b",
+                    showType === "both"
+                      ? "grid grid-cols-2 gap-3"
+                      : "flex justify-center"
+                  )}
+                >
+                  {(showType === "both" || showType === "over") && (
+                    <div className="border rounded-lg p-2 bg-muted/10 w-full max-w-[200px]">
+                      <div className="flex items-center gap-1 mb-2">
+                        <ChevronUp className="h-3 w-3 text-primary" />
+                        <span className="text-xs font-medium">Best Over</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-lg">
+                          {bestOver ? formatAmericanOdds(bestOver.odds) : "-"}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {bestOverBookmakers.map((bookmakerKey) => (
+                            <div
+                              key={bookmakerKey}
+                              className="w-5 h-5 relative"
+                            >
+                              <img
+                                src={
+                                  sportsbooks.find(
+                                    (sb) => sb.id === bookmakerKey
+                                  )?.logo || "/placeholder.svg"
+                                }
+                                alt={bookmakerKey}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {(showType === "both" || showType === "under") && (
+                    <div className="border rounded-lg p-2 bg-muted/10 w-full max-w-[200px]">
+                      <div className="flex items-center gap-1 mb-2">
+                        <ChevronDown className="h-3 w-3 text-red-500" />
+                        <span className="text-xs font-medium">Best Under</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-lg">
+                          {bestUnder ? formatAmericanOdds(bestUnder.odds) : "-"}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {bestUnderBookmakers.map((bookmakerKey) => (
+                            <div
+                              key={bookmakerKey}
+                              className="w-5 h-5 relative"
+                            >
+                              <img
+                                src={
+                                  sportsbooks.find(
+                                    (sb) => sb.id === bookmakerKey
+                                  )?.logo || "/placeholder.svg"
+                                }
+                                alt={bookmakerKey}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                      const isOverBest =
-                        bestOddsInfo.over.sportsbooks.some(
-                          (sb) => sb?.id === bookmaker
-                        ) && over?.point === bestOddsInfo.over.line;
+                {expandedLines[line] && (
+                  <div className="p-3 grid grid-cols-2 gap-3">
+                    {displaySportsbooks.map((bookmaker) => {
+                      const bookmakerData = currentPlayer.bookmakers.find(
+                        (b) => b.key === bookmaker
+                      );
+                      if (!bookmakerData) return null;
+
+                      const market = bookmakerData.markets.find(
+                        (m) => m.key === marketKey
+                      );
+                      if (!market) return null;
+
+                      const overOutcome = market.outcomes.find(
+                        (o) => o.name === "Over" && o.point === line
+                      );
+                      const underOutcome = market.outcomes.find(
+                        (o) => o.name === "Under" && o.point === line
+                      );
+
+                      // If neither outcome exists, don't render this sportsbook
+                      if (!overOutcome && !underOutcome) return null;
+
+                      // Find if this book has any best odds for this line
+                      const isOverBest = bestOverBookmakers.includes(bookmaker);
                       const isUnderBest =
-                        bestOddsInfo.under.sportsbooks.some(
-                          (sb) => sb?.id === bookmaker
-                        ) && under?.point === bestOddsInfo.under.line;
+                        bestUnderBookmakers.includes(bookmaker);
+
+                      const book = sportsbooks.find(
+                        (sb) => sb.id === bookmaker
+                      );
+                      if (!book) return null;
+
+                      // Check if any outcomes have deeplinks
+                      const hasAnyDeeplinks =
+                        (overOutcome && hasDeeplink(overOutcome)) ||
+                        (underOutcome && hasDeeplink(underOutcome));
 
                       return (
-                        <div key={line} className="flex gap-1">
-                          {(showType === "both" || showType === "over") && (
-                            <div
-                              className={cn(
-                                "flex-1 flex items-center justify-between p-1 rounded-md border text-xs",
-                                isOverBest
-                                  ? "bg-primary/10 border-primary"
-                                  : "border-border",
-                                !over && "opacity-40",
-                                hasDeeplink(over) &&
-                                  "hover:bg-accent/80 cursor-pointer"
-                              )}
-                              onClick={() =>
-                                hasDeeplink(over) &&
-                                handleBetClick(over, bookmaker)
-                              }
-                              role={hasDeeplink(over) ? "button" : undefined}
-                            >
-                              <span
-                                className={isOverBest ? "text-primary" : ""}
-                              >
-                                {line}
-                              </span>
-                              <div className="flex items-center">
-                                <span
-                                  className={
-                                    over?.price && over.price > 0
-                                      ? "text-primary"
-                                      : "text-red-500"
-                                  }
-                                >
-                                  {over ? formatAmericanOdds(over.price) : "-"}
-                                </span>
-                              </div>
-                            </div>
+                        <div
+                          key={bookmaker}
+                          className={cn(
+                            "border rounded-lg p-2",
+                            (isOverBest || isUnderBest) && "border-primary/30"
                           )}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-5 h-5 relative">
+                              <img
+                                src={book.logo || "/placeholder.svg"}
+                                alt={book.name}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <span className="text-xs font-medium truncate">
+                              {book.name}
+                            </span>
+                            {hasAnyDeeplinks && (
+                              <Zap className="h-3 w-3 text-primary" />
+                            )}
+                          </div>
 
-                          {(showType === "both" || showType === "under") && (
-                            <div
-                              className={cn(
-                                "flex-1 flex items-center justify-between p-1 rounded-md border text-xs",
-                                isUnderBest
-                                  ? "bg-primary/10 border-primary"
-                                  : "border-border",
-                                !under && "opacity-40",
-                                hasDeeplink(under) &&
-                                  "hover:bg-accent/80 cursor-pointer"
-                              )}
-                              onClick={() =>
-                                hasDeeplink(under) &&
-                                handleBetClick(under, bookmaker)
-                              }
-                              role={hasDeeplink(under) ? "button" : undefined}
-                            >
-                              <span
-                                className={isUnderBest ? "text-primary" : ""}
-                              >
-                                {line}
-                              </span>
-                              <div className="flex items-center">
-                                <span
-                                  className={
-                                    under?.price && under.price > 0
-                                      ? "text-primary"
-                                      : "text-red-500"
+                          <div className="grid grid-cols-2 gap-2">
+                            {(showType === "both" || showType === "over") && (
+                              <div>
+                                <div className="flex items-center mb-1">
+                                  <ChevronUp className="h-3 w-3 text-primary mr-1" />
+                                  <span className="text-xs">Over</span>
+                                </div>
+                                <div
+                                  className={cn(
+                                    "flex items-center justify-center p-1.5 rounded-md border text-sm",
+                                    isOverBest
+                                      ? "bg-primary/10 border-primary"
+                                      : "border-border",
+                                    !overOutcome && "opacity-40",
+                                    hasDeeplink(overOutcome) &&
+                                      "hover:bg-accent/80 cursor-pointer"
+                                  )}
+                                  onClick={() =>
+                                    hasDeeplink(overOutcome) &&
+                                    handleBetClick(overOutcome, bookmaker)
                                   }
                                 >
-                                  {under
-                                    ? formatAmericanOdds(under.price)
-                                    : "-"}
-                                </span>
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      isOverBest
+                                        ? "text-primary"
+                                        : "text-foreground"
+                                    )}
+                                  >
+                                    {overOutcome
+                                      ? formatAmericanOdds(overOutcome.price)
+                                      : "-"}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+
+                            {(showType === "both" || showType === "under") && (
+                              <div>
+                                <div className="flex items-center mb-1">
+                                  <ChevronDown className="h-3 w-3 text-red-500 mr-1" />
+                                  <span className="text-xs">Under</span>
+                                </div>
+                                <div
+                                  className={cn(
+                                    "flex items-center justify-center p-1.5 rounded-md border text-sm",
+                                    isUnderBest
+                                      ? "bg-primary/10 border-primary"
+                                      : "border-border",
+                                    !underOutcome && "opacity-40",
+                                    hasDeeplink(underOutcome) &&
+                                      "hover:bg-accent/80 cursor-pointer"
+                                  )}
+                                  onClick={() =>
+                                    hasDeeplink(underOutcome) &&
+                                    handleBetClick(underOutcome, bookmaker)
+                                  }
+                                >
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      isUnderBest
+                                        ? "text-primary"
+                                        : "text-foreground"
+                                    )}
+                                  >
+                                    {underOutcome
+                                      ? formatAmericanOdds(underOutcome.price)
+                                      : "-"}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   };
 
-  // Render the desktop table view
-  const renderTableView = () => {
+  // Track expanded players
+  const [expandedPlayers, setExpandedPlayers] = useState<
+    Record<string, boolean>
+  >({});
+
+  // Toggle player expansion
+  const togglePlayerExpansion = (playerId: string) => {
+    setExpandedPlayers((prev) => ({
+      ...prev,
+      [playerId]: !prev[playerId],
+    }));
+  };
+
+  // Render the desktop table view with improved layout
+  const renderDesktopTable = () => {
+    // Get all unique lines across all players
+    const allLines = new Set<number>();
+    filteredProps.forEach((prop) => {
+      prop.bookmakers.forEach((bookmaker) => {
+        const market = bookmaker.markets.find(
+          (m) => m.key === getMarketApiKey(sport, statType)
+        );
+        if (market) {
+          market.outcomes.forEach((outcome) => {
+            allLines.add(outcome.point);
+          });
+        }
+      });
+    });
+
+    // Sort lines in ascending order
+    const sortedLines = Array.from(allLines).sort((a, b) => a - b);
+
+    // For each player, find their standard line (most common line)
+    const standardLines = new Map<string, number>();
+    filteredProps.forEach((prop) => {
+      const lineFrequency = new Map<number, number>();
+
+      prop.bookmakers.forEach((bookmaker) => {
+        const market = bookmaker.markets.find(
+          (m) => m.key === getMarketApiKey(sport, statType)
+        );
+        if (market) {
+          market.outcomes.forEach((outcome) => {
+            const count = lineFrequency.get(outcome.point) || 0;
+            lineFrequency.set(outcome.point, count + 1);
+          });
+        }
+      });
+
+      // Find the most frequent line
+      let maxCount = 0;
+      let standardLine = 0;
+
+      lineFrequency.forEach((count, line) => {
+        if (count > maxCount) {
+          maxCount = count;
+          standardLine = line;
+        }
+      });
+
+      standardLines.set(prop.player, standardLine);
+    });
+
     return (
-      <div className="max-h-[90vh] overflow-auto">
-        <div className="overflow-x-auto">
-          <table className="w-full relative">
-            <thead className="sticky top-0 z-10 bg-card border-b">
-              <tr>
-                <th className="text-left p-4 bg-card">Player</th>
-                {selectedSportsbooks.map((bookmaker) => {
-                  const book = sportsbooks.find((sb) => sb.id === bookmaker);
-                  return (
-                    <th key={bookmaker} className="text-center p-4 bg-card">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="w-6 h-6">
-                          <img
-                            src={book?.logo || "/placeholder.svg"}
-                            alt={book?.name}
-                            className="w-full h-full object-contain"
-                          />
+      <div className="overflow-x-auto relative">
+        
+        <div className="max-h-[80vh] overflow-y-auto">
+          <table className="w-full border-collapse">
+            <thead className="sticky top-0 z-30 bg-card">
+              <tr className="border-b">
+                <th className="text-left p-4 font-medium text-sm sticky left-0 z-20 bg-card">Player</th>
+                <th className="text-center p-4 font-medium text-sm w-24">Line</th>
+                <th className="text-center p-4 font-medium text-sm w-24">Type</th>
+                <th className="text-center p-4 font-medium text-sm w-28">
+                  Best Odds
+                </th>
+                <th className="text-center p-4 font-medium text-sm w-28">
+                  Avg Odds
+                </th>
+                {!isTablet &&
+                  selectedSportsbooks.map((bookmaker) => {
+                    const book = sportsbooks.find((sb) => sb.id === bookmaker);
+                    return (
+                      <th
+                        key={bookmaker}
+                        className="text-center p-4 w-32 z-20 bg-card"
+                      >
+                        <div className="flex items-center justify-center">
+                          <div className="w-6 h-6">
+                            <img
+                              src={book?.logo || "/placeholder.svg"}
+                              alt={book?.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
                         </div>
-                        <span className="text-xs">{book?.name}</span>
-                      </div>
-                    </th>
-                  );
-                })}
+                      </th>
+                    );
+                  })}
               </tr>
             </thead>
             <tbody>
-              <AnimatePresence>
-                {filteredProps.map((prop, index) => {
-                  const marketKey = getMarketApiKey(sport, prop.statType);
+              {filteredProps.map((prop) => {
+                const marketKey = getMarketApiKey(sport, prop.statType);
+                const playerId = prop.player;
+                const isExpanded = expandedPlayers[playerId] || false;
+                const standardLine = standardLines.get(playerId) || 0;
 
-                  // Get all unique lines across all bookmakers for this player
-                  const allLines = new Set<number>();
-                  prop.bookmakers.forEach((bookmaker) => {
-                    const market = bookmaker.markets.find(
-                      (m) => m.key === marketKey
-                    );
-                    if (market) {
-                      market.outcomes.forEach((outcome) => {
-                        allLines.add(outcome.point);
-                      });
-                    }
-                  });
+                // Find best odds for each line and all bookmakers with those odds
+                const bestOddsPerLine = new Map<
+                  number,
+                  {
+                    over: { odds: number; bookmakers: string[] };
+                    under: { odds: number; bookmakers: string[] };
+                  }
+                >();
 
-                  // Sort lines in ascending order
-                  const sortedLines = Array.from(allLines).sort(
-                    (a, b) => a - b
+                sortedLines.forEach((line) => {
+                  const overBookmakers = findAllBookmakersWithBestOdds(
+                    prop,
+                    marketKey,
+                    "Over",
+                    line
+                  );
+                  const underBookmakers = findAllBookmakersWithBestOdds(
+                    prop,
+                    marketKey,
+                    "Under",
+                    line
                   );
 
-                  // Find best odds for each line
-                  const bestOddsPerLine = new Map<
-                    number,
-                    { over: number; under: number }
-                  >();
-                  sortedLines.forEach((line) => {
-                    let bestOver = Number.NEGATIVE_INFINITY;
-                    let bestUnder = Number.NEGATIVE_INFINITY;
+                  // Get the best odds values
+                  let overOdds = Number.NEGATIVE_INFINITY;
+                  let underOdds = Number.NEGATIVE_INFINITY;
 
-                    prop.bookmakers.forEach((bookmaker) => {
+                  if (overBookmakers.length > 0) {
+                    const bookmaker = prop.bookmakers.find(
+                      (b) => b.key === overBookmakers[0]
+                    );
+                    if (bookmaker) {
                       const market = bookmaker.markets.find(
                         (m) => m.key === marketKey
                       );
                       if (market) {
-                        const over = market.outcomes.find(
+                        const outcome = market.outcomes.find(
                           (o) => o.name === "Over" && o.point === line
                         );
-                        const under = market.outcomes.find(
+                        if (outcome) overOdds = outcome.price;
+                      }
+                    }
+                  }
+
+                  if (underBookmakers.length > 0) {
+                    const bookmaker = prop.bookmakers.find(
+                      (b) => b.key === underBookmakers[0]
+                    );
+                    if (bookmaker) {
+                      const market = bookmaker.markets.find(
+                        (m) => m.key === marketKey
+                      );
+                      if (market) {
+                        const outcome = market.outcomes.find(
                           (o) => o.name === "Under" && o.point === line
                         );
-                        if (over) bestOver = Math.max(bestOver, over.price);
-                        if (under) bestUnder = Math.max(bestUnder, under.price);
+                        if (outcome) underOdds = outcome.price;
                       }
-                    });
+                    }
+                  }
 
-                    bestOddsPerLine.set(line, {
-                      over: bestOver,
-                      under: bestUnder,
-                    });
+                  bestOddsPerLine.set(line, {
+                    over: { odds: overOdds, bookmakers: overBookmakers },
+                    under: { odds: underOdds, bookmakers: underBookmakers },
                   });
+                });
 
-                  return (
-                    <motion.tr
-                      key={prop.player}
-                      className="border-b hover:bg-accent/50"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.03 }}
+                // Determine which lines to show based on expanded state
+                // When expanded, show all lines except the standard line (since it's already in the header)
+                const linesToShow = isExpanded
+                  ? sortedLines.filter((line) => line !== standardLine)
+                  : [];
+
+                // Calculate average odds for standard line
+                const averageOverStandard = getAverageOdds(
+                  prop,
+                  standardLine,
+                  "Over"
+                );
+                const averageUnderStandard = getAverageOdds(
+                  prop,
+                  standardLine,
+                  "Under"
+                );
+
+                // Get best odds for standard line
+                const bestOddsStandard = bestOddsPerLine.get(standardLine);
+
+                return (
+                  <React.Fragment key={playerId}>
+                    {/* Player header row with standard line odds */}
+                    <tr
+                      className="border-b bg-muted/30 hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => togglePlayerExpansion(playerId)}
                     >
-                      <td className="p-4">{prop.player}</td>
-                      {selectedSportsbooks.map((bookmaker) => {
-                        const bookmakerData = prop.bookmakers.find(
-                          (b) => b.key === bookmaker
-                        );
-                        const bookmakerMarket = bookmakerData?.markets.find(
+                      <td className="p-4 sticky left-0 bg-muted/30 z-10 group-hover:bg-accent/50">
+                        <div className="font-medium flex items-center">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 mr-2" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4 mr-2" />
+                          )}
+                          {prop.player}
+                        </div>
+                        {!isExpanded && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Click to expand alt lines
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-center p-4 font-medium">
+                        {standardLine}
+                      </td>
+                      <td className="text-center p-4">
+                        <div className="flex flex-col gap-1">
+                          {(showType === "both" || showType === "over") && (
+                            <div className="flex items-center justify-center">
+                              <ChevronUp className="h-3 w-3 text-primary mr-1" />
+                              <span className="text-xs">Over</span>
+                            </div>
+                          )}
+                          {(showType === "both" || showType === "under") && (
+                            <div className="flex items-center justify-center">
+                              <ChevronDown className="h-3 w-3 text-red-500 mr-1" />
+                              <span className="text-xs">Under</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      {/* Best odds column (moved before Average) */}
+                      <td className="text-center p-2">
+                        <div className="flex flex-col gap-1">
+                          {(showType === "both" || showType === "over") && (
+                            <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-primary/10 border-primary">
+                              <span className="font-medium text-primary">
+                                {bestOddsStandard &&
+                                bestOddsStandard.over.odds >
+                                  Number.NEGATIVE_INFINITY
+                                  ? formatAmericanOdds(bestOddsStandard.over.odds)
+                                  : "-"}
+                              </span>
+                              <div className="flex ml-1">
+                                {bestOddsStandard &&
+                                  bestOddsStandard.over.bookmakers.map(
+                                    (bookmakerKey) => (
+                                      <div
+                                        key={bookmakerKey}
+                                        className="w-4 h-4 -ml-1 first:ml-0"
+                                      >
+                                        <img
+                                          src={
+                                            sportsbooks.find(
+                                              (sb) => sb.id === bookmakerKey
+                                            )?.logo || "/placeholder.svg"
+                                          }
+                                          alt={bookmakerKey}
+                                          className="w-full h-full object-contain"
+                                        />
+                                      </div>
+                                    )
+                                  )}
+                              </div>
+                            </div>
+                          )}
+                          {(showType === "both" || showType === "under") && (
+                            <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-primary/10 border-primary">
+                              <span className="font-medium text-primary">
+                                {bestOddsStandard &&
+                                bestOddsStandard.under.odds >
+                                  Number.NEGATIVE_INFINITY
+                                  ? formatAmericanOdds(
+                                      bestOddsStandard.under.odds
+                                    )
+                                  : "-"}
+                              </span>
+                              <div className="flex ml-1">
+                                {bestOddsStandard &&
+                                  bestOddsStandard.under.bookmakers.map(
+                                    (bookmakerKey) => (
+                                      <div
+                                        key={bookmakerKey}
+                                        className="w-4 h-4 -ml-1 first:ml-0"
+                                      >
+                                        <img
+                                          src={
+                                            sportsbooks.find(
+                                              (sb) => sb.id === bookmakerKey
+                                            )?.logo || "/placeholder.svg"
+                                          }
+                                          alt={bookmakerKey}
+                                          className="w-full h-full object-contain"
+                                        />
+                                      </div>
+                                    )
+                                  )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      {/* Average odds column */}
+                      <td className="text-center p-2">
+                        <div className="flex flex-col gap-1">
+                          {(showType === "both" || showType === "over") && (
+                            <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-muted/10">
+                              <span className="font-medium">
+                                {averageOverStandard
+                                  ? averageOverStandard.formatted
+                                  : "-"}
+                              </span>
+                            </div>
+                          )}
+                          {(showType === "both" || showType === "under") && (
+                            <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-muted/10">
+                              <span className="font-medium">
+                                {averageUnderStandard
+                                  ? averageUnderStandard.formatted
+                                  : "-"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      {/* Individual sportsbook columns (only on desktop) */}
+                      {!isTablet &&
+                        selectedSportsbooks.map((bookmaker) => {
+                          const bookmakerData = prop.bookmakers.find(
+                            (b) => b.key === bookmaker
+                          );
+                          const market = bookmakerData?.markets.find(
+                            (m) => m.key === marketKey
+                          );
+                          const overOutcome = market?.outcomes.find(
+                            (o) => o.name === "Over" && o.point === standardLine
+                          );
+                          const underOutcome = market?.outcomes.find(
+                            (o) => o.name === "Under" && o.point === standardLine
+                          );
+                          const bestOdds = bestOddsPerLine.get(standardLine);
+                          const isOverBest =
+                            bestOdds &&
+                            bestOdds.over.bookmakers.includes(bookmaker);
+                          const isUnderBest =
+                            bestOdds &&
+                            bestOdds.under.bookmakers.includes(bookmaker);
+
+                          return (
+                            <td key={bookmaker} className="text-center p-2">
+                              <div className="flex flex-col gap-1">
+                                {(showType === "both" || showType === "over") && (
+                                  <div
+                                    className={cn(
+                                      "flex items-center justify-center p-1 rounded-md border text-xs",
+                                      isOverBest
+                                        ? "bg-primary/10 border-primary"
+                                        : "border-border",
+                                      !overOutcome && "opacity-40",
+                                      hasDeeplink(overOutcome) &&
+                                        "hover:bg-accent/80 cursor-pointer"
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      hasDeeplink(overOutcome) &&
+                                        handleBetClick(overOutcome, bookmaker);
+                                    }}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        isOverBest
+                                          ? "text-primary"
+                                          : "text-foreground"
+                                      )}
+                                    >
+                                      {overOutcome
+                                        ? formatAmericanOdds(overOutcome.price)
+                                        : "-"}
+                                    </span>
+                                  </div>
+                                )}
+                                {(showType === "both" ||
+                                  showType === "under") && (
+                                  <div
+                                    className={cn(
+                                      "flex items-center justify-center p-1 rounded-md border text-xs",
+                                      isUnderBest
+                                        ? "bg-primary/10 border-primary"
+                                        : "border-border",
+                                      !underOutcome && "opacity-40",
+                                      hasDeeplink(underOutcome) &&
+                                        "hover:bg-accent/80 cursor-pointer"
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      hasDeeplink(underOutcome) &&
+                                        handleBetClick(underOutcome, bookmaker);
+                                    }}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        isUnderBest
+                                          ? "text-primary"
+                                          : "text-foreground"
+                                      )}
+                                    >
+                                      {underOutcome
+                                        ? formatAmericanOdds(underOutcome.price)
+                                        : "-"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                    </tr>
+
+                    {/* Player data rows */}
+                    {linesToShow.map((line) => {
+                      // Check if this player has this line
+                      let hasLine = false;
+                      prop.bookmakers.forEach((bookmaker) => {
+                        const market = bookmaker.markets.find(
                           (m) => m.key === marketKey
                         );
+                        if (market) {
+                          const hasOver = market.outcomes.some(
+                            (o) => o.name === "Over" && o.point === line
+                          );
+                          const hasUnder = market.outcomes.some(
+                            (o) => o.name === "Under" && o.point === line
+                          );
+                          if (hasOver || hasUnder) hasLine = true;
+                        }
+                      });
 
-                        return (
-                          <td key={bookmaker} className="text-center p-2">
-                            <div className="flex flex-col gap-1">
-                              {sortedLines.map((line) => {
-                                const overOutcome =
-                                  bookmakerMarket?.outcomes.find(
-                                    (o: Outcome) =>
-                                      o.name === "Over" && o.point === line
-                                  );
-                                const underOutcome =
-                                  bookmakerMarket?.outcomes.find(
-                                    (o: Outcome) =>
-                                      o.name === "Under" && o.point === line
-                                  );
-                                const bestOdds = bestOddsPerLine.get(line);
-                                const isOverBest =
-                                  overOutcome &&
-                                  bestOdds &&
-                                  overOutcome.price === bestOdds.over;
-                                const isUnderBest =
-                                  underOutcome &&
-                                  bestOdds &&
-                                  underOutcome.price === bestOdds.under;
+                      if (!hasLine) return null;
 
-                                return (
-                                  <div
-                                    key={line}
-                                    className="border-b last:border-0 py-1"
-                                  >
-                                    {(showType === "both" ||
-                                      showType === "over") &&
-                                      renderOddsButton(
-                                        overOutcome,
-                                        true,
-                                        line,
-                                        isOverBest,
-                                        bookmaker
-                                      )}
+                      // Check if over/under outcomes exist for this line
+                      let hasOverOutcome = false;
+                      let hasUnderOutcome = false;
 
-                                    {(showType === "both" ||
-                                      showType === "under") &&
-                                      renderOddsButton(
-                                        underOutcome,
-                                        false,
-                                        line,
-                                        isUnderBest,
-                                        bookmaker
-                                      )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </td>
+                      prop.bookmakers.forEach((bookmaker) => {
+                        const market = bookmaker.markets.find(
+                          (m) => m.key === marketKey
                         );
-                      })}
-                    </motion.tr>
-                  );
-                })}
-              </AnimatePresence>
+                        if (market) {
+                          const overExists = market.outcomes.some(
+                            (o) => o.name === "Over" && o.point === line
+                          );
+                          const underExists = market.outcomes.some(
+                            (o) => o.name === "Under" && o.point === line
+                          );
+                          if (overExists) hasOverOutcome = true;
+                          if (underExists) hasUnderOutcome = true;
+                        }
+                      });
+
+                      // Calculate average odds for this line
+                      const averageOver = getAverageOdds(prop, line, "Over");
+                      const averageUnder = getAverageOdds(prop, line, "Under");
+
+                      // Get best odds for this line
+                      const bestOddsForLine = bestOddsPerLine.get(line);
+
+                      // Only render rows if outcomes exist
+                      return (
+                        <React.Fragment key={`${playerId}-${line}`}>
+                          {hasOverOutcome &&
+                            (showType === "both" || showType === "over") && (
+                              <tr className="border-b hover:bg-accent/50 transition-colors">
+                                <td className="p-4 pl-8 sticky left-0 z-10 bg-card hover:bg-accent/50">
+                                  <div className="font-medium">{prop.player}</div>
+                                </td>
+                                <td className="text-center p-4 font-medium">
+                                  {line}
+                                </td>
+                                <td className="text-center p-4">
+                                  <div className="flex items-center justify-center">
+                                    <ChevronUp className="h-4 w-4 text-primary mr-1" />
+                                    <span>Over</span>
+                                  </div>
+                                </td>
+                                {/* Best odds column (moved before Average) */}
+                                <td className="text-center p-2">
+                                  <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-primary/10 border-primary">
+                                    <span className="font-medium text-primary">
+                                      {bestOddsForLine &&
+                                      bestOddsForLine.over.odds >
+                                        Number.NEGATIVE_INFINITY
+                                        ? formatAmericanOdds(
+                                            bestOddsForLine.over.odds
+                                          )
+                                        : "-"}
+                                    </span>
+                                    <div className="flex ml-1">
+                                      {bestOddsForLine &&
+                                        bestOddsForLine.over.bookmakers.map(
+                                          (bookmakerKey) => (
+                                            <div
+                                              key={bookmakerKey}
+                                              className="w-4 h-4 -ml-1 first:ml-0"
+                                            >
+                                              <img
+                                                src={
+                                                  sportsbooks.find(
+                                                    (sb) => sb.id === bookmakerKey
+                                                  )?.logo || "/placeholder.svg"
+                                                }
+                                                alt={bookmakerKey}
+                                                className="w-full h-full object-contain"
+                                              />
+                                            </div>
+                                          )
+                                        )}
+                                    </div>
+                                  </div>
+                                </td>
+                                {/* Average odds column */}
+                                <td className="text-center p-2">
+                                  <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-muted/10">
+                                    <span className="font-medium">
+                                      {averageOver ? averageOver.formatted : "-"}
+                                    </span>
+                                  </div>
+                                </td>
+                                {/* Individual sportsbook columns (only on desktop) */}
+                                {!isTablet &&
+                                  selectedSportsbooks.map((bookmaker) => {
+                                    const bookmakerData = prop.bookmakers.find(
+                                      (b) => b.key === bookmaker
+                                    );
+                                    const market = bookmakerData?.markets.find(
+                                      (m) => m.key === marketKey
+                                    );
+                                    const outcome = market?.outcomes.find(
+                                      (o) => o.name === "Over" && o.point === line
+                                    );
+                                    const isBest =
+                                      bestOddsForLine &&
+                                      bestOddsForLine.over.bookmakers.includes(
+                                        bookmaker
+                                      );
+
+                                    return (
+                                      <td
+                                        key={bookmaker}
+                                        className="text-center p-2"
+                                      >
+                                        {renderOddsButton(
+                                          outcome,
+                                          isBest,
+                                          bookmaker
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                              </tr>
+                            )}
+                          {hasUnderOutcome &&
+                            (showType === "both" || showType === "under") && (
+                              <tr className="border-b hover:bg-accent/50 transition-colors">
+                                {showType === "both" && hasOverOutcome ? (
+                                  <td className="p-4 pl-8 opacity-0 sticky left-0 z-10 bg-card hover:bg-accent/50">
+                                    <div className="font-medium">
+                                      {prop.player}
+                                    </div>
+                                  </td>
+                                ) : (
+                                  <td className="p-4 pl-8 sticky left-0 z-10 bg-card hover:bg-accent/50">
+                                    <div className="font-medium">
+                                      {prop.player}
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="text-center p-4 font-medium">
+                                  {showType === "both" && hasOverOutcome ? (
+                                    <span className="opacity-0">{line}</span>
+                                  ) : (
+                                    line
+                                  )}
+                                </td>
+                                <td className="text-center p-4">
+                                  <div className="flex items-center justify-center">
+                                    <ChevronDown className="h-4 w-4 text-red-500 mr-1" />
+                                    <span>Under</span>
+                                  </div>
+                                </td>
+                                {/* Best odds column (moved before Average) */}
+                                <td className="text-center p-2">
+                                  <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-primary/10 border-primary">
+                                    <span className="font-medium text-primary">
+                                      {bestOddsForLine &&
+                                      bestOddsForLine.under.odds >
+                                        Number.NEGATIVE_INFINITY
+                                        ? formatAmericanOdds(
+                                            bestOddsForLine.under.odds
+                                          )
+                                        : "-"}
+                                    </span>
+                                    <div className="flex ml-1">
+                                      {bestOddsForLine &&
+                                        bestOddsForLine.under.bookmakers.map(
+                                          (bookmakerKey) => (
+                                            <div
+                                              key={bookmakerKey}
+                                              className="w-4 h-4 -ml-1 first:ml-0"
+                                            >
+                                              <img
+                                                src={
+                                                  sportsbooks.find(
+                                                    (sb) => sb.id === bookmakerKey
+                                                  )?.logo || "/placeholder.svg"
+                                                }
+                                                alt={bookmakerKey}
+                                                className="w-full h-full object-contain"
+                                              />
+                                            </div>
+                                          )
+                                        )}
+                                    </div>
+                                  </div>
+                                </td>
+                                {/* Average odds column */}
+                                <td className="text-center p-2">
+                                  <div className="flex items-center justify-center p-1 rounded-md border text-xs bg-muted/10">
+                                    <span className="font-medium">
+                                      {averageUnder
+                                        ? averageUnder.formatted
+                                        : "-"}
+                                    </span>
+                                  </div>
+                                </td>
+                                {/* Individual sportsbook columns (only on desktop) */}
+                                {!isTablet &&
+                                  selectedSportsbooks.map((bookmaker) => {
+                                    const bookmakerData = prop.bookmakers.find(
+                                      (b) => b.key === bookmaker
+                                    );
+                                    const market = bookmakerData?.markets.find(
+                                      (m) => m.key === marketKey
+                                    );
+                                    const outcome = market?.outcomes.find(
+                                      (o) =>
+                                        o.name === "Under" && o.point === line
+                                    );
+                                    const isBest =
+                                      bestOddsForLine &&
+                                      bestOddsForLine.under.bookmakers.includes(
+                                        bookmaker
+                                      );
+
+                                    return (
+                                      <td
+                                        key={bookmaker}
+                                        className="text-center p-2"
+                                      >
+                                        {renderOddsButton(
+                                          outcome,
+                                          isBest,
+                                          bookmaker
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                              </tr>
+                            )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1386,45 +2038,17 @@ export function PropComparisonTable({
           <FilterControls
             sport={sport}
             statType={statType}
-            setStatType={handleStatTypeChange} // Use the custom handler
+            setStatType={handleStatTypeChange}
             showType={showType}
             setShowType={setShowType}
             playerType={playerType}
-            setPlayerType={setPlayerType}
+            setPlayerType={handlePlayerTypeChange}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             sortBy={sortBy}
             setSortBy={setSortBy}
           />
         </div>
-
-        {/* Sportsbook header row - kept outside the scrollable area */}
-        {!isMobile && (
-          <div className="border-b bg-card sticky top-[201px] z-10">
-            <div className="flex">
-              <div className="text-left p-4 min-w-[200px] font-medium">
-                Player
-              </div>
-              {selectedSportsbooks.map((bookmaker) => {
-                const book = sportsbooks.find((sb) => sb.id === bookmaker);
-                return (
-                  <div key={bookmaker} className="text-center p-4 flex-1">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-6 h-6">
-                        <img
-                          src={book?.logo || "/placeholder.svg"}
-                          alt={book?.name}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-xs font-medium">{book?.name}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {loading ? (
@@ -1442,141 +2066,7 @@ export function PropComparisonTable({
       ) : isMobile ? (
         renderMobileView()
       ) : (
-        <div className="max-h-[calc(90vh-16rem)] overflow-auto">
-          <div className="min-w-full">
-            <AnimatePresence>
-              {filteredProps.map((prop, index) => {
-                const marketKey = getMarketApiKey(sport, prop.statType);
-
-                // Get all unique lines across all bookmakers for this player
-                const allLines = new Set<number>();
-                prop.bookmakers.forEach((bookmaker) => {
-                  const market = bookmaker.markets.find(
-                    (m) => m.key === marketKey
-                  );
-                  if (market) {
-                    market.outcomes.forEach((outcome) => {
-                      allLines.add(outcome.point);
-                    });
-                  }
-                });
-
-                // Sort lines in ascending order
-                const sortedLines = Array.from(allLines).sort((a, b) => a - b);
-
-                // Find best odds for each line
-                const bestOddsPerLine = new Map<
-                  number,
-                  { over: number; under: number }
-                >();
-                sortedLines.forEach((line) => {
-                  let bestOver = Number.NEGATIVE_INFINITY;
-                  let bestUnder = Number.NEGATIVE_INFINITY;
-
-                  prop.bookmakers.forEach((bookmaker) => {
-                    const market = bookmaker.markets.find(
-                      (m) => m.key === marketKey
-                    );
-                    if (market) {
-                      const over = market.outcomes.find(
-                        (o) => o.name === "Over" && o.point === line
-                      );
-                      const under = market.outcomes.find(
-                        (o) => o.name === "Under" && o.point === line
-                      );
-                      if (over) bestOver = Math.max(bestOver, over.price);
-                      if (under) bestUnder = Math.max(bestUnder, under.price);
-                    }
-                  });
-
-                  bestOddsPerLine.set(line, {
-                    over: bestOver,
-                    under: bestUnder,
-                  });
-                });
-
-                return (
-                  <motion.div
-                    key={prop.player}
-                    className="border-b hover:bg-accent/50 transition-colors duration-200"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.03 }}
-                  >
-                    <div className="flex">
-                      <div className="text-left p-4 min-w-[200px]">
-                        <span className="font-medium">{prop.player}</span>
-                      </div>
-                      {selectedSportsbooks.map((bookmaker) => {
-                        const bookmakerData = prop.bookmakers.find(
-                          (b) => b.key === bookmaker
-                        );
-                        const bookmakerMarket = bookmakerData?.markets.find(
-                          (m) => m.key === marketKey
-                        );
-
-                        return (
-                          <div key={bookmaker} className="flex-1 p-4">
-                            <div className="space-y-2">
-                              {sortedLines.map((line) => {
-                                const overOutcome =
-                                  bookmakerMarket?.outcomes.find(
-                                    (o: Outcome) =>
-                                      o.name === "Over" && o.point === line
-                                  );
-                                const underOutcome =
-                                  bookmakerMarket?.outcomes.find(
-                                    (o: Outcome) =>
-                                      o.name === "Under" && o.point === line
-                                  );
-                                const bestOdds = bestOddsPerLine.get(line);
-                                const isOverBest =
-                                  overOutcome &&
-                                  bestOdds &&
-                                  overOutcome.price === bestOdds.over;
-                                const isUnderBest =
-                                  underOutcome &&
-                                  bestOdds &&
-                                  underOutcome.price === bestOdds.under;
-
-                                return (
-                                  <div
-                                    key={line}
-                                    className="border-b last:border-0 py-1"
-                                  >
-                                    {(showType === "both" ||
-                                      showType === "over") &&
-                                      renderOddsButton(
-                                        overOutcome,
-                                        true,
-                                        line,
-                                        isOverBest,
-                                        bookmaker
-                                      )}
-
-                                    {(showType === "both" ||
-                                      showType === "under") &&
-                                      renderOddsButton(
-                                        underOutcome,
-                                        false,
-                                        line,
-                                        isUnderBest,
-                                        bookmaker
-                                      )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </div>
+        renderDesktopTable()
       )}
     </div>
   );

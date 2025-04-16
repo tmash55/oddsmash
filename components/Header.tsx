@@ -229,15 +229,7 @@ export function Header() {
         <div className="hidden md:flex justify-end items-center space-x-2">
           <StateSelector />
           <ThemeToggle />
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary/20 bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20"
-            onClick={openSportsbookSelector}
-          >
-            <Zap className="mr-1.5 h-3.5 w-3.5 text-primary" />
-            Sportsbooks
-          </Button>
+          
         </div>
 
         {/* Mobile Menu Button */}

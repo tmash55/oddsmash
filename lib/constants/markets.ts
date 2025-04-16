@@ -350,7 +350,7 @@ export const SPORT_MARKETS: SportMarkets = {
       alwaysFetchAlternate: true,
     },
     {
-      value: "Walks",
+      value: "Walks_Allowed",
       label: "Walks Allowed",
       apiKey: "pitcher_walks",
       hasAlternates: true,

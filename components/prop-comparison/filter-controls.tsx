@@ -91,7 +91,11 @@ export function FilterControls({
                   ? "bg-primary text-primary-foreground"
                   : "bg-background"
               )}
-              onClick={() => setPlayerType("batter")}
+              onClick={() => {
+                if (playerType !== "batter") {
+                  setPlayerType("batter");
+                }
+              }}
             >
               Batter Props
             </Button>
@@ -105,7 +109,11 @@ export function FilterControls({
                   ? "bg-primary text-primary-foreground"
                   : "bg-background"
               )}
-              onClick={() => setPlayerType("pitcher")}
+              onClick={() => {
+                if (playerType !== "pitcher") {
+                  setPlayerType("pitcher");
+                }
+              }}
             >
               Pitcher Props
             </Button>
