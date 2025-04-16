@@ -21,25 +21,52 @@ interface GameSelectorProps {
   onGameSelect: (eventId: string) => void;
   sport?: string;
   isLoading?: boolean;
+  initialEventId?: string | null;
 }
 
 export function GameSelector({
   onGameSelect,
   sport = "basketball_nba",
   isLoading = false,
+  initialEventId = null,
 }: GameSelectorProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId);
   const isMobile = useMediaQuery("(max-width: 640px)");
 
-  // Reset selection when sport changes
+  // Helper function to get shortened ID (last 5 digits)
+  const getShortenedId = (id: string): string => {
+    return id.slice(-5);
+  };
+
+  // Helper function to find full ID from shortened ID
+  const getFullIdFromShortened = (shortId: string): string | null => {
+    const event = events.find(e => e.id.endsWith(shortId));
+    return event ? event.id : null;
+  };
+
+  // Update when initialEventId changes (for URL-based navigation)
   useEffect(() => {
-    setSelectedEventId(null);
-    onGameSelect("");
+    if (initialEventId !== selectedEventId) {
+      setSelectedEventId(initialEventId);
+    }
+  }, [initialEventId]);
+
+  // Only reset selection when sport changes, not for prop type changes
+  useEffect(() => {
+    // If we have an initial event ID, use it
+    if (initialEventId) {
+      setSelectedEventId(initialEventId);
+      onGameSelect(initialEventId);
+    } else {
+      // Only reset the selection if changing sports
+      setSelectedEventId(null);
+      onGameSelect("");
+    }
     setError(null);
-  }, [sport, onGameSelect]);
+  }, [sport, onGameSelect, initialEventId]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -65,8 +92,24 @@ export function GameSelector({
         );
         setEvents(sortedEvents);
 
-        // Auto-select first game if none selected
-        if (sortedEvents.length > 0 && !selectedEventId) {
+        // If we have an initial event ID, check if it exists in the fetched events
+        if (initialEventId) {
+          const eventExists = sortedEvents.some(e => e.id === initialEventId);
+          if (eventExists) {
+            setSelectedEventId(initialEventId);
+            onGameSelect(initialEventId);
+          } else {
+            // If the event doesn't exist (maybe it's from a different sport),
+            // select the first event instead
+            if (sortedEvents.length > 0) {
+              const firstEvent = sortedEvents[0];
+              setSelectedEventId(firstEvent.id);
+              onGameSelect(firstEvent.id);
+            }
+          }
+        }
+        // Otherwise auto-select first game if none selected
+        else if (sortedEvents.length > 0 && !selectedEventId) {
           const firstEvent = sortedEvents[0];
           setSelectedEventId(firstEvent.id);
           onGameSelect(firstEvent.id);
@@ -81,9 +124,10 @@ export function GameSelector({
     };
 
     fetchEvents();
-  }, [sport, onGameSelect]);
+  }, [sport, onGameSelect, initialEventId, selectedEventId]);
 
   const handleGameSelect = (eventId: string) => {
+    // We're passing the full ID to the parent component
     setSelectedEventId(eventId);
     onGameSelect(eventId);
   };
@@ -171,6 +215,7 @@ export function GameSelector({
                     new Date(selectedEvent.commence_time),
                     "MMM d, h:mm a"
                   )}
+                  <span className="ml-1 opacity-50">#{getShortenedId(selectedEvent.id)}</span>
                 </div>
               </div>
             )}
@@ -224,8 +269,9 @@ export function GameSelector({
                           <Clock className="h-3 w-3" />
                           <span>{format(gameTime, "h:mm a")}</span>
                         </div>
-                        <div className="text-xs">
-                          {format(gameTime, "MMM d, yyyy")}
+                        <div className="text-xs flex items-center gap-1">
+                          <span>{format(gameTime, "MMM d, yyyy")}</span>
+                          <span className="opacity-50">#{getShortenedId(event.id)}</span>
                         </div>
                         {isUpcoming && !isMobile && (
                           <div className="mt-1">
@@ -236,7 +282,7 @@ export function GameSelector({
                         )}
                       </div>
                     </div>
-
+                    
                     {isUpcoming && isMobile && (
                       <div className="mt-1">
                         <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full text-[10px]">

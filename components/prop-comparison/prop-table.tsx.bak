@@ -162,7 +162,6 @@ export function PropComparisonTable({
 
   // Custom statType setter that also calls onPropTypeChange
   const handleStatTypeChange = (newStatType: string) => {
-    console.log("handleStatTypeChange called with:", newStatType);
     setStatType(newStatType);
 
     if (onPropTypeChange) {
@@ -172,30 +171,9 @@ export function PropComparisonTable({
       if (market) {
         // Convert label to URL-friendly format
         const urlPropType = marketLabelToUrl(market.label);
-        console.log("Calling onPropTypeChange with:", urlPropType);
         
-        // Call the parent's onPropTypeChange with just the prop type
-        // (the parent will handle preserving the game parameter)
+        // The game parameter will be handled by the parent component
         onPropTypeChange(urlPropType);
-        
-        // Also directly update the URL to ensure it changes
-        if (typeof window !== 'undefined') {
-          // Get the current URL and extract the sport and game parameter
-          const url = new URL(window.location.href);
-          const pathParts = url.pathname.split('/');
-          const sportParam = pathParts[1]; // e.g., "nba"
-          
-          // Preserve the game parameter if it exists
-          const gameParam = url.searchParams.get('game');
-          const searchParams = gameParam ? `?game=${gameParam}` : '';
-          
-          // Create the new URL and update it
-          const newUrl = `/${sportParam}/props/${urlPropType}${searchParams}`;
-          console.log("Directly updating URL to:", newUrl);
-          
-          // Update the URL without causing a page reload
-          window.history.pushState({}, '', newUrl);
-        }
       }
     }
   };
@@ -325,8 +303,9 @@ export function PropComparisonTable({
         // Check if we have a shortened ID that needs resolving
         if (selectedEventId && selectedEventId.length <= 5) {
           const matchingEvent = sortedEvents.find(event => event.id.endsWith(selectedEventId));
-          // We don't update the selectedEventId state here to avoid an infinite loop
-          // since we are already handling shortened IDs in the fetchPlayerProps function
+          if (matchingEvent) {
+            setSelectedEventId(matchingEvent.id);
+          }
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -361,6 +340,350 @@ export function PropComparisonTable({
     setSelectedEventId(gameId);
     updateUrlWithGameId(gameId);
     // The props will be fetched via the useEffect that watches selectedEventId
+  };
+  
+  const [gameData, setGameData] = useState<GameOdds | null>(null);
+"use client";
+
+import React from "react";
+
+import { useState, useRef, useMemo, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import {
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Zap,
+  RefreshCw,
+} from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { sportsbooks } from "@/data/sportsbooks";
+import { GameSelector } from "./game-selector";
+import {
+  type GameOdds,
+  type Market,
+  type Outcome,
+  type PlayerProp,
+  type Bookmaker,
+  type Event,
+  findBestOdds,
+  formatAmericanOdds,
+} from "@/lib/odds-api";
+import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import {
+  getMarketsForSport,
+  getDefaultMarket,
+  getMarketApiKey,
+} from "@/lib/constants/markets";
+import { FilterControls } from "./filter-controls";
+import { useRouter, usePathname } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+
+interface PropComparisonTableProps {
+  sport?: string;
+  propType?: string;
+  onPropTypeChange?: (propType: string) => void;
+}
+
+// Helper function to convert market label to URL-friendly format
+const marketLabelToUrl = (label: string): string => {
+  // Special case for PRA
+  if (
+    label === "PTS+REB+AST" ||
+    label === "Points+Rebounds+Assists" ||
+    label === "Pts+Reb+Ast"
+  ) {
+    return "pra";
+  }
+
+  // Replace + with -plus- and convert to lowercase with spaces as dashes
+  return label.toLowerCase().replace(/\+/g, "-plus-").replace(/\s+/g, "-");
+};
+
+// Update the findMarketByUrlName function
+const findMarketByUrlName = (
+  markets: any[],
+  urlName: string
+): any | undefined => {
+  // Special case for PRA
+  if (urlName === "pra") {
+    return markets.find(
+      (m) =>
+        m.label === "PTS+REB+AST" ||
+        m.label === "Points+Rebounds+Assists" ||
+        m.label === "Pts+Reb+Ast"
+    );
+  }
+
+  // Try direct match first
+  const directMatch = markets.find((m) => {
+    const urlLabel = marketLabelToUrl(m.label);
+    return urlLabel === urlName;
+  });
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  // If no direct match, try replacing - with + to handle legacy URLs
+  return markets.find((m) => {
+    const normalizedLabel = m.label.toLowerCase().replace(/\s+/g, "-");
+    const normalizedUrlName = urlName.replace(/-plus-/g, "+");
+    return normalizedLabel === normalizedUrlName;
+  });
+};
+
+export function PropComparisonTable({
+  sport = "baseball_mlb",
+  propType,
+  onPropTypeChange,
+}: PropComparisonTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Initialize statType from propType if provided, otherwise use default
+  const [statType, setStatType] = useState(() => {
+    if (propType) {
+      // Map URL-friendly propType to API statType
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      return market?.value || getDefaultMarket(sport);
+    }
+    return getDefaultMarket(sport);
+  });
+
+  // Get initial player type from localStorage or prop type
+  const getInitialPlayerType = (): "batter" | "pitcher" => {
+    // First try to get from localStorage if in baseball
+    if (sport === "baseball_mlb" && typeof window !== 'undefined') {
+      const savedPlayerType = localStorage.getItem('baseball_playerType');
+      if (savedPlayerType === 'pitcher' || savedPlayerType === 'batter') {
+        return savedPlayerType as "pitcher" | "batter";
+      }
+    }
+    
+    // Fall back to determining from prop type
+    if (propType && sport === "baseball_mlb") {
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      
+      if (market) {
+        const apiKey = market.apiKey.toLowerCase();
+        // If it's a pitcher market, set initial player type to pitcher
+        if (apiKey.startsWith("pitcher_") || apiKey.includes("strikeout")) {
+          return "pitcher";
+        }
+      }
+    }
+    return "batter";
+  };
+
+  // Determine initial player type
+  const [playerType, setPlayerType] = useState<"batter" | "pitcher">(getInitialPlayerType());
+  
+  // Update statType when propType changes
+  useEffect(() => {
+    if (propType) {
+      const markets = getMarketsForSport(sport);
+      const market = findMarketByUrlName(markets, propType);
+      if (market) {
+        setStatType(market.value);
+        
+        // Also update player type based on the market
+        if (sport === "baseball_mlb") {
+          const apiKey = market.apiKey.toLowerCase();
+          const isPitcherMarket = apiKey.startsWith("pitcher_") || apiKey.includes("strikeout");
+          if (isPitcherMarket && playerType !== "pitcher") {
+            setPlayerType("pitcher");
+          } else if (!isPitcherMarket && playerType !== "batter") {
+            setPlayerType("batter");
+          }
+        }
+      }
+    }
+  }, [propType, sport]);
+
+  // Custom statType setter that also calls onPropTypeChange
+  const handleStatTypeChange = (newStatType: string) => {
+    setStatType(newStatType);
+
+    if (onPropTypeChange) {
+      // Find the market to get the label
+      const markets = getMarketsForSport(sport);
+      const market = markets.find((m) => m.value === newStatType);
+      if (market) {
+        // Convert label to URL-friendly format
+        const urlPropType = marketLabelToUrl(market.label);
+        
+        // The game parameter will be handled by the parent component
+        onPropTypeChange(urlPropType);
+      }
+    }
+  };
+
+  const [showType, setShowType] = useState<"both" | "over" | "under">("over");
+  
+  // Add a custom setter for playerType that also updates the statType appropriately
+  const handlePlayerTypeChange = (newPlayerType: "batter" | "pitcher") => {
+    // Don't proceed if player type isn't changing or if sport isn't baseball
+    if (playerType === newPlayerType || sport !== "baseball_mlb") {
+      return;
+    }
+    
+    setPlayerType(newPlayerType);
+    
+    // Get available stat types for the new player type
+    const newStatTypes = getMarketsForSport(sport).filter((market) => {
+      const apiKey = market.apiKey.toLowerCase();
+      const marketLabel = market.label.toLowerCase();
+      
+      if (newPlayerType === "pitcher") {
+        // Include markets that start with "pitcher_" OR contain "strikeout" for pitchers
+        return (
+          apiKey.startsWith("pitcher_") || 
+          apiKey.includes("strikeout") || 
+          marketLabel.includes("strikeout")
+        );
+      } else {
+        // For batters, exclude pitcher-specific markets and strikeouts
+        return (
+          apiKey.startsWith("batter_") &&
+          !apiKey.includes("strikeout") &&
+          !marketLabel.includes("strikeout")
+        );
+      }
+    });
+    
+    // Always switch to the first available market for the new player type
+    // This ensures a clean transition between player types
+    if (newStatTypes.length > 0) {
+      handleStatTypeChange(newStatTypes[0].value);
+    }
+  };
+  
+  // Persist player type to localStorage when it changes
+  useEffect(() => {
+    if (sport === "baseball_mlb" && typeof window !== 'undefined') {
+      localStorage.setItem('baseball_playerType', playerType);
+      
+      // If player type changed but we need to update the URL/market
+      const currentMarkets = getMarketsForSport(sport).filter(market => {
+        const apiKey = market.apiKey.toLowerCase();
+        const marketLabel = market.label.toLowerCase();
+        
+        if (playerType === "pitcher") {
+          return (
+            apiKey.startsWith("pitcher_") || 
+            apiKey.includes("strikeout") || 
+            marketLabel.includes("strikeout")
+          );
+        } else {
+          return (
+            apiKey.startsWith("batter_") &&
+            !apiKey.includes("strikeout") &&
+            !marketLabel.includes("strikeout")
+          );
+        }
+      });
+      
+      // Check if current statType is valid for this player type
+      const isStatTypeValid = currentMarkets.some(m => m.value === statType);
+      
+      // If not valid, switch to the first valid market
+      if (!isStatTypeValid && currentMarkets.length > 0 && onPropTypeChange) {
+        handleStatTypeChange(currentMarkets[0].value);
+      }
+    }
+  }, [playerType, sport, statType, onPropTypeChange]);
+
+  const [activeSportsbook, setActiveSportsbook] = useState("draftkings");
+  const [activePlayerIndex, setActivePlayerIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "best-odds">("name");
+  const [showPlayerSelector, setShowPlayerSelector] = useState(false);
+  
+  // Initialize selectedEventId from URL query parameters
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const gameParam = urlParams.get('game');
+      
+      // If we have a short ID (likely from URL), try to find the full ID
+      if (gameParam && gameParam.length <= 5) {
+        return gameParam; // Will be resolved to full ID when events are loaded
+      }
+      return gameParam;
+    }
+    return null;
+  });
+  
+  // Track all available events for mapping short IDs to full IDs
+  const [events, setEvents] = useState<Event[]>([]);
+  
+  // Fetch available events when sport changes
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`/api/events?sport=${sport}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch events");
+        }
+        
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid response format");
+        }
+        
+        // Sort events by commence time
+        const sortedEvents = data.sort(
+          (a: Event, b: Event) =>
+            new Date(a.commence_time).getTime() -
+            new Date(b.commence_time).getTime()
+        );
+        
+        setEvents(sortedEvents);
+        
+        // Check if we have a shortened ID that needs resolving
+        if (selectedEventId && selectedEventId.length <= 5) {
+          const matchingEvent = sortedEvents.find(event => event.id.endsWith(selectedEventId));
+          if (matchingEvent) {
+            setSelectedEventId(matchingEvent.id);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
+    
+    fetchEvents();
+  }, [sport]); // Only re-fetch when sport changes
+  
+  // Function to update the URL with the selected game ID (shortened to last 5 digits)
+  const updateUrlWithGameId = (gameId: string) => {
+    if (typeof window !== 'undefined') {
+      // Get current URL parts
+      const url = new URL(window.location.href);
+      
+      // Set the game parameter, using only the last 5 digits
+      if (gameId) {
+        const shortId = gameId.slice(-5);
+        url.searchParams.set('game', shortId);
+      } else {
+        url.searchParams.delete('game');
+      }
+      
+      // Update the URL without triggering a page reload
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+  
+  // Custom handler for game selection that updates both state and URL
+  const handleGameSelect = (gameId: string) => {
+    setSelectedEventId(gameId);
+    updateUrlWithGameId(gameId);
+    // No need to call fetchPlayerProps here as it will be triggered by the useEffect hook
   };
   
   const [gameData, setGameData] = useState<GameOdds | null>(null);
@@ -489,7 +812,7 @@ export function PropComparisonTable({
       const matchingEvent = events.find(event => event.id.endsWith(selectedEventId));
       if (matchingEvent) {
         fullEventId = matchingEvent.id;
-        // Note: we don't update selectedEventId here to avoid triggering an infinite loop
+        // Note: we don't update selectedEventId here to avoid triggering useEffect loops
       } else {
         console.error("Could not find matching event for shortened ID:", selectedEventId);
         return;

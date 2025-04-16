@@ -100,11 +100,40 @@ export default function PlayerPropsClientPage({
 
   // Handle prop type change
   const handlePropTypeChange = (newPropType: string) => {
-    // Use the correct app router format without the third argument
-    router.push(`/${params.sport}/props/${newPropType}`, { 
-      scroll: false 
-    });
+    console.log("handlePropTypeChange called with:", newPropType);
+    
+    // Extract the base prop type without any query parameters
+    let basePropType = newPropType;
+    
+    // Check if we need to get the game parameter from the current URL
+    let gameParam = "";
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentGameParam = urlParams.get('game');
+      console.log("Current game param from URL:", currentGameParam);
+      
+      if (currentGameParam) {
+        gameParam = `?game=${currentGameParam}`;
+      }
+    }
+    
+    const newUrl = `/${params.sport}/props/${basePropType}${gameParam}`;
+    console.log("Navigating to new URL:", newUrl);
+    
+    // Try a more direct approach to update the URL
+    if (typeof window !== 'undefined') {
+      // First update the URL without causing a page reload
+      window.history.pushState({}, '', newUrl);
+      
+      // Then trigger a navigation using router.replace to ensure Next.js updates the UI
+      router.replace(newUrl, { scroll: false });
+    }
   };
+
+  // Log when propType changes
+  useEffect(() => {
+    console.log("PlayerPropsClientPage - current propType:", propType);
+  }, [propType]);
 
   // On mobile, auto-collapse the intro section after the page loads
   useEffect(() => {

@@ -121,7 +121,10 @@ export function FilterControls({
 
           {/* Prop Type Dropdown - Now on its own row */}
           <div className="flex gap-2 items-center">
-            <Select value={statType} onValueChange={setStatType}>
+            <Select value={statType} onValueChange={(value) => {
+              console.log("Filter controls: statType changed to", value);
+              setStatType(value);
+            }}>
               <SelectTrigger className="h-9 text-xs sm:text-sm flex-1">
                 <SelectValue placeholder="Select stat" />
               </SelectTrigger>
@@ -163,7 +166,10 @@ export function FilterControls({
       {/* For non-baseball sports, just show the market selector */}
       {sport !== "baseball_mlb" && (
         <div className="flex gap-2 items-center">
-          <Select value={statType} onValueChange={setStatType}>
+          <Select value={statType} onValueChange={(value) => {
+            console.log("Filter controls: statType changed to", value);
+            setStatType(value);
+          }}>
             <SelectTrigger className="h-9 text-xs sm:text-sm flex-1">
               <SelectValue placeholder="Select stat type" />
             </SelectTrigger>

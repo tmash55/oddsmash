@@ -330,7 +330,8 @@ export function SportsbookSelector() {
             <ScrollArea
               className={cn(
                 "px-4 sm:px-6 py-4",
-                isMobile ? "flex-1 max-h-[calc(80dvh-280px)]" : "max-h-[400px]"
+                isMobile ? "flex-1 max-h-[calc(80dvh-280px)]" : "max-h-[400px]",
+                "relative"
               )}
             >
               <div className="space-y-2">
@@ -437,6 +438,7 @@ export function SportsbookSelector() {
                   })}
                 </AnimatePresence>
               </div>
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             </ScrollArea>
 
             {tempSelections.length === sportsbooks.length && (
@@ -466,36 +468,42 @@ export function SportsbookSelector() {
             {/* Save button for sportsbooks tab */}
             <div
               className={cn(
-                "px-4 sm:px-6 py-4 border-t mt-auto",
-                isMobile && "py-3"
+                "px-4 sm:px-6 py-4 border-t mt-auto sticky bottom-0 bg-background/95 backdrop-blur-sm",
+                isMobile && "py-4"
               )}
             >
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className={cn(
-                  "w-full relative overflow-hidden transition-all",
-                  isSmallMobile ? "h-10 text-sm" : "h-11 text-base",
-                  isSaving ? "pl-10" : ""
-                )}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
               >
-                {isSaving && (
-                  <Loader2
-                    className={cn(
-                      "absolute left-3 h-5 w-5 animate-spin",
-                      isSmallMobile && "h-4 w-4"
-                    )}
-                  />
-                )}
-                {isSaving ? (
-                  "Saving Changes..."
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Sportsbook Selections
-                  </>
-                )}
-              </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={cn(
+                    "w-full relative overflow-hidden transition-all",
+                    isSmallMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
+                    isSaving ? "pl-10" : "",
+                    "shadow-md bg-primary hover:bg-primary/90"
+                  )}
+                >
+                  {isSaving && (
+                    <Loader2
+                      className={cn(
+                        "absolute left-3 h-5 w-5 animate-spin",
+                        isSmallMobile && "h-4 w-4"
+                      )}
+                    />
+                  )}
+                  {isSaving ? (
+                    "Saving Changes..."
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Sportsbook Selections
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </div>
           </>
         )}
@@ -614,25 +622,36 @@ export function SportsbookSelector() {
         >
           {isMobile ? (
             <>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className={cn(
-                  "w-full relative overflow-hidden transition-all h-12 text-base",
-                  isSmallMobile && "h-10 text-sm",
-                  isSaving ? "pl-10" : ""
-                )}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full"
               >
-                {isSaving && (
-                  <Loader2
-                    className={cn(
-                      "absolute left-3 h-5 w-5 animate-spin",
-                      isSmallMobile && "h-4 w-4"
-                    )}
-                  />
-                )}
-                {isSaving ? "Saving Changes..." : "Save Changes"}
-              </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={cn(
+                    "w-full relative overflow-hidden transition-all shadow-md bg-primary hover:bg-primary/90",
+                    isSmallMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
+                    isSaving ? "pl-10" : ""
+                  )}
+                >
+                  {isSaving && (
+                    <Loader2
+                      className={cn(
+                        "absolute left-3 h-5 w-5 animate-spin",
+                        isSmallMobile && "h-4 w-4"
+                      )}
+                    />
+                  )}
+                  {isSaving ? "Saving Changes..." : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Location
+                    </>
+                  )}
+                </Button>
+              </motion.div>
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
@@ -655,19 +674,30 @@ export function SportsbookSelector() {
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className={cn(
-                  "relative overflow-hidden transition-all",
-                  isSaving ? "pl-10" : ""
-                )}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
               >
-                {isSaving && (
-                  <Loader2 className="absolute left-3 h-4 w-4 animate-spin" />
-                )}
-                {isSaving ? "Saving Changes..." : "Save Changes"}
-              </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={cn(
+                    "relative overflow-hidden transition-all shadow-md bg-primary hover:bg-primary/90",
+                    isSmallMobile ? "text-sm" : "text-base font-medium",
+                    isSaving ? "pl-10" : ""
+                  )}
+                >
+                  {isSaving && (
+                    <Loader2 className="absolute left-3 h-4 w-4 animate-spin" />
+                  )}
+                  {isSaving ? "Saving Changes..." : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Location
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </>
           )}
         </DialogFooter>
