@@ -558,21 +558,6 @@ export function PlayerPropsModal({
     return players.slice(0, count);
   };
 
-  // Remove this entire function:
-  // Get all unique lines across all players to create consistent columns
-  // const getAllUniqueLines = useMemo(() => {
-  //   const allLines = new Set<number>()
-
-  //   Object.values(groupedProps).forEach((props) => {
-  //     props.forEach((prop) => {
-  //       if (prop.line) allLines.add(prop.line)
-  //     })
-  //   })
-
-  //   return Array.from(allLines).sort((a, b) => a - b)
-  // }, [groupedProps])
-
-  // Replace the renderPlayerRow function with this original version:
   // Render a player row with horizontally scrollable options - DraftKings style
   const renderPlayerRow = (player: string, index: number) => {
     const props = groupedProps[player];
@@ -721,7 +706,7 @@ export function PlayerPropsModal({
               </span>
             </div>
           </div>
-
+          
           {/* Over/Under buttons */}
           <div className="grid grid-cols-2 gap-2 flex-1">
             {/* Over Button */}

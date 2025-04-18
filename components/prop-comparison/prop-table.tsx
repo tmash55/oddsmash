@@ -1,40 +1,38 @@
 "use client";
 
-import React from "react";
-
-import { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import type { GameOdds, Bookmaker, Market, Outcome, PlayerProp } from "@/lib/odds-api";
+import { GameSelector } from "./game-selector";
+import { FilterControls } from "./filter-controls";
+import { getDefaultMarket, getMarketApiKey, getMarketsForSport } from "@/lib/constants/markets";
+import { findBestOdds, formatAmericanOdds } from "@/lib/odds-api";
 import { cn } from "@/lib/utils";
+import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
 import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
   Zap,
   RefreshCw,
+  ChevronRight,
+  Share2,
 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { sportsbooks } from "@/data/sportsbooks";
-import { GameSelector } from "./game-selector";
-import {
-  type GameOdds,
-  type Market,
-  type Outcome,
-  type PlayerProp,
-  type Bookmaker,
-  type Event,
-  findBestOdds,
-  formatAmericanOdds,
-} from "@/lib/odds-api";
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
-import {
-  getMarketsForSport,
-  getDefaultMarket,
-  getMarketApiKey,
-} from "@/lib/constants/markets";
-import { FilterControls } from "./filter-controls";
-import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { ShareButton } from "@/components/prop-table/share-button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Define Event interface to fix type errors
+interface Event {
+  id: string;
+  commence_time: string;
+  // Add other properties as needed
+}
 
 interface PropComparisonTableProps {
   sport?: string;
@@ -630,6 +628,16 @@ export function PropComparisonTable({
       }
 
       setGameData(data);
+      
+      // Add debug logging for gameData
+      console.log('PropComparisonTable - GameData received:', {
+        id: data?.id,
+        sport_key: data?.sport_key,
+        home_team: data?.home_team,
+        away_team: data?.away_team,
+        commence_time: data?.commence_time,
+        hasBookmakers: Array.isArray(data?.bookmakers) && data?.bookmakers.length > 0
+      });
     } catch (error) {
       console.error("Error fetching props:", error);
     } finally {
@@ -1133,6 +1141,28 @@ export function PropComparisonTable({
 
         <div className="text-center mb-4">
           <h3 className="font-bold text-lg">{currentPlayer.player}</h3>
+          <div className="flex items-center justify-center mt-1">
+            <ShareButton
+              player={currentPlayer.player}
+              line={standardLine}
+              statType={statType}
+              marketKey={getMarketApiKey(sport, statType)}
+              selectedBooks={selectedSportsbooks}
+              odds={currentPlayer.bookmakers}
+              sportId={sport}
+              // Add team and game time data
+              homeTeam={gameData?.home_team}
+              awayTeam={gameData?.away_team}
+              commence_time={gameData?.commence_time}
+              // Add SIDs and links
+              sids={extractSids(currentPlayer.bookmakers, standardLine)}
+              links={extractLinks(currentPlayer.bookmakers, standardLine)}
+              // Pass the user's selected bet type
+              betType={showType}
+            />
+            {/* We'll log these values from the ShareButton component itself */}
+            <span className="text-xs text-muted-foreground ml-2">Share</span>
+          </div>
         </div>
 
         {/* Player selection slider */}
@@ -1534,7 +1564,12 @@ export function PropComparisonTable({
           <table className="w-full border-collapse">
             <thead className="sticky top-0 z-30 bg-card">
               <tr className="border-b">
-                <th className="text-left p-4 font-medium text-sm sticky left-0 z-20 bg-card">Player</th>
+                <th className="text-left p-4 font-medium text-sm sticky left-0 z-20 bg-card">
+                  Player
+                  <div className="text-xs text-muted-foreground">
+                    Click row to expand alt lines
+                  </div>
+                </th>
                 <th className="text-center p-4 font-medium text-sm w-24">Line</th>
                 <th className="text-center p-4 font-medium text-sm w-24">Type</th>
                 <th className="text-center p-4 font-medium text-sm w-28">
@@ -1676,11 +1711,11 @@ export function PropComparisonTable({
                           )}
                           {prop.player}
                         </div>
-                        {!isExpanded && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Click to expand alt lines
-                          </div>
-                        )}
+                        <div className="flex items-center mt-1">
+                          {renderShareButton(prop, standardLine)}
+                          {/* We'll log these values from the ShareButton component itself */}
+                          <span className="text-xs text-muted-foreground ml-2">Share</span>
+                        </div>
                       </td>
                       <td className="text-center p-4 font-medium">
                         {standardLine}
@@ -2150,6 +2185,79 @@ export function PropComparisonTable({
           </table>
         </div>
       </div>
+    );
+  };
+
+  // Function to extract SIDs from bookmakers
+  const extractSids = (bookmakers: any[], line: number) => {
+    const sids: Record<string, string> = {};
+    
+    bookmakers.forEach(bookmaker => {
+      if (bookmaker.markets) {
+        const market = bookmaker.markets.find((m: any) => m.key === getMarketApiKey(sport, statType));
+        if (market && market.outcomes) {
+          const overOutcome = market.outcomes.find((o: any) => o.name === "Over" && o.point === line);
+          const underOutcome = market.outcomes.find((o: any) => o.name === "Under" && o.point === line);
+          
+          if (overOutcome && overOutcome.sid) {
+            sids[`${bookmaker.key}_over`] = overOutcome.sid;
+          }
+          if (underOutcome && underOutcome.sid) {
+            sids[`${bookmaker.key}_under`] = underOutcome.sid;
+          }
+        }
+      }
+    });
+    
+    return sids;
+  };
+
+  // Function to extract links from bookmakers
+  const extractLinks = (bookmakers: any[], line: number) => {
+    const links: Record<string, string> = {};
+    
+    bookmakers.forEach(bookmaker => {
+      if (bookmaker.markets) {
+        const market = bookmaker.markets.find((m: any) => m.key === getMarketApiKey(sport, statType));
+        if (market && market.outcomes) {
+          const overOutcome = market.outcomes.find((o: any) => o.name === "Over" && o.point === line);
+          const underOutcome = market.outcomes.find((o: any) => o.name === "Under" && o.point === line);
+          
+          if (overOutcome && overOutcome.link) {
+            links[`${bookmaker.key}_over`] = overOutcome.link;
+          }
+          if (underOutcome && underOutcome.link) {
+            links[`${bookmaker.key}_under`] = underOutcome.link;
+          }
+        }
+      }
+    });
+    
+    return links;
+  };
+
+  // Add a function to render the ShareButton
+  const renderShareButton = (prop: PlayerProp, line: number) => {
+    // Only render if we have game data
+    if (!gameData) return null;
+    
+    return (
+      <ShareButton
+        player={prop.player}
+        line={line}
+        statType={statType}
+        marketKey={getMarketApiKey(sport, statType)}
+        selectedBooks={selectedSportsbooks}
+        odds={prop.bookmakers}
+        sportId={sport}
+        eventId={selectedEventId} // Pass the full event ID 
+        homeTeam={gameData.home_team}
+        awayTeam={gameData.away_team}
+        commence_time={gameData.commence_time}
+        sids={extractSids(prop.bookmakers, line)}
+        links={extractLinks(prop.bookmakers, line)}
+        betType={showType} // Pass the user's selected bet type
+      />
     );
   };
 
