@@ -81,9 +81,6 @@ export function RefreshButton({
       const result = await res.json();
       console.log("Refresh response:", result);
 
-      // Force a complete page reload to get fresh data from the server
-      window.location.href = window.location.href;
-
       toast.success("Odds data refreshed");
     } catch (error) {
       console.error("Error refreshing data:", error);
