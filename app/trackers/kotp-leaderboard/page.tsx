@@ -44,20 +44,36 @@ export default function KOTPLeaderboardPage() {
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
   const [retryTimeout, setRetryTimeout] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState<"hit" | "miss" | "stale" | null>(null);
   const isInitialMount = useRef(true);
 
-  const updateLastUpdated = useCallback(() => {
+  const updateLastUpdated = useCallback((data: any, response: Response) => {
     setLastUpdated(new Date().toLocaleTimeString());
+    
+    // Check if the data came from cache based on headers
+    const cacheHeader = response.headers.get('X-Cache');
+    if (cacheHeader) {
+      setCacheStatus(cacheHeader.toLowerCase() as "hit" | "miss" | "stale");
+    } else {
+      setCacheStatus(null);
+    }
   }, []);
 
   const { data, error, isValidating, mutate } = useSWR(
     "/api/kotp/leaderboard",
-    fetcher,
+    async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        // ... existing error handling ...
+      }
+      const data = await res.json();
+      updateLastUpdated(data, res);
+      return data;
+    },
     {
       refreshInterval: 30000, // 30 seconds
       revalidateOnFocus: false,
       dedupingInterval: 15000,
-      onSuccess: updateLastUpdated,
       onError: (err) => {
         console.error("Error fetching leaderboard data:", err);
         // Check if it's a timeout error (504)
@@ -99,6 +115,35 @@ export default function KOTPLeaderboardPage() {
       errorMessage = "The NBA API is taking too long to respond. This might be due to high traffic or maintenance.";
     }
   }
+
+  // Format and display cache status if available
+  const getCacheStatusDisplay = () => {
+    if (!cacheStatus) return null;
+    
+    let statusText = "";
+    let statusClass = "";
+    
+    switch (cacheStatus) {
+      case "hit":
+        statusText = "From cache";
+        statusClass = "text-green-600 dark:text-green-400";
+        break;
+      case "miss":
+        statusText = "Fresh data";
+        statusClass = "text-blue-600 dark:text-blue-400";
+        break;
+      case "stale":
+        statusText = "Stale cache";
+        statusClass = "text-amber-600 dark:text-amber-400";
+        break;
+    }
+    
+    return (
+      <span className={`ml-2 text-xs ${statusClass}`}>
+        ({statusText})
+      </span>
+    );
+  };
 
   if (error) {
     return (
@@ -185,15 +230,15 @@ export default function KOTPLeaderboardPage() {
               <p className="text-muted-foreground mt-2">
                 Track which NBA players are scoring the most points in the{" "}
                 {data ? (
-  <Badge variant="outline" className="font-medium">
-    {playoffRound}
-  </Badge>
-) : (
-  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
-    Loading...
-  </span>
-)}
-{" "}
+                  <Badge variant="outline" className="font-medium">
+                    {playoffRound}
+                  </Badge>
+                ) : (
+                  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                )}
+                {" "}
                 of the playoffs.{" "}
                 <a
                   href="/kotp"
@@ -204,18 +249,24 @@ export default function KOTPLeaderboardPage() {
                 </a>
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="self-center md:self-auto"
-              disabled={isValidating}
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${isValidating ? "animate-spin" : ""}`}
-              />
-              Refresh Data
-            </Button>
+            <div className="flex flex-col items-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="self-center md:self-auto"
+                disabled={isValidating}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isValidating ? "animate-spin" : ""}`}
+                />
+                Refresh Data
+              </Button>
+              <div className="text-xs text-muted-foreground mt-1.5">
+                <span>Updated: {lastUpdated}</span>
+                {getCacheStatusDisplay()}
+              </div>
+            </div>
           </div>
         </div>
       </motion.section>

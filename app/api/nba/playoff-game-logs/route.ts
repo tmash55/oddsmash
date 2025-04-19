@@ -1,7 +1,15 @@
 // /app/api/playoff-game-logs/route.ts
 import { NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
 
 export const dynamic = 'force-dynamic';
+
+// Initialize Redis client
+const redis = Redis.fromEnv();
+
+// Redis cache key
+const CACHE_KEY = "nba_playoff_game_logs";
+const CACHE_TTL = 60 * 5; // 5 minutes in seconds
 
 // Helper function to fetch with timeout
 async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
@@ -24,9 +32,23 @@ async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
 }
 
 export async function GET() {
-  const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
-
   try {
+    // Try to get data from Redis cache first
+    const cachedData = await redis.get(CACHE_KEY);
+    
+    if (cachedData) {
+      console.log("Using cached NBA playoff game logs data");
+      return NextResponse.json(cachedData, {
+        headers: {
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        }
+      });
+    }
+    
+    console.log("Cache miss - fetching fresh NBA playoff game logs data");
+    // If not in cache, fetch from NBA API
+    const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
+
     const response = await fetchWithTimeout(
       url,
       {
@@ -108,6 +130,10 @@ export async function GET() {
       );
     }
 
+    // Store the data in Redis cache
+    await redis.set(CACHE_KEY, data, { ex: CACHE_TTL });
+    console.log("Stored NBA playoff game logs data in cache");
+
     // Return the successful response
     return NextResponse.json(data, {
       headers: {
@@ -118,6 +144,23 @@ export async function GET() {
     // Check if this is a timeout error
     if (error instanceof Error && error.name === 'AbortError') {
       console.error("NBA API request timed out");
+      
+      // Try to get stale data from cache even if expired
+      try {
+        const staleData = await redis.get(CACHE_KEY);
+        if (staleData) {
+          console.log("Using stale cache data after timeout");
+          return NextResponse.json(staleData, {
+            headers: {
+              'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+              'X-Cache': 'STALE'
+            }
+          });
+        }
+      } catch (redisError) {
+        console.error("Failed to fetch stale data from cache:", redisError);
+      }
+      
       return NextResponse.json(
         { 
           error: "NBA API request timed out. Please try again later.",

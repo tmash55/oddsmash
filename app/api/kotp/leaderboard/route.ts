@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
 
 // Make this route dynamic instead of static
 export const dynamic = 'force-dynamic';
+
+// Initialize Redis client
+const redis = Redis.fromEnv();
+
+// Redis cache keys and TTL
+const GAMELOG_CACHE_KEY = "kotp_playoff_game_logs";
+const LEADERBOARD_CACHE_KEY = "kotp_leaderboard";
+const SCOREBOARD_CACHE_KEY = "kotp_scoreboard";
+const CACHE_TTL = 60 * 5; // 5 minutes in seconds
+const SCOREBOARD_CACHE_TTL = 60; // 1 minute for more frequent updates
 
 type PlayerGameLog = {
   playerId: string;
@@ -68,6 +79,16 @@ async function fetchPlayoffGameLogs() {
   const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2024-25&SeasonType=Playoffs&Sorter=DATE";
 
   try {
+    // Try to get data from Redis cache first
+    const cachedLogs = await redis.get(GAMELOG_CACHE_KEY) as PlayerGameLog[] | null;
+    
+    if (cachedLogs) {
+      console.log("Using cached playoff game logs data");
+      return cachedLogs;
+    }
+    
+    console.log("Cache miss - fetching fresh playoff game logs data");
+    
     const response = await fetchWithTimeout(
       url,
       {
@@ -126,11 +147,23 @@ async function fetchPlayoffGameLogs() {
       winLoss: row[wlIndex],
     }));
 
+    // Store in Redis cache
+    await redis.set(GAMELOG_CACHE_KEY, gameLogs, { ex: CACHE_TTL });
+    console.log("Stored playoff game logs in cache");
+    
     return gameLogs;
   } catch (error) {
     // Check if this is a timeout error
     if (error instanceof Error && error.name === 'AbortError') {
       console.error("NBA API request timed out:", error);
+      
+      // Try to get stale data from cache
+      const staleLogs = await redis.get(GAMELOG_CACHE_KEY) as PlayerGameLog[] | null;
+      if (staleLogs) {
+        console.log("Using stale playoff game logs after timeout");
+        return staleLogs;
+      }
+      
       throw new Error("NBA API request timed out. Please try again later.");
     }
     
@@ -141,6 +174,16 @@ async function fetchPlayoffGameLogs() {
 
 async function fetchScoreboard() {
   try {
+    // Try to get data from Redis cache first
+    const cachedScoreboard = await redis.get(SCOREBOARD_CACHE_KEY) as any;
+    
+    if (cachedScoreboard) {
+      console.log("Using cached scoreboard data");
+      return cachedScoreboard;
+    }
+    
+    console.log("Cache miss - fetching fresh scoreboard data");
+    
     const res = await fetchWithTimeout(
       "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
       {
@@ -170,11 +213,24 @@ async function fetchScoreboard() {
     }
     
     const data = await res.json();
+    
+    // Store in Redis cache with shorter TTL since it updates more frequently
+    await redis.set(SCOREBOARD_CACHE_KEY, data.scoreboard, { ex: SCOREBOARD_CACHE_TTL });
+    console.log("Stored scoreboard data in cache");
+    
     return data.scoreboard;
   } catch (error) {
     // Check if this is a timeout error
     if (error instanceof Error && error.name === 'AbortError') {
       console.error("NBA Scoreboard API request timed out:", error);
+      
+      // Try to get stale data from cache
+      const staleScoreboard = await redis.get(SCOREBOARD_CACHE_KEY) as any;
+      if (staleScoreboard) {
+        console.log("Using stale scoreboard data after timeout");
+        return staleScoreboard;
+      }
+      
       return { games: [] };
     }
     
@@ -241,6 +297,24 @@ function getPlayerTeam(player: any): string {
 
 export async function GET() {
   try {
+    // Try to get the complete leaderboard from Redis cache first
+    const cachedLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as any;
+    
+    if (cachedLeaderboard) {
+      console.log("Using cached KOTP leaderboard data");
+      return NextResponse.json(
+        cachedLeaderboard,
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+            'X-Cache': 'HIT'
+          }
+        }
+      );
+    }
+    
+    console.log("Cache miss - generating fresh KOTP leaderboard");
+    
     // Get today's date in the format used by NBA APIs
     const today = formatDateToNBAFormat(new Date());
     
@@ -255,118 +329,124 @@ export async function GET() {
     const opponentsByTeam = new Map<string, string>(); // Track opponent team IDs
     
     // Process completed games from playoff game logs
-    playoffGameLogs.forEach(game => {
-      // Parse matchup to determine teams
-      // Example matchup: "LAL vs. DEN" or "LAL @ DEN"
-      const matchupParts = game.matchup.split(/\s+@\s+|\s+vs\.\s+/);
-      const isHomeTeam = game.matchup.includes("vs.");
-      const playerTeam = game.teamAbbreviation;
-      const opponentTeam = isHomeTeam ? matchupParts[1] : matchupParts[0];
-      
-      // Create a unique series key for each matchup
-      const seriesKey = [playerTeam, opponentTeam].sort().join('-vs-');
-      
-      // Track team's opponent for series tracking
-      if (!opponentsByTeam.has(playerTeam)) {
-        opponentsByTeam.set(playerTeam, opponentTeam);
-      }
-      
-      // Initialize team series record if needed
-      if (!teamSeriesRecords.has(seriesKey)) {
-        // Initialize the series record for both teams
-        teamSeriesRecords.set(seriesKey, {
-          [playerTeam]: {
-            wins: 0,
-            losses: 0,
-            eliminated: false,
-            advanced: false
-          },
-          [opponentTeam]: {
-            wins: 0,
-            losses: 0,
-            eliminated: false,
-            advanced: false
-          }
-        });
-      }
-      
-      // Update series record based on win/loss
-      const seriesRecord = teamSeriesRecords.get(seriesKey)!;
-      if (game.winLoss === "W") {
-        // Player's team won, so increment their wins and opponent's losses
-        seriesRecord[playerTeam].wins += 1;
-        seriesRecord[opponentTeam].losses += 1;
-      } else if (game.winLoss === "L") {
-        // Player's team lost, so increment their losses and opponent's wins
-        seriesRecord[playerTeam].losses += 1;
-        seriesRecord[opponentTeam].wins += 1;
-      }
-      
-      // Check if team is eliminated (lost 4 games) or advanced (won 4 games)
-      if (seriesRecord[playerTeam].wins === 4) {
-        seriesRecord[playerTeam].advanced = true;
-        seriesRecord[opponentTeam].eliminated = true;
-      } else if (seriesRecord[playerTeam].losses === 4) {
-        seriesRecord[playerTeam].eliminated = true;
-        seriesRecord[opponentTeam].advanced = true;
-      }
-      
-      if (!playerMap.has(game.playerId)) {
-        playerMap.set(game.playerId, {
-          personId: game.playerId,
-          name: game.playerName,
-          teamTricode: game.teamAbbreviation,
-          points: 0,
-          livePts: 0,
-          totalPts: 0,
-          gamesPlayed: 0,
-          ppg: 0,
-          gameStatus: "Completed",
-          liveMatchup: "",
-          isPlaying: false,
-          oncourt: false,
-          playedToday: false,
-          seriesRecord: { 
-            wins: seriesRecord[playerTeam].wins, 
-            losses: seriesRecord[playerTeam].losses, 
-            eliminated: seriesRecord[playerTeam].eliminated,
-            advanced: seriesRecord[playerTeam].advanced
-          },
-        });
-      }
-      
-      const player = playerMap.get(game.playerId)!;
-      player.points += game.points;
-      player.gamesPlayed += 1;
-      
-      // Update player's series record
-      player.seriesRecord = { 
-        wins: seriesRecord[playerTeam].wins, 
-        losses: seriesRecord[playerTeam].losses, 
-        eliminated: seriesRecord[playerTeam].eliminated,
-        advanced: seriesRecord[playerTeam].advanced
-      };
-      
-      // Check if this game is from today
-      const isToday = game.gameDate === today;
-      
-      // If game is from today, also track as today's points
-      if (isToday) {
-        player.livePts = game.points;
-        player.playedToday = true;
-        player.liveMatchup = game.matchup;
-        player.gameStatus = "Completed";
-      }
-      
-      player.ppg = parseFloat((player.points / player.gamesPlayed).toFixed(1));
-    });
+    if (Array.isArray(playoffGameLogs)) {
+      playoffGameLogs.forEach((game: PlayerGameLog) => {
+        // Parse matchup to determine teams
+        // Example matchup: "LAL vs. DEN" or "LAL @ DEN"
+        const matchupParts = game.matchup.split(/\s+@\s+|\s+vs\.\s+/);
+        const isHomeTeam = game.matchup.includes("vs.");
+        const playerTeam = game.teamAbbreviation;
+        const opponentTeam = isHomeTeam ? matchupParts[1] : matchupParts[0];
+        
+        // Create a unique series key for each matchup
+        const seriesKey = [playerTeam, opponentTeam].sort().join('-vs-');
+        
+        // Track team's opponent for series tracking
+        if (!opponentsByTeam.has(playerTeam)) {
+          opponentsByTeam.set(playerTeam, opponentTeam);
+        }
+        
+        // Initialize team series record if needed
+        if (!teamSeriesRecords.has(seriesKey)) {
+          // Initialize the series record for both teams
+          teamSeriesRecords.set(seriesKey, {
+            [playerTeam]: {
+              wins: 0,
+              losses: 0,
+              eliminated: false,
+              advanced: false
+            },
+            [opponentTeam]: {
+              wins: 0,
+              losses: 0,
+              eliminated: false,
+              advanced: false
+            }
+          });
+        }
+        
+        // Update series record based on win/loss
+        const seriesRecord = teamSeriesRecords.get(seriesKey)!;
+        if (game.winLoss === "W") {
+          // Player's team won, so increment their wins and opponent's losses
+          seriesRecord[playerTeam].wins += 1;
+          seriesRecord[opponentTeam].losses += 1;
+        } else if (game.winLoss === "L") {
+          // Player's team lost, so increment their losses and opponent's wins
+          seriesRecord[playerTeam].losses += 1;
+          seriesRecord[opponentTeam].wins += 1;
+        }
+        
+        // Check if team is eliminated (lost 4 games) or advanced (won 4 games)
+        if (seriesRecord[playerTeam].wins === 4) {
+          seriesRecord[playerTeam].advanced = true;
+          seriesRecord[opponentTeam].eliminated = true;
+        } else if (seriesRecord[playerTeam].losses === 4) {
+          seriesRecord[playerTeam].eliminated = true;
+          seriesRecord[opponentTeam].advanced = true;
+        }
+        
+        if (!playerMap.has(game.playerId)) {
+          playerMap.set(game.playerId, {
+            personId: game.playerId,
+            name: game.playerName,
+            teamTricode: game.teamAbbreviation,
+            points: 0,
+            livePts: 0,
+            totalPts: 0,
+            gamesPlayed: 0,
+            ppg: 0,
+            gameStatus: "Completed",
+            liveMatchup: "",
+            isPlaying: false,
+            oncourt: false,
+            playedToday: false,
+            seriesRecord: { 
+              wins: seriesRecord[playerTeam].wins, 
+              losses: seriesRecord[playerTeam].losses, 
+              eliminated: seriesRecord[playerTeam].eliminated,
+              advanced: seriesRecord[playerTeam].advanced
+            },
+          });
+        }
+        
+        const player = playerMap.get(game.playerId)!;
+        player.points += game.points;
+        player.gamesPlayed += 1;
+        
+        // Update player's series record
+        player.seriesRecord = { 
+          wins: seriesRecord[playerTeam].wins, 
+          losses: seriesRecord[playerTeam].losses, 
+          eliminated: seriesRecord[playerTeam].eliminated,
+          advanced: seriesRecord[playerTeam].advanced
+        };
+        
+        // Check if this game is from today
+        const isToday = game.gameDate === today;
+        
+        // If game is from today, also track as today's points
+        if (isToday) {
+          player.livePts = game.points;
+          player.playedToday = true;
+          player.liveMatchup = game.matchup;
+          player.gameStatus = "Completed";
+        }
+        
+        player.ppg = parseFloat((player.points / player.gamesPlayed).toFixed(1));
+      });
+    }
     
     // 3. Get live game data and add points from active games
     const scoreboard = await fetchScoreboard();
     let allGamesFinal = true;
     
     // Collect all game IDs from the playoff game logs
-    const completedGameIds = new Set(playoffGameLogs.map(log => log.gameId));
+    const completedGameIds = new Set(
+      Array.isArray(playoffGameLogs) 
+        ? playoffGameLogs.map((log: PlayerGameLog) => log.gameId) 
+        : []
+    );
     
     // Process live games
     for (const game of scoreboard.games) {
@@ -502,22 +582,50 @@ export async function GET() {
     const leaderboardPlayers = Array.from(playerMap.values())
       .sort((a, b) => b.totalPts - a.totalPts);
     
+    // Create the complete response object
+    const leaderboardResponse = {
+      players: leaderboardPlayers,
+      allGamesFinal,
+      playoffRound: "Round 1",
+      lastUpdated: new Date().toISOString(),
+    };
+    
+    // Store the complete response in Redis cache
+    await redis.set(LEADERBOARD_CACHE_KEY, leaderboardResponse, { ex: CACHE_TTL });
+    console.log("Stored KOTP leaderboard in cache");
+    
     // Return the response with proper caching headers
     return NextResponse.json(
-      {
-        players: leaderboardPlayers,
-        allGamesFinal,
-        playoffRound: "Round 1",
-        lastUpdated: new Date().toISOString(),
-      },
+      leaderboardResponse,
       {
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'X-Cache': 'MISS'
         }
       }
     );
   } catch (error) {
     console.error("Error generating leaderboard:", error);
+    
+    // Try to get stale data from cache if there's an error
+    try {
+      const staleLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY);
+      if (staleLeaderboard) {
+        console.log("Using stale leaderboard data after error");
+        return NextResponse.json(
+          staleLeaderboard,
+          {
+            headers: {
+              'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+              'X-Cache': 'STALE'
+            }
+          }
+        );
+      }
+    } catch (redisError) {
+      console.error("Failed to fetch stale data from cache:", redisError);
+    }
+    
     return NextResponse.json(
       { error: "Failed to generate leaderboard" },
       { 
