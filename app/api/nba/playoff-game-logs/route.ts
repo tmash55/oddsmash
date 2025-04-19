@@ -1,6 +1,8 @@
 // /app/api/playoff-game-logs/route.ts
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
 
@@ -17,9 +19,21 @@ export async function GET() {
     });
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+      }
+    });
   } catch (error) {
     console.error("Failed to fetch NBA data", error);
-    return NextResponse.json({ error: "Failed to fetch NBA data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch NBA data" }, 
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store'
+        }
+      }
+    );
   }
 }

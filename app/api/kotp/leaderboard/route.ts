@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Make this route dynamic instead of static
+export const dynamic = 'force-dynamic';
+
 type PlayerGameLog = {
   playerId: string;
   playerName: string;
@@ -17,6 +20,11 @@ type SeriesRecord = {
   losses: number;
   eliminated: boolean;
   advanced: boolean;
+};
+
+// New type for tracking series between two teams
+type TeamSeriesMap = {
+  [teamId: string]: SeriesRecord;
 };
 
 type Player = {
@@ -37,7 +45,7 @@ type Player = {
 };
 
 async function fetchPlayoffGameLogs() {
-  const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2024-25&SeasonType=Playoffs&Sorter=DATE";
+  const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
 
   try {
     const response = await fetch(url, {
@@ -173,7 +181,7 @@ export async function GET() {
     const playerMap = new Map<string, Player>();
     
     // Track series records by team ID
-    const teamSeriesRecords = new Map<string, SeriesRecord>();
+    const teamSeriesRecords = new Map<string, TeamSeriesMap>();
     const opponentsByTeam = new Map<string, string>(); // Track opponent team IDs
     
     // Process completed games from playoff game logs
@@ -185,44 +193,52 @@ export async function GET() {
       const playerTeam = game.teamAbbreviation;
       const opponentTeam = isHomeTeam ? matchupParts[1] : matchupParts[0];
       
+      // Create a unique series key for each matchup
+      const seriesKey = [playerTeam, opponentTeam].sort().join('-vs-');
+      
       // Track team's opponent for series tracking
       if (!opponentsByTeam.has(playerTeam)) {
         opponentsByTeam.set(playerTeam, opponentTeam);
       }
       
       // Initialize team series record if needed
-      if (!teamSeriesRecords.has(playerTeam)) {
-        teamSeriesRecords.set(playerTeam, {
-          wins: 0,
-          losses: 0,
-          eliminated: false,
-          advanced: false
+      if (!teamSeriesRecords.has(seriesKey)) {
+        // Initialize the series record for both teams
+        teamSeriesRecords.set(seriesKey, {
+          [playerTeam]: {
+            wins: 0,
+            losses: 0,
+            eliminated: false,
+            advanced: false
+          },
+          [opponentTeam]: {
+            wins: 0,
+            losses: 0,
+            eliminated: false,
+            advanced: false
+          }
         });
       }
       
       // Update series record based on win/loss
-      const seriesRecord = teamSeriesRecords.get(playerTeam)!;
+      const seriesRecord = teamSeriesRecords.get(seriesKey)!;
       if (game.winLoss === "W") {
-        seriesRecord.wins += 1;
+        // Player's team won, so increment their wins and opponent's losses
+        seriesRecord[playerTeam].wins += 1;
+        seriesRecord[opponentTeam].losses += 1;
       } else if (game.winLoss === "L") {
-        seriesRecord.losses += 1;
+        // Player's team lost, so increment their losses and opponent's wins
+        seriesRecord[playerTeam].losses += 1;
+        seriesRecord[opponentTeam].wins += 1;
       }
       
       // Check if team is eliminated (lost 4 games) or advanced (won 4 games)
-      if (seriesRecord.wins === 4) {
-        seriesRecord.advanced = true;
-        
-        // Also mark opponent as eliminated
-        if (opponentsByTeam.has(playerTeam) && teamSeriesRecords.has(opponentsByTeam.get(playerTeam)!)) {
-          teamSeriesRecords.get(opponentsByTeam.get(playerTeam)!)!.eliminated = true;
-        }
-      } else if (seriesRecord.losses === 4) {
-        seriesRecord.eliminated = true;
-        
-        // Also mark opponent as advanced
-        if (opponentsByTeam.has(playerTeam) && teamSeriesRecords.has(opponentsByTeam.get(playerTeam)!)) {
-          teamSeriesRecords.get(opponentsByTeam.get(playerTeam)!)!.advanced = true;
-        }
+      if (seriesRecord[playerTeam].wins === 4) {
+        seriesRecord[playerTeam].advanced = true;
+        seriesRecord[opponentTeam].eliminated = true;
+      } else if (seriesRecord[playerTeam].losses === 4) {
+        seriesRecord[playerTeam].eliminated = true;
+        seriesRecord[opponentTeam].advanced = true;
       }
       
       if (!playerMap.has(game.playerId)) {
@@ -240,11 +256,11 @@ export async function GET() {
           isPlaying: false,
           oncourt: false,
           playedToday: false,
-          seriesRecord: teamSeriesRecords.get(game.teamAbbreviation) || { 
-            wins: 0, 
-            losses: 0, 
-            eliminated: false,
-            advanced: false
+          seriesRecord: { 
+            wins: seriesRecord[playerTeam].wins, 
+            losses: seriesRecord[playerTeam].losses, 
+            eliminated: seriesRecord[playerTeam].eliminated,
+            advanced: seriesRecord[playerTeam].advanced
           },
         });
       }
@@ -254,7 +270,12 @@ export async function GET() {
       player.gamesPlayed += 1;
       
       // Update player's series record
-      player.seriesRecord = teamSeriesRecords.get(game.teamAbbreviation) || player.seriesRecord;
+      player.seriesRecord = { 
+        wins: seriesRecord[playerTeam].wins, 
+        losses: seriesRecord[playerTeam].losses, 
+        eliminated: seriesRecord[playerTeam].eliminated,
+        advanced: seriesRecord[playerTeam].advanced
+      };
       
       // Check if this game is from today
       const isToday = game.gameDate === today;
@@ -338,6 +359,10 @@ export async function GET() {
             teamTricode = playerTeamMap.get(playerId)!;
           }
           
+          // Find opponent team and series key
+          const opponentTeam = opponentsByTeam.get(teamTricode);
+          const seriesKey = opponentTeam ? [teamTricode, opponentTeam].sort().join('-vs-') : null;
+          
           // Get or create player record
           if (!playerMap.has(playerId)) {
             // Create new player record with team info from the boxscore
@@ -355,12 +380,19 @@ export async function GET() {
               isPlaying: false,
               oncourt: false,
               playedToday: false,
-              seriesRecord: teamSeriesRecords.get(teamTricode) || {
-                wins: 0,
-                losses: 0,
-                eliminated: false,
-                advanced: false
-              },
+              seriesRecord: (seriesKey && teamSeriesRecords.get(seriesKey)) 
+                ? { 
+                    wins: teamSeriesRecords.get(seriesKey)![teamTricode].wins, 
+                    losses: teamSeriesRecords.get(seriesKey)![teamTricode].losses, 
+                    eliminated: teamSeriesRecords.get(seriesKey)![teamTricode].eliminated,
+                    advanced: teamSeriesRecords.get(seriesKey)![teamTricode].advanced
+                  }
+                : {
+                    wins: 0,
+                    losses: 0,
+                    eliminated: false,
+                    advanced: false
+                  },
             });
           } else if (!playerMap.get(playerId)!.teamTricode && teamTricode) {
             // If we already have the player but no team info, update it
@@ -400,17 +432,30 @@ export async function GET() {
     const leaderboardPlayers = Array.from(playerMap.values())
       .sort((a, b) => b.totalPts - a.totalPts);
     
-    return NextResponse.json({
-      players: leaderboardPlayers,
-      allGamesFinal,
-      playoffRound: "Round 1",
-      lastUpdated: new Date().toISOString(),
-    });
+    // Return the response with proper caching headers
+    return NextResponse.json(
+      {
+        players: leaderboardPlayers,
+        allGamesFinal,
+        playoffRound: "Round 1",
+        lastUpdated: new Date().toISOString(),
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        }
+      }
+    );
   } catch (error) {
     console.error("Error generating leaderboard:", error);
     return NextResponse.json(
       { error: "Failed to generate leaderboard" },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store'
+        }
+      }
     );
   }
 } 
