@@ -3,21 +3,44 @@ import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 
+// Helper function to fetch with timeout
+async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, { 
+      ...options, 
+      signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 export async function GET() {
   const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Referer": "https://www.nba.com/",
-        "Accept": "application/json",
-        "Origin": "https://www.nba.com",
-        "x-nba-stats-origin": "stats",
-        "x-nba-stats-token": "true",
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "Referer": "https://www.nba.com/",
+          "Accept": "application/json",
+          "Origin": "https://www.nba.com",
+          "x-nba-stats-origin": "stats",
+          "x-nba-stats-token": "true",
+        },
       },
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    });
+      20000 // 20 second timeout - give it a bit more time
+    );
 
     // Check if response is OK
     if (!response.ok) {
@@ -92,6 +115,23 @@ export async function GET() {
       }
     });
   } catch (error) {
+    // Check if this is a timeout error
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("NBA API request timed out");
+      return NextResponse.json(
+        { 
+          error: "NBA API request timed out. Please try again later.",
+          timeout: true
+        }, 
+        { 
+          status: 504,
+          headers: {
+            'Cache-Control': 'no-store'
+          }
+        }
+      );
+    }
+    
     // Handle general errors
     console.error("Failed to fetch NBA data", error);
     return NextResponse.json(

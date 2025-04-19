@@ -10,34 +10,40 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    // Try to extract error information
-    let errorInfo = "";
-    try {
-      const errorData = await res.json();
-      errorInfo = errorData.error || errorData.message || "Unknown error";
-      if (errorData.details) {
-        errorInfo += `: ${errorData.details}`;
-      }
-    } catch (e) {
-      // If we can't parse JSON, try to get the text
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      // Try to extract error information
+      let errorInfo = "";
       try {
-        errorInfo = await res.text();
-        errorInfo = errorInfo.substring(0, 200); // Limit length
-      } catch (textError) {
-        errorInfo = `Status ${res.status} ${res.statusText}`;
+        const errorData = await res.json();
+        errorInfo = errorData.error || errorData.message || "Unknown error";
+        if (errorData.details) {
+          errorInfo += `: ${errorData.details}`;
+        }
+      } catch (e) {
+        // If we can't parse JSON, try to get the text
+        try {
+          errorInfo = await res.text();
+          errorInfo = errorInfo.substring(0, 200); // Limit length
+        } catch (textError) {
+          errorInfo = `Status ${res.status} ${res.statusText}`;
+        }
       }
+      
+      throw new Error(errorInfo);
     }
-    
-    throw new Error(errorInfo);
+    return res.json();
+  } catch (error) {
+    console.error("Fetch error:", error);
+    throw error;
   }
-  return res.json();
 };
 
 export default function KOTPLeaderboardPage() {
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
+  const [retryTimeout, setRetryTimeout] = useState(false);
   const isInitialMount = useRef(true);
 
   const updateLastUpdated = useCallback(() => {
@@ -54,6 +60,10 @@ export default function KOTPLeaderboardPage() {
       onSuccess: updateLastUpdated,
       onError: (err) => {
         console.error("Error fetching leaderboard data:", err);
+        // Check if it's a timeout error (504)
+        if (err.message?.includes("Status 504")) {
+          setRetryTimeout(true);
+        }
       },
       errorRetryCount: 3, // Retry up to 3 times automatically
     }
@@ -73,6 +83,7 @@ export default function KOTPLeaderboardPage() {
 
   const handleRefresh = () => {
     setRetryCount(prev => prev + 1);
+    setRetryTimeout(false);
     mutate();
   };
 
@@ -84,16 +95,62 @@ export default function KOTPLeaderboardPage() {
       errorMessage = "NBA API is currently unavailable. Please try again later.";
     } else if (errorMessage.includes("Invalid JSON")) {
       errorMessage = "The NBA data service returned an invalid response. Please try again later.";
+    } else if (errorMessage.includes("Status 504") || retryTimeout) {
+      errorMessage = "The NBA API is taking too long to respond. This might be due to high traffic or maintenance.";
     }
   }
 
   if (error) {
     return (
       <div className="w-full">
+        <motion.section
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 md:mb-8"
+        >
+          <div className="space-y-2 text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  NBA Playoff Points Leaderboard
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                  Track which NBA players are scoring the most points in the{" "}
+                  {data ? (
+  <Badge variant="outline" className="font-medium">
+    {playoffRound}
+  </Badge>
+) : (
+  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
+    Loading...
+  </span>
+)}
+{" "}
+                  of the playoffs.{" "}
+                  <a
+                    href="/kotp"
+                    className="text-primary hover:underline inline-flex items-center"
+                  >
+                    Learn more about KOTP
+                    <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+        
         <Alert variant="destructive">
           <AlertTitle>Unable to load NBA playoff data</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>{errorMessage}</p>
+            {(retryTimeout || errorMessage.includes("504")) && (
+              <p className="text-sm mt-2">
+                The NBA data service might be experiencing high traffic or maintenance.
+                Try again in a few moments or check back later.
+              </p>
+            )}
             <div className="pt-2">
               <Button 
                 variant="secondary" 
@@ -127,9 +184,16 @@ export default function KOTPLeaderboardPage() {
               </h1>
               <p className="text-muted-foreground mt-2">
                 Track which NBA players are scoring the most points in the{" "}
-                <Badge variant="outline" className="font-medium">
-                  {playoffRound}
-                </Badge>{" "}
+                {data ? (
+  <Badge variant="outline" className="font-medium">
+    {playoffRound}
+  </Badge>
+) : (
+  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
+    Loading...
+  </span>
+)}
+{" "}
                 of the playoffs.{" "}
                 <a
                   href="/kotp"
@@ -156,7 +220,7 @@ export default function KOTPLeaderboardPage() {
         </div>
       </motion.section>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {isValidating && !data ? (
           <motion.div
             key="loading"
@@ -172,6 +236,7 @@ export default function KOTPLeaderboardPage() {
             key="nodata"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <Alert className="mb-6">
@@ -203,6 +268,7 @@ export default function KOTPLeaderboardPage() {
             key="dashboard"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <KOTPDashboard

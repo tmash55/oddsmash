@@ -167,8 +167,8 @@ export default function PlayerGameLogModal({
       const game = payload[0].payload;
       return (
         <div className="bg-white dark:bg-gray-900 p-3 rounded-md shadow-md border border-gray-200 dark:border-gray-800">
-          <p className="font-medium">{game.displayDate} vs {game.opponent}</p>
-          <p className="text-lg font-bold">{game.points} PTS</p>
+          <div className="font-medium">{game.displayDate} vs {game.opponent}</div>
+          <div className="text-lg font-bold">{game.points} PTS</div>
           <span className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold mt-1 ${
             game.winLoss === "W"
               ? "border-transparent bg-primary text-primary-foreground shadow"

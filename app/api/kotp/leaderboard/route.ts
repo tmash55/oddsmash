@@ -44,21 +44,45 @@ type Player = {
   seriesRecord: SeriesRecord; // Playoff series record
 };
 
+// Helper function to fetch with timeout
+async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, { 
+      ...options, 
+      signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 async function fetchPlayoffGameLogs() {
   const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Referer": "https://www.nba.com/",
-        "Accept": "application/json",
-        "Origin": "https://www.nba.com",
-        "x-nba-stats-origin": "stats",
-        "x-nba-stats-token": "true",
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "Referer": "https://www.nba.com/",
+          "Accept": "application/json",
+          "Origin": "https://www.nba.com",
+          "x-nba-stats-origin": "stats",
+          "x-nba-stats-token": "true",
+        },
+        next: { revalidate: 300 }, // Cache for 5 minutes
       },
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    });
+      15000 // 15 second timeout
+    );
 
     if (!response.ok) {
       let errorText = "";
@@ -104,6 +128,12 @@ async function fetchPlayoffGameLogs() {
 
     return gameLogs;
   } catch (error) {
+    // Check if this is a timeout error
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("NBA API request timed out:", error);
+      throw new Error("NBA API request timed out. Please try again later.");
+    }
+    
     console.error("Error fetching playoff game logs:", error);
     return [];
   }
@@ -111,7 +141,7 @@ async function fetchPlayoffGameLogs() {
 
 async function fetchScoreboard() {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
       {
         next: { revalidate: 60 },
@@ -123,7 +153,8 @@ async function fetchScoreboard() {
           "Cache-Control": "no-cache",
           "Pragma": "no-cache",
         },
-      }
+      },
+      10000 // 10 second timeout
     );
     
     if (!res.ok) {
@@ -141,6 +172,12 @@ async function fetchScoreboard() {
     const data = await res.json();
     return data.scoreboard;
   } catch (error) {
+    // Check if this is a timeout error
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("NBA Scoreboard API request timed out:", error);
+      return { games: [] };
+    }
+    
     console.error("Error fetching scoreboard:", error);
     return { games: [] };
   }
