@@ -262,10 +262,7 @@ export default function KOTPLeaderboardPage() {
                 />
                 Refresh Data
               </Button>
-              <div className="text-xs text-muted-foreground mt-1.5">
-                <span>Updated: {lastUpdated}</span>
-                {getCacheStatusDisplay()}
-              </div>
+              
             </div>
           </div>
         </div>
