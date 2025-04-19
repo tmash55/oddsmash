@@ -69,9 +69,33 @@ export default function PlayerGameLogModal({
       setError(null);
       
       // Fetch the playoff game logs
-      const response = await fetch("/api/nba/playoff-game-logs");
+      const response = await fetch("/api/nba/playoff-game-logs", {
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error("Failed to fetch game logs");
+        // Try to parse the error as JSON
+        let errorMessage = `Failed to fetch game logs (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage += `: ${errorData.error}`;
+          }
+        } catch (e) {
+          // If we can't parse JSON, try to get the text
+          try {
+            const errorText = await response.text();
+            errorMessage += `: ${errorText.substring(0, 100)}...`;
+          } catch (textError) {
+            // Fallback to generic error
+            errorMessage += `: ${response.statusText}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();

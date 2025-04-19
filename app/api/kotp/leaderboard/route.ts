@@ -45,22 +45,31 @@ type Player = {
 };
 
 async function fetchPlayoffGameLogs() {
-  const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2024-25&SeasonType=Playoffs&Sorter=DATE";
+  const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
 
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Referer": "https://www.nba.com/",
         "Accept": "application/json",
+        "Origin": "https://www.nba.com",
         "x-nba-stats-origin": "stats",
         "x-nba-stats-token": "true",
       },
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 300 }, // Cache for 5 minutes
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch playoff game logs: ${response.status}`);
+      let errorText = "";
+      try {
+        errorText = await response.text();
+        errorText = errorText.substring(0, 200); // Just a preview of the error
+      } catch (e) {
+        errorText = "Could not read error response";
+      }
+      
+      throw new Error(`Failed to fetch playoff game logs: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -107,16 +116,28 @@ async function fetchScoreboard() {
       {
         next: { revalidate: 60 },
         headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "Referer": "https://www.nba.com/",
+          "Accept": "application/json",
+          "Origin": "https://www.nba.com",
           "Cache-Control": "no-cache",
-          Pragma: "no-cache",
+          "Pragma": "no-cache",
         },
       }
     );
+    
     if (!res.ok) {
-      throw new Error(
-        `Failed to fetch scoreboard: ${res.status} ${res.statusText}`
-      );
+      let errorText = "";
+      try {
+        errorText = await res.text();
+        errorText = errorText.substring(0, 200); // Just a preview of the error
+      } catch (e) {
+        errorText = "Could not read error response";
+      }
+      
+      throw new Error(`Failed to fetch scoreboard: ${res.status} - ${errorText}`);
     }
+    
     const data = await res.json();
     return data.scoreboard;
   } catch (error) {
@@ -132,16 +153,28 @@ async function fetchBoxscore(gameId: string) {
       {
         next: { revalidate: 60 },
         headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "Referer": "https://www.nba.com/",
+          "Accept": "application/json",
+          "Origin": "https://www.nba.com",
           "Cache-Control": "no-cache",
-          Pragma: "no-cache",
+          "Pragma": "no-cache",
         },
       }
     );
+    
     if (!res.ok) {
-      throw new Error(
-        `Failed to fetch boxscore: ${res.status} ${res.statusText}`
-      );
+      let errorText = "";
+      try {
+        errorText = await res.text();
+        errorText = errorText.substring(0, 200); // Just a preview of the error
+      } catch (e) {
+        errorText = "Could not read error response";
+      }
+      
+      throw new Error(`Failed to fetch boxscore for game ${gameId}: ${res.status} - ${errorText}`);
     }
+    
     const data = await res.json();
     return data.game;
   } catch (error) {

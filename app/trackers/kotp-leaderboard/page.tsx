@@ -9,10 +9,35 @@ import { RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    // Try to extract error information
+    let errorInfo = "";
+    try {
+      const errorData = await res.json();
+      errorInfo = errorData.error || errorData.message || "Unknown error";
+      if (errorData.details) {
+        errorInfo += `: ${errorData.details}`;
+      }
+    } catch (e) {
+      // If we can't parse JSON, try to get the text
+      try {
+        errorInfo = await res.text();
+        errorInfo = errorInfo.substring(0, 200); // Limit length
+      } catch (textError) {
+        errorInfo = `Status ${res.status} ${res.statusText}`;
+      }
+    }
+    
+    throw new Error(errorInfo);
+  }
+  return res.json();
+};
 
 export default function KOTPLeaderboardPage() {
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [retryCount, setRetryCount] = useState(0);
   const isInitialMount = useRef(true);
 
   const updateLastUpdated = useCallback(() => {
@@ -27,6 +52,10 @@ export default function KOTPLeaderboardPage() {
       revalidateOnFocus: false,
       dedupingInterval: 15000,
       onSuccess: updateLastUpdated,
+      onError: (err) => {
+        console.error("Error fetching leaderboard data:", err);
+      },
+      errorRetryCount: 3, // Retry up to 3 times automatically
     }
   );
 
@@ -43,16 +72,39 @@ export default function KOTPLeaderboardPage() {
   }, []);
 
   const handleRefresh = () => {
+    setRetryCount(prev => prev + 1);
     mutate();
   };
+
+  let errorMessage = "";
+  if (error) {
+    errorMessage = error.message || "An unknown error occurred";
+    // If it's a specific API error, try to make it more readable
+    if (errorMessage.includes("NBA API error")) {
+      errorMessage = "NBA API is currently unavailable. Please try again later.";
+    } else if (errorMessage.includes("Invalid JSON")) {
+      errorMessage = "The NBA data service returned an invalid response. Please try again later.";
+    }
+  }
 
   if (error) {
     return (
       <div className="w-full">
         <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Failed to load player data: {error.message}. Please try again later.
+          <AlertTitle>Unable to load NBA playoff data</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>{errorMessage}</p>
+            <div className="pt-2">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleRefresh} 
+                disabled={isValidating}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isValidating ? "animate-spin" : ""}`} />
+                Try Again
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       </div>
