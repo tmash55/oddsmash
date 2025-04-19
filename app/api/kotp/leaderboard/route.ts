@@ -316,7 +316,7 @@ export async function GET() {
     try {
       console.log("Attempting to fetch from Redis cache");
       cachedLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as any;
-      console.log("Cache result:", !!cachedLeaderboard ? "HIT" : "MISS");
+      console.log("Cache result:", cachedLeaderboard ? "HIT" : "MISS");
     } catch (cacheError) {
       console.error("Redis cache fetch error:", cacheError);
     }
@@ -590,7 +590,7 @@ export async function GET() {
     
     // 4. Calculate total points (playoff points + live points)
     const playerEntries = Array.from(playerMap.entries());
-    for (const [_, player] of playerEntries) {
+    for (const [, player] of playerEntries) {
       player.totalPts = player.points + player.livePts;
       
       // Recalculate PPG

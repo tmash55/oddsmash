@@ -52,7 +52,7 @@ export async function GET() {
     try {
       console.log("Attempting to fetch from Redis cache");
       cachedData = await redis.get(CACHE_KEY);
-      console.log("Cache result:", !!cachedData ? "HIT" : "MISS");
+      console.log("Cache result:", cachedData ? "HIT" : "MISS");
     } catch (cacheError) {
       console.error("Redis cache fetch error:", cacheError);
     }
