@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "kotp-data-refresh",
+  "crons": [
+    {
+      "path": "/api/kotp/cron/update-cache",
+      "schedule": "*/5 * * * *",
+      "enabled": true,
+      "timezone": "UTC",
+      "params": {
+        "secret": "@CRON_SECRET"
+      },
+      "description": "Updates NBA playoff data cache every 5 minutes"
+    }
+  ]
+} 
