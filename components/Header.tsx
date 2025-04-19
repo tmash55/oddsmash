@@ -32,6 +32,8 @@ import {
   Zap,
   ChevronRight,
   Home,
+  Activity,
+  Crown
 } from "lucide-react";
 
 import { useSportsbooks } from "@/contexts/sportsbook-context";
@@ -93,6 +95,23 @@ export function Header() {
     };
   });
 
+  // Tracker items
+  const trackerItems = [
+    {
+      title: "KOTP Leaderboard",
+      description: "Track King of the Parlay leaderboard stats",
+      href: "/trackers/kotp-leaderboard",
+      icon: <Crown className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "PRA Leaderboard",
+      description: "Track player PRA stats for NBA games",
+      href: "/trackers/pra-leaderboard",
+      icon: <Activity className="h-4 w-4 text-primary" />,
+    },
+    
+  ];
+
   // Navigation items for mobile menu
   const navigationItems = [
     {
@@ -115,10 +134,11 @@ export function Header() {
       isActive: pathname?.startsWith("/parlay-builder"),
     },
     {
-      title: "Promo Calendar",
-      href: "/promo-calendar",
-      icon: <Calendar className="h-5 w-5 text-primary" />,
-      isActive: pathname?.startsWith("/promo-calendar"),
+      title: "Stat Tracker",
+      href: "#",
+      icon: <Activity className="h-5 w-5 text-primary" />,
+      isActive: pathname?.startsWith("/trackers"),
+      children: trackerItems,
     },
   ];
 
@@ -209,17 +229,44 @@ export function Header() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <Link href="/promo-calendar" legacyBehavior passHref>
-                  <NavigationMenuLink
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      "px-3 transition-all duration-300 group",
-                      pathname?.startsWith("/promo-calendar") && "bg-muted"
-                    )}
-                  >
-                    Promo Calendar
-                  </NavigationMenuLink>
-                </Link>
+                <NavigationMenuTrigger
+                  className={cn(
+                    "px-3 transition-all duration-300 group",
+                    pathname?.startsWith("/trackers") && "bg-muted"
+                  )}
+                >
+                  Stat Tracker
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4">
+                    <li className="row-span-3 rounded-md bg-gradient-to-b from-primary to-primary/80 shadow-lg overflow-hidden group relative">
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <NavigationMenuLink asChild>
+                        <a
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
+                          href="/trackers/pra-leaderboard"
+                        >
+                          <div className="mt-4 mb-2 text-lg font-medium text-white">
+                            Live Trackers
+                          </div>
+                          <p className="text-sm leading-tight text-white/90">
+                            Follow along with live updates for games and player stats
+                          </p>
+                        </a>
+                      </NavigationMenuLink>
+                    </li>
+                    {trackerItems.map((item) => (
+                      <ListItem
+                        key={item.title}
+                        title={item.title}
+                        href={item.href}
+                        icon={item.icon}
+                      >
+                        {item.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
