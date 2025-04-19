@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     
     console.log("Cache miss - fetching fresh NBA playoff game logs data");
     // If not in cache, fetch from NBA API
-    const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2023-24&SeasonType=Playoffs&Sorter=DATE";
+    const url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=DESC&LeagueID=00&PlayerOrTeam=P&Season=2024-25&SeasonType=Playoffs&Sorter=DATE";
 
     const response = await fetchWithTimeout(
       url,

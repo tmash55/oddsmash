@@ -61,7 +61,7 @@ export default function KOTPLeaderboardPage() {
   };
 
   const apiBaseUrl = getApiUrl();
-  const leaderboardUrl = `${apiBaseUrl}/api/kotp/leaderboard`;
+  const leaderboardUrl = `${apiBaseUrl}/api/kotp/hybrid`;
 
   const updateLastUpdated = useCallback((data: any, response: Response) => {
     setLastUpdated(new Date().toLocaleTimeString());
