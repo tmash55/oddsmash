@@ -1,6 +1,7 @@
 // /app/api/playoff-game-logs/route.ts
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
+import { NextRequest } from "next/server";
 
 // Use serverless runtime for longer timeouts (60 seconds vs 10 seconds for edge)
 export const runtime = 'nodejs';
@@ -34,7 +35,11 @@ async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  
   try {
     console.log("NBA Playoff Game Logs API called", new Date().toISOString());
     
@@ -163,49 +168,38 @@ export async function GET() {
       }
     });
   } catch (error) {
-    // Check if this is a timeout error
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error("NBA API request timed out");
+    console.error("Error fetching game logs:", error);
+    
+    // Try to get stale data from cache if there's an error
+    try {
+      const cacheKey = `game-logs-${startDate}-${endDate}`;
+      const staleData = await redis.get(cacheKey);
       
-      // Try to get stale data from cache even if expired
-      try {
-        const staleData = await redis.get(CACHE_KEY);
-        if (staleData) {
-          console.log("Using stale cache data after timeout");
-          return NextResponse.json(staleData, {
+      if (staleData) {
+        console.log("Using stale game logs data after error");
+        return NextResponse.json(
+          staleData,
+          {
             headers: {
-              'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+              'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
               'X-Cache': 'STALE'
             }
-          });
-        }
-      } catch (redisError) {
-        console.error("Failed to fetch stale data from cache:", redisError);
-      }
-      
-      return NextResponse.json(
-        { 
-          error: "NBA API request timed out. Please try again later.",
-          timeout: true
-        }, 
-        { 
-          status: 504,
-          headers: {
-            'Cache-Control': 'no-store'
           }
-        }
-      );
+        );
+      }
+    } catch (redisError) {
+      console.error("Failed to fetch stale data from cache:", redisError);
     }
     
-    // Handle general errors
-    console.error("Failed to fetch NBA data", error);
+    // Safety fallback: return empty but valid response if all else fails
     return NextResponse.json(
       { 
-        error: "Failed to fetch NBA data", 
-        message: error instanceof Error ? error.message : String(error)
-      }, 
+        games: [],
+        lastUpdated: new Date().toISOString(),
+        error: "Failed to fetch game logs - empty result returned" 
+      },
       { 
-        status: 500,
+        status: 200, // Return 200 instead of 500 to avoid client errors
         headers: {
           'Cache-Control': 'no-store'
         }
