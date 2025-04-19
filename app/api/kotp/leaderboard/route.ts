@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
+// Use serverless runtime for longer timeouts (60 seconds vs 10 seconds for edge)
+export const runtime = 'nodejs';
+
 // Make this route dynamic instead of static
 export const dynamic = 'force-dynamic';
 
@@ -297,8 +300,26 @@ function getPlayerTeam(player: any): string {
 
 export async function GET() {
   try {
+    console.log("KOTP Leaderboard API called", new Date().toISOString());
+    
+    // Log Redis connection status
+    console.log("Redis client initialized:", !!redis);
+    try {
+      await redis.ping();
+      console.log("Redis connection test: SUCCESS");
+    } catch (redisError) {
+      console.error("Redis connection test: FAILED", redisError);
+    }
+    
     // Try to get the complete leaderboard from Redis cache first
-    const cachedLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as any;
+    let cachedLeaderboard = null;
+    try {
+      console.log("Attempting to fetch from Redis cache");
+      cachedLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as any;
+      console.log("Cache result:", !!cachedLeaderboard ? "HIT" : "MISS");
+    } catch (cacheError) {
+      console.error("Redis cache fetch error:", cacheError);
+    }
     
     if (cachedLeaderboard) {
       console.log("Using cached KOTP leaderboard data");

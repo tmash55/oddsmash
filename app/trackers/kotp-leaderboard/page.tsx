@@ -47,6 +47,22 @@ export default function KOTPLeaderboardPage() {
   const [cacheStatus, setCacheStatus] = useState<"hit" | "miss" | "stale" | null>(null);
   const isInitialMount = useRef(true);
 
+  // Get the API base URL - this ensures we use the correct URL in production vs development
+  const getApiUrl = () => {
+    // If we're on the client side, use window.location
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      return `${protocol}//${hostname}${port}`;
+    } 
+    // For SSR, return an empty string that will be treated as a relative URL
+    return '';
+  };
+
+  const apiBaseUrl = getApiUrl();
+  const leaderboardUrl = `${apiBaseUrl}/api/kotp/leaderboard`;
+
   const updateLastUpdated = useCallback((data: any, response: Response) => {
     setLastUpdated(new Date().toLocaleTimeString());
     
@@ -60,8 +76,9 @@ export default function KOTPLeaderboardPage() {
   }, []);
 
   const { data, error, isValidating, mutate } = useSWR(
-    "/api/kotp/leaderboard",
+    leaderboardUrl, // Use the constructed URL
     async (url) => {
+      console.log(`Fetching leaderboard data from: ${url}`);
       const res = await fetch(url);
       if (!res.ok) {
         // ... existing error handling ...
@@ -161,17 +178,12 @@ export default function KOTPLeaderboardPage() {
                   NBA Playoff Points Leaderboard
                 </h1>
                 <p className="text-muted-foreground mt-2">
-                  Track which NBA players are scoring the most points in the{" "}
-                  {data ? (
-  <Badge variant="outline" className="font-medium">
-    {playoffRound}
-  </Badge>
-) : (
-  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
-    Loading...
-  </span>
-)}
-{" "}
+
+                <Badge variant="outline" className="font-medium">
+                    Round 1
+                </Badge>
+
+                {" "}
                   of the playoffs.{" "}
                   <a
                     href="/kotp"
@@ -229,15 +241,11 @@ export default function KOTPLeaderboardPage() {
               </h1>
               <p className="text-muted-foreground mt-2">
                 Track which NBA players are scoring the most points in the{" "}
-                {data ? (
+
                   <Badge variant="outline" className="font-medium">
-                    {playoffRound}
+                    Round 1
                   </Badge>
-                ) : (
-                  <span className="inline-block bg-muted px-2 py-0.5 rounded text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                )}
+
                 {" "}
                 of the playoffs.{" "}
                 <a

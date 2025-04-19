@@ -2,6 +2,9 @@
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
+// Use serverless runtime for longer timeouts (60 seconds vs 10 seconds for edge)
+export const runtime = 'nodejs';
+
 export const dynamic = 'force-dynamic';
 
 // Initialize Redis client
@@ -33,14 +36,33 @@ async function fetchWithTimeout(url: string, options = {}, timeout = 15000) {
 
 export async function GET() {
   try {
+    console.log("NBA Playoff Game Logs API called", new Date().toISOString());
+    
+    // Log Redis connection status
+    console.log("Redis client initialized:", !!redis);
+    try {
+      await redis.ping();
+      console.log("Redis connection test: SUCCESS");
+    } catch (redisError) {
+      console.error("Redis connection test: FAILED", redisError);
+    }
+    
     // Try to get data from Redis cache first
-    const cachedData = await redis.get(CACHE_KEY);
+    let cachedData = null;
+    try {
+      console.log("Attempting to fetch from Redis cache");
+      cachedData = await redis.get(CACHE_KEY);
+      console.log("Cache result:", !!cachedData ? "HIT" : "MISS");
+    } catch (cacheError) {
+      console.error("Redis cache fetch error:", cacheError);
+    }
     
     if (cachedData) {
       console.log("Using cached NBA playoff game logs data");
       return NextResponse.json(cachedData, {
         headers: {
           'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+          'X-Cache': 'HIT'
         }
       });
     }
