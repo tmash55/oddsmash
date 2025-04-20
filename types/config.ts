@@ -48,6 +48,9 @@ export interface ConfigProps {
     bucketUrl?: string;
     cdn?: string;
   };
+  gmail?: {
+    supportEmail: string;
+  };
   resend: {
     fromNoReply: string;
     fromAdmin: string;

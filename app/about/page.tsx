@@ -1,6 +1,8 @@
+"use client";
+
+import { useState, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
 import {
   ChevronRight,
   Award,
@@ -11,7 +13,9 @@ import {
   MapPin,
   Mail,
   Phone,
+  Loader2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,14 +24,82 @@ import { Badge } from "@/components/ui/badge";
 import { Timeline } from "@/components/about/timeline";
 import { ValueCard } from "@/components/about/value-card";
 import { StatsCard } from "@/components/about/stats-card";
-
-export const metadata: Metadata = {
-  title: "About Us | OddSmash",
-  description:
-    "Learn about OddSmash's mission, values, team, and journey in transforming the sports betting experience.",
-};
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import config from "@/config";
 
 export default function AboutPage() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    message: "",
+  });
+
+  const handleChange = (e: any) => {
+    const { id, value } = e.target;
+    // Convert hyphenated field ids to camelCase (first-name -> firstName)
+    const fieldName = id.includes('-') 
+      ? id.split('-').map((part: string, index: number) => 
+          index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
+        ).join('')
+      : id;
+    
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Send to an API route that would handle the email sending
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          to: config.gmail?.supportEmail,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Message sent successfully!",
+          description: "We'll get back to you as soon as possible.",
+          variant: "default",
+          open: true,
+        });
+
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          message: "",
+        });
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      toast({
+        title: "Error sending message",
+        description: "Please try again later or email us directly.",
+        variant: "destructive",
+        open: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -149,10 +221,11 @@ export default function AboutPage() {
                 },
                 {
                   year: "2025",
-                  title: "User Experience First",
+                  title: "King of the Playoffs Leaderboard",
                   description:
-                    "We doubled down on user feedback and began rolling out features based entirely on community needs — with a design-first mindset and focus on UX clarity.",
+                    "We moved TrackKOTC.com over to OddSmash.io and created the King of the Playoffs leaderboard, expanding our live tracking capabilities for special DraftKings promotions.",
                 },
+                
               ]}
             />
           </div>
@@ -288,14 +361,14 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button asChild>
-                  <Link href="mailto:tyler.maschoff@gmail.com">Send Email</Link>
+                  <Link href={`mailto:${config.gmail?.supportEmail}`}>Send Email</Link>
                 </Button>
               </div>
             </div>
             <div className="flex justify-center lg:justify-end mt-8 lg:mt-0">
               <Card className="w-full max-w-md">
                 <CardContent className="p-4 sm:p-6">
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label
@@ -304,10 +377,13 @@ export default function AboutPage() {
                         >
                           First name
                         </label>
-                        <input
+                        <Input
                           id="first-name"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           placeholder="John"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -317,10 +393,13 @@ export default function AboutPage() {
                         >
                           Last name
                         </label>
-                        <input
+                        <Input
                           id="last-name"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           placeholder="Doe"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          required
                         />
                       </div>
                     </div>
@@ -331,11 +410,14 @@ export default function AboutPage() {
                       >
                         Email
                       </label>
-                      <input
+                      <Input
                         id="email"
                         type="email"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="john.doe@example.com"
+                        value={formData.email}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -345,14 +427,25 @@ export default function AboutPage() {
                       >
                         Message
                       </label>
-                      <textarea
+                      <Textarea
                         id="message"
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="Your message here..."
+                        className="min-h-[120px]"
+                        value={formData.message}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        required
                       />
                     </div>
-                    <Button type="submit" className="w-full">
-                      Send Message
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Message"
+                      )}
                     </Button>
                   </form>
                 </CardContent>

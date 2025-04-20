@@ -1,6 +1,8 @@
+"use client";
+
+import { useState, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
 import {
   Mail,
   Send,
@@ -9,7 +11,9 @@ import {
   BarChart3,
   Zap,
   HelpCircle,
+  Loader2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,14 +39,89 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FaqSection } from "@/components/landing-page/faq-section";
-
-export const metadata: Metadata = {
-  title: "Contact Us | OddSmash",
-  description:
-    "Get in touch with the OddSmash team for support, feedback, or partnership opportunities.",
-};
+import config from "@/config";
 
 export default function ContactPage() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+
+  const handleChange = (e: any) => {
+    const { id, value } = e.target;
+    // Convert hyphenated field ids to camelCase (first-name -> firstName)
+    const fieldName = id.includes('-') 
+      ? id.split('-').map((part: string, index: number) => 
+          index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
+        ).join('')
+      : id;
+    
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      subject: value,
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Send to an API route that would handle the email sending
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          to: config.gmail?.supportEmail,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Message sent successfully!",
+          description: "We'll get back to you as soon as possible.",
+          variant: "default",
+          open: true,
+        });
+
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      toast({
+        title: "Error sending message",
+        description: "Please try again later or email us directly.",
+        variant: "destructive",
+        open: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -107,10 +186,10 @@ export default function ContactPage() {
                 emails regularly and will get back to you as soon as we can.
               </CardDescription>
               <a
-                href="mailto:support@oddsmash.io"
+                href={`mailto:${config.gmail?.supportEmail}`}
                 className="text-primary hover:underline font-medium text-lg"
               >
-                support@oddsmash.io
+                {config.gmail?.supportEmail}
               </a>
               <div className="flex items-center justify-center mt-2">
                 <a
@@ -148,7 +227,7 @@ export default function ContactPage() {
 
               <Card>
                 <CardContent className="p-6">
-                  <form className="space-y-6">
+                  <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label
@@ -157,7 +236,14 @@ export default function ContactPage() {
                         >
                           First name
                         </label>
-                        <Input id="first-name" placeholder="John" required />
+                        <Input 
+                          id="first-name" 
+                          placeholder="John" 
+                          required
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <label
@@ -166,7 +252,14 @@ export default function ContactPage() {
                         >
                           Last name
                         </label>
-                        <Input id="last-name" placeholder="Doe" required />
+                        <Input 
+                          id="last-name" 
+                          placeholder="Doe" 
+                          required
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
@@ -179,6 +272,9 @@ export default function ContactPage() {
                         type="email"
                         placeholder="john.doe@example.com"
                         required
+                        value={formData.email}
+                        onChange={handleChange}
+                        disabled={isLoading}
                       />
                     </div>
 
@@ -186,7 +282,11 @@ export default function ContactPage() {
                       <label htmlFor="subject" className="text-sm font-medium">
                         Subject
                       </label>
-                      <Select>
+                      <Select 
+                        value={formData.subject} 
+                        onValueChange={handleSelectChange}
+                        disabled={isLoading}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a subject" />
                         </SelectTrigger>
@@ -215,11 +315,21 @@ export default function ContactPage() {
                         placeholder="Your message here..."
                         className="min-h-[150px]"
                         required
+                        value={formData.message}
+                        onChange={handleChange}
+                        disabled={isLoading}
                       />
                     </div>
 
-                    <Button type="submit" className="w-full">
-                      Send Message
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Message"
+                      )}
                     </Button>
                   </form>
                 </CardContent>

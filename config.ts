@@ -54,6 +54,9 @@ const config = {
     bucketUrl: `https://bucket-name.s3.amazonaws.com/`,
     cdn: "https://cdn-id.cloudfront.net/",
   },
+  gmail: {
+    supportEmail: "support@oddsmash.io",
+  },
   resend: {
     fromNoReply: `OddSmash <noreply@oddsmash.io>`,
     fromAdmin: `Support at OddSmash <support@oddsmash.io>`,
