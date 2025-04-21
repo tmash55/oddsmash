@@ -38,11 +38,42 @@ function formatDateToNBAFormat(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   console.log("Fetching KOTP leaderboard data");
+  
+  // Check for custom cache key in request
+  const { searchParams } = new URL(request.url);
+  const customCacheKey = searchParams.get("cache_key");
+  
+  // Generate today's date cache key format
+  const today = formatDateToNBAFormat(new Date());
+  const todayCacheKey = `kotp_playoff_${today}`;
+  
+  // Key priority: 1. customCacheKey, 2. todayCacheKey, 3. LEADERBOARD_CACHE_KEY
+  const cacheKeys = [
+    customCacheKey,
+    todayCacheKey,
+    LEADERBOARD_CACHE_KEY
+  ].filter(Boolean); // Filter out null/undefined values
+  
   try {
-    // Try to get cached leaderboard data first
-    const cachedLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as LeaderboardCache | null;
+    let cachedLeaderboard: LeaderboardCache | null = null;
+    let usedCacheKey = "";
+    
+    // Try each cache key in order until we find data
+    for (const key of cacheKeys) {
+      if (!key) continue;
+      console.log(`Trying cache key: ${key}`);
+      
+      const data = await redis.get(key) as LeaderboardCache | null;
+      if (data) {
+        cachedLeaderboard = data;
+        usedCacheKey = key;
+        console.log(`Found cached data using key: ${key}`);
+        break;
+      }
+    }
+    
     const lastUpdated = new Date().toLocaleString();
     
     if (cachedLeaderboard) {
@@ -51,9 +82,11 @@ export async function GET() {
         ...cachedLeaderboard,
         lastUpdated,
         fromCache: true,
+        cacheKey: usedCacheKey
       }, {
         headers: {
           'X-Cache': 'hit',
+          'X-Cache-Key': usedCacheKey
         }
       });
     }
@@ -154,36 +187,47 @@ export async function GET() {
       playoffRound: "Round 1",
     };
     
-    // Cache the leaderboard
+    // Cache the leaderboard with today's key and default key
+    await redis.set(todayCacheKey, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
     await redis.set(LEADERBOARD_CACHE_KEY, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
+    console.log(`Cached leaderboard with keys: ${todayCacheKey} and ${LEADERBOARD_CACHE_KEY}`);
     
     return NextResponse.json({
       ...leaderboard,
       lastUpdated,
       fromCache: false,
+      cacheKey: todayCacheKey
     }, {
       headers: {
         'X-Cache': 'miss',
+        'X-Cache-Key': todayCacheKey
       }
     });
     
   } catch (error) {
     console.error("Error building leaderboard:", error);
     
-    // Try to return stale data if available
-    const staleLeaderboard = await redis.get(LEADERBOARD_CACHE_KEY) as LeaderboardCache | null;
-    if (staleLeaderboard) {
-      console.log("Returning stale leaderboard data after error");
-      return NextResponse.json({
-        ...staleLeaderboard,
-        lastUpdated: new Date().toLocaleString(),
-        fromCache: true,
-        stale: true,
-      }, {
-        headers: {
-          'X-Cache': 'stale',
-        }
-      });
+    // Try to return stale data if available, trying each cache key
+    for (const key of cacheKeys) {
+      if (!key) continue;
+      console.log(`Trying to fetch stale data with cache key: ${key}`);
+      
+      const staleLeaderboard = await redis.get(key) as LeaderboardCache | null;
+      if (staleLeaderboard) {
+        console.log(`Returning stale leaderboard data from key: ${key}`);
+        return NextResponse.json({
+          ...staleLeaderboard,
+          lastUpdated: new Date().toLocaleString(),
+          fromCache: true,
+          stale: true,
+          cacheKey: key
+        }, {
+          headers: {
+            'X-Cache': 'stale',
+            'X-Cache-Key': key
+          }
+        });
+      }
     }
     
     // No data available

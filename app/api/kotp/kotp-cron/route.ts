@@ -125,13 +125,19 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
   
+  // Get custom cache key if provided
+  const customCacheKey = searchParams.get("cache_key");
+  
+  // Use the custom cache key or fall back to the default
+  const leaderboardKey = customCacheKey || LEADERBOARD_CACHE_KEY;
+  
   if (secret !== CRON_SECRET) {
     console.log("Unauthorized access attempt - invalid secret");
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    console.log("Authorized GET request received");
+    console.log(`Authorized GET request received, using cache key: ${leaderboardKey}`);
     const result = await fetchPlayoffGameLogs();
     
     if (result.success && result.data.length > 0) {
@@ -140,16 +146,23 @@ export async function GET(request: Request) {
       // Generate leaderboard from the game logs
       const leaderboard = await generateLeaderboard(result.data);
       
-      // Cache the leaderboard
-      await redis.set(LEADERBOARD_CACHE_KEY, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
-      console.log(`Cached leaderboard with ${leaderboard.players.length} players`);
+      // Cache the leaderboard with the specified key
+      await redis.set(leaderboardKey, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
+      console.log(`Cached leaderboard with ${leaderboard.players.length} players using key: ${leaderboardKey}`);
+      
+      // Also update the default key to maintain backward compatibility
+      if (customCacheKey) {
+        await redis.set(LEADERBOARD_CACHE_KEY, leaderboard, { ex: 60 * 30 });
+        console.log(`Also updated default cache key: ${LEADERBOARD_CACHE_KEY}`);
+      }
       
       // Return minimal response to reduce function execution time
       return NextResponse.json({
         success: true,
         message: `Updated game logs (${result.data.length}) and leaderboard (${leaderboard.players.length} players)`,
         gamelogs: result.data.length,
-        players: leaderboard.players.length
+        players: leaderboard.players.length,
+        cacheKey: leaderboardKey
       });
     }
     
@@ -176,16 +189,25 @@ export async function POST(request: Request) {
     const url = new URL(request.url);
     const querySecret = url.searchParams.get("secret");
     
-    // Try to get secret from body if not in query
+    // Get custom cache key if provided in query params
+    const queryCacheKey = url.searchParams.get("cache_key");
+    
+    // Try to get secret and cache key from body if not in query
     let bodySecret = null;
+    let bodyCacheKey = null;
     try {
       const body = await request.json();
       bodySecret = body.secret;
+      bodyCacheKey = body.cache_key;
     } catch (e) {
       // Body parsing failed, continue with query param check
     }
     
     const secret = querySecret || bodySecret;
+    const customCacheKey = queryCacheKey || bodyCacheKey;
+    
+    // Use the custom cache key or fall back to the default
+    const leaderboardKey = customCacheKey || LEADERBOARD_CACHE_KEY;
     
     // Validate secret
     if (secret !== CRON_SECRET) {
@@ -193,7 +215,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Authorized POST request received");
+    console.log(`Authorized POST request received, using cache key: ${leaderboardKey}`);
     const result = await fetchPlayoffGameLogs();
     
     if (result.success && result.data.length > 0) {
@@ -202,16 +224,23 @@ export async function POST(request: Request) {
       // Generate leaderboard from the game logs
       const leaderboard = await generateLeaderboard(result.data);
       
-      // Cache the leaderboard
-      await redis.set(LEADERBOARD_CACHE_KEY, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
-      console.log(`Cached leaderboard with ${leaderboard.players.length} players`);
+      // Cache the leaderboard with the specified key
+      await redis.set(leaderboardKey, leaderboard, { ex: 60 * 30 }); // Cache for 30 minutes
+      console.log(`Cached leaderboard with ${leaderboard.players.length} players using key: ${leaderboardKey}`);
+      
+      // Also update the default key to maintain backward compatibility
+      if (customCacheKey) {
+        await redis.set(LEADERBOARD_CACHE_KEY, leaderboard, { ex: 60 * 30 });
+        console.log(`Also updated default cache key: ${LEADERBOARD_CACHE_KEY}`);
+      }
       
       // Return minimal response to reduce function execution time
       return NextResponse.json({
         success: true,
         message: `Updated game logs (${result.data.length}) and leaderboard (${leaderboard.players.length} players)`,
         gamelogs: result.data.length,
-        players: leaderboard.players.length
+        players: leaderboard.players.length,
+        cacheKey: leaderboardKey
       });
     }
     

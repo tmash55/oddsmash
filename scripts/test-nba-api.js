@@ -12,6 +12,20 @@ function getTodayDateString() {
   return today.toISOString().split('T')[0]; // Returns YYYY-MM-DD
 }
 
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Get date for 7 days ago
+const getLastWeekDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return formatDate(date);
+};
+
 // Helper function to make a GET request with custom headers
 function makeRequest(url, params, headers) {
   return new Promise((resolve, reject) => {
@@ -61,32 +75,34 @@ function makeRequest(url, params, headers) {
 
 // Main function
 async function main() {
-  console.log('Testing NBA Stats API...');
-  
-  // Get today's date
-  const todayDate = getTodayDateString();
-  console.log(`Using today's date: ${todayDate}`);
-  
-  const params = {
-    LeagueID: '00', // NBA
-    Season: '2024-25',
-    SeasonType: 'Playoffs',
-    Direction: 'DESC',
-    DateFrom: todayDate,
-    DateTo: todayDate,
-    PlayerOrTeam: 'P',
-    Counter: 0,
-    Sorter: 'DATE',
-    SortDirection: 'DESC'
-  };
-  
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-    'Referer': 'https://www.nba.com',
-    'Origin': 'https://www.nba.com'
-  };
-  
   try {
+    console.log('Testing NBA Stats API...');
+    
+    const today = formatDate(new Date());
+    const lastWeek = getLastWeekDate();
+    
+    console.log(`Using date range: ${lastWeek} to ${today}`);
+    
+    // Constructing parameters for the NBA Stats API
+    const params = {
+      LeagueID: '00',
+      Season: '2024-25',
+      SeasonType: 'Playoffs',
+      Direction: 'DESC',
+      DateFrom: lastWeek,
+      DateTo: today,
+      PlayerOrTeam: 'P',
+      Counter: '0',
+      Sorter: 'DATE',
+      SortDirection: 'DESC',
+    };
+  
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+      'Referer': 'https://www.nba.com',
+      'Origin': 'https://www.nba.com'
+    };
+  
     console.time('API Request');
     const response = await makeRequest(NBA_API_URL, params, headers);
     console.timeEnd('API Request');
