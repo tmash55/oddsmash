@@ -505,7 +505,7 @@ export async function GET() {
     
     // Calculate total points for each player
     Object.values(playerMap).forEach(player => {
-      player.totalPts = player.points + player.livePts;
+      player.totalPts =  player.livePts;
     });
     
     // Sort by total points

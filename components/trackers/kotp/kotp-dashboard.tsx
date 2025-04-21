@@ -6,7 +6,6 @@ import {
   Trophy,
   LayoutGrid,
   TableIcon,
-  RefreshCcw,
   Star,
   Filter,
   Crown,
@@ -17,7 +16,6 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -52,7 +50,7 @@ type ViewMode = "card" | "table"
 
 type KOTPDashboardProps = {
   players: PlayoffPlayer[]
-  allGamesFinal: boolean
+  allGamesFinal?: boolean
   lastUpdated: string
   playoffRound?: string
 }
@@ -88,7 +86,7 @@ const getRankDisplay = (rank: number) => {
 
 export default function KOTPDashboard({
   players,
-  allGamesFinal,
+  allGamesFinal = true,
   lastUpdated,
   playoffRound = "Round 1",
 }: KOTPDashboardProps) {
@@ -192,9 +190,9 @@ export default function KOTPDashboard({
   const getStatusBadge = (player: PlayoffPlayer) => {
     if (!player.isPlaying) {
       return (
-        <span className="text-gray-400 dark:text-gray-500 text-sm">
-          -
-        </span>
+        <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+          Inactive
+        </Badge>
       )
     }
 
@@ -374,26 +372,21 @@ export default function KOTPDashboard({
             <div>
               <h2 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center">
                 {player.name}
-                <span className="ml-2">
-                  <OnCourtIndicator isOnCourt={player.oncourt} />
-                </span>
                 <SeriesStatus seriesRecord={player.seriesRecord} />
               </h2>
               <div className="flex items-center space-x-1">
                 <Badge variant="secondary" className="px-1.5 py-0 text-xs">
                   {player.teamTricode}
                 </Badge>
-                {player.isPlaying && <p className="text-xs text-gray-600 dark:text-gray-400">{player.liveMatchup}</p>}
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <StarButton playerId={player.personId} />
-            {getStatusBadge(player)}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center mt-4">
-          <StatDisplay label="RD1 PTS" value={player.totalPts} playerId={player.personId} statKey="totalPts" />
+          <StatDisplay label="TOTAL PTS" value={player.points} playerId={player.personId} statKey="points" />
           <StatDisplay label="PPG" value={player.ppg} playerId={player.personId} statKey="ppg" />
           <div className="space-y-1">
             <span className="text-lg font-bold">
@@ -402,23 +395,6 @@ export default function KOTPDashboard({
             <span className="text-xs text-muted-foreground block">SERIES</span>
           </div>
         </div>
-        {player.playedToday && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
-            <p className="text-sm text-center font-medium">
-              Today:{" "}
-              <span
-                className={
-                  changedStats[player.personId]?.has("livePts")
-                    ? "text-green-600 dark:text-green-400 animate-pulse"
-                    : ""
-                }
-              >
-                {player.livePts} pts
-              </span>
-              {player.gameStatus === "Completed" && <span className="text-xs ml-1">(Final)</span>}
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
@@ -588,16 +564,6 @@ export default function KOTPDashboard({
         </div>
       </div>
 
-      {!allGamesFinal && (
-        <Alert className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
-          <RefreshCcw className="h-4 w-4 text-yellow-600 dark:text-yellow-400 animate-spin" />
-          <AlertTitle className="ml-2 font-semibold text-yellow-800 dark:text-yellow-300">Games in Progress</AlertTitle>
-          <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-            Some games are still in progress. Rankings may change.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {viewMode === "card" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sortedPlayers.map((player) => (
@@ -634,10 +600,6 @@ export default function KOTPDashboard({
                 <TableHead className="text-right hidden sm:table-cell text-muted-foreground text-xs uppercase">
                   Series
                 </TableHead>
-                <TableHead className="text-right hidden md:table-cell text-muted-foreground text-xs uppercase">
-                  Today
-                </TableHead>
-                <TableHead className="text-right text-muted-foreground text-xs uppercase">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -668,9 +630,6 @@ export default function KOTPDashboard({
                     <TableCell>
                       <div className="flex items-center">
                         <span className="font-semibold text-gray-900 dark:text-gray-100">{player.name}</span>
-                        <span className="ml-2">
-                          <OnCourtIndicator isOnCourt={player.oncourt} />
-                        </span>
                         <SeriesStatus seriesRecord={player.seriesRecord} />
                       </div>
                     </TableCell>
@@ -686,7 +645,7 @@ export default function KOTPDashboard({
                           : ""
                       }`}
                     >
-                      {player.totalPts}
+                      {player.points}
                     </TableCell>
                     <TableCell className="text-right hidden sm:table-cell font-medium">
                       {player.ppg.toFixed(1)}
@@ -703,27 +662,6 @@ export default function KOTPDashboard({
                         <span className="text-muted-foreground">0-0</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right hidden md:table-cell">
-                      {player.playedToday ? (
-                        <div>
-                          <span
-                            className={
-                              changedStats[player.personId]?.has("livePts")
-                                ? "text-green-600 dark:text-green-400 animate-pulse font-medium"
-                                : "font-medium"
-                            }
-                          >
-                            {player.livePts}
-                          </span>
-                          {player.gameStatus === "Completed" && (
-                            <span className="text-xs ml-1 text-muted-foreground">(F)</span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">{getStatusBadge(player)}</TableCell>
                   </TableRow>
                 )
               })}

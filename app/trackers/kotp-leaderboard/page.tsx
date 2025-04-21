@@ -61,7 +61,7 @@ export default function KOTPLeaderboardPage() {
   };
 
   const apiBaseUrl = getApiUrl();
-  const leaderboardUrl = `${apiBaseUrl}/api/kotp/hybrid`;
+  const leaderboardUrl = `${apiBaseUrl}/api/kotp/leaderboard`;
 
   const updateLastUpdated = useCallback((data: any, response: Response) => {
     setLastUpdated(new Date().toLocaleTimeString());
@@ -162,220 +162,151 @@ export default function KOTPLeaderboardPage() {
     );
   };
 
-  // Add this transformation before passing data to the Dashboard component - avoiding double counting
-  const transformPlayers = useCallback((players: any[]) => {
-    if (!players || !Array.isArray(players)) return [];
-    
-    // First pass: fix point totals for each player
-    const correctedPlayers = players.map(player => {
-      // Create a copy of the player to avoid mutating the original
-      const transformedPlayer = { ...player };
-      
-      // If a player played today AND their game is final, don't double count
-      // by adding their livePts to their total points
-      if (player.playedToday && (player.gameStatus === "Completed" || player.gameStatus === "Final")) {
-        // Only use their historical points for the totalPts value
-        transformedPlayer.totalPts = player.points;
-        console.log(`Correcting points for ${player.name}: Using ${player.points} instead of ${player.totalPts}`);
-        
-        // Also fix the series record by dividing wins/losses by 2 if they're double-counted
-        // This is a heuristic that assumes the records are exactly doubled
-        const wins = player.seriesRecord.wins;
-        const losses = player.seriesRecord.losses;
-        
-        // Check if the wins or losses look doubled (more than zero and even number)
-        if (wins > 0 && wins % 2 === 0) {
-          transformedPlayer.seriesRecord.wins = wins / 2;
-          console.log(`Correcting series wins for ${player.name}: ${wins} → ${wins / 2}`);
-        }
-        
-        if (losses > 0 && losses % 2 === 0) {
-          transformedPlayer.seriesRecord.losses = losses / 2;
-          console.log(`Correcting series losses for ${player.name}: ${losses} → ${losses / 2}`);
-        }
-      }
-      
-      return transformedPlayer;
-    });
-    
-    // Second pass: resort players by the corrected totalPts
-    return correctedPlayers.sort((a, b) => b.totalPts - a.totalPts);
-  }, []);
-
   if (error) {
     return (
-      <div className="w-full">
-        <motion.section
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6 md:mb-8"
-        >
-          <div className="space-y-2 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                  NBA Playoff Points Leaderboard
-                </h1>
-                <p className="text-muted-foreground mt-2">
-
-                <Badge variant="outline" className="font-medium">
-                    Round 1
-                </Badge>
-
-                {" "}
-                  of the playoffs.{" "}
-                  <a
-                    href="/kotp"
-                    className="text-primary hover:underline inline-flex items-center"
-                  >
-                    Learn more about KOTP
-                    <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-        
-        <Alert variant="destructive">
-          <AlertTitle>Unable to load NBA playoff data</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>{errorMessage}</p>
-            {(retryTimeout || errorMessage.includes("504")) && (
-              <p className="text-sm mt-2">
-                The NBA data service might be experiencing high traffic or maintenance.
-                Try again in a few moments or check back later.
+      <div className="container mx-auto px-4 py-4 md:py-8">
+        <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-4"
+          >
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                King of the Playoffs
+              </h1>
+              <p className="text-muted-foreground">
+                Track real-time NBA playoff scoring leaders for the $2M DraftKings contest
+                {cacheStatus && getCacheStatusDisplay()}
               </p>
-            )}
-            <div className="pt-2">
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 self-end sm:self-auto">
               <Button 
-                variant="secondary" 
-                size="sm" 
                 onClick={handleRefresh} 
+                variant="outline" 
+                className="gap-2"
                 disabled={isValidating}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isValidating ? "animate-spin" : ""}`} />
-                Try Again
+                <RefreshCw className={`h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
+                Retry {retryCount > 0 ? `(${retryCount})` : ''}
               </Button>
             </div>
-          </AlertDescription>
-        </Alert>
+          </motion.div>
+
+          <AnimatePresence mode="wait">
+            {error ? (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Alert variant="destructive" className="mb-6">
+                  <AlertTitle className="font-semibold">Error Loading Data</AlertTitle>
+                  <AlertDescription className="mt-1">
+                    {errorMessage}
+                    {retryCount > 0 && (
+                      <div className="mt-2 text-sm">
+                        Retry count: {retryCount}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <KOTPDashboard 
+                  players={players} 
+                  lastUpdated={lastUpdated}
+                  playoffRound={playoffRound}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <motion.section
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6 md:mb-8"
-      >
-        <div className="space-y-2 text-center md:text-left">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                NBA Playoff Points Leaderboard
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Track which NBA players are scoring the most points in the{" "}
-
-                  <Badge variant="outline" className="font-medium">
-                    Round 1
-                  </Badge>
-
-                {" "}
-                of the playoffs.{" "}
-                <a
-                  href="/kotp"
-                  className="text-primary hover:underline inline-flex items-center"
-                >
-                  Learn more about KOTP
-                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                </a>
-              </p>
-            </div>
-            <div className="flex flex-col items-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                className="self-center md:self-auto"
-                disabled={isValidating}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-2 ${isValidating ? "animate-spin" : ""}`}
-                />
-                Refresh Data
-              </Button>
-              
-            </div>
+    <div className="container mx-auto px-4 py-4 md:py-8">
+      <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-4"
+        >
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              King of the Playoffs
+            </h1>
+            <p className="text-muted-foreground">
+              Track real-time NBA playoff scoring leaders for the $2M DraftKings contest
+              {cacheStatus && getCacheStatusDisplay()}
+            </p>
           </div>
-        </div>
-      </motion.section>
+          
+          <div className="flex flex-col sm:flex-row gap-3 self-end sm:self-auto">
+            <Button 
+              onClick={handleRefresh} 
+              variant="outline" 
+              className="gap-2"
+              disabled={isValidating}
+            >
+              <RefreshCw className={`h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </motion.div>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {isValidating && !data ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex justify-center items-center h-64"
-          >
-            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-          </motion.div>
-        ) : players.length === 0 ? (
-          <motion.div
-            key="nodata"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Alert className="mb-6">
-              <AlertTitle>No playoff data available yet</AlertTitle>
-              <AlertDescription>
-                Playoff data will appear here once the games begin. Check back
-                when the playoffs start!
-              </AlertDescription>
-            </Alert>
-            <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 mt-4">
-              <p className="mb-2">
-                DraftKings is running a $2 million King of the Playoffs contest
-                where users predict which player will score the most total
-                points in Round 1.
-              </p>
-              <p>
-                <a
-                  href="/kotp"
-                  className="text-primary hover:underline inline-flex items-center"
-                >
-                  Learn more about the KOTP contest
-                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                </a>
-              </p>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <KOTPDashboard
-              players={transformPlayers(players)}
-              allGamesFinal={allGamesFinal}
-              lastUpdated={lastUpdated}
-              playoffRound={playoffRound}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {error ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Alert variant="destructive" className="mb-6">
+                <AlertTitle className="font-semibold">Error Loading Data</AlertTitle>
+                <AlertDescription className="mt-1">
+                  {errorMessage}
+                  {retryCount > 0 && (
+                    <div className="mt-2 text-sm">
+                      Retry count: {retryCount}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <KOTPDashboard 
+                players={players} 
+                lastUpdated={lastUpdated}
+                playoffRound={playoffRound}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
