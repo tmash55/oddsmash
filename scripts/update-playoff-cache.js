@@ -2,7 +2,8 @@
 
 // This script triggers the KOTP cache update endpoint
 const CRON_SECRET = process.env.CRON_SECRET || "";
-const API_URL = "http://localhost:3000/api/kotp/cron/update-cache";
+const PRODUCTION_URL = process.env.PRODUCTION_URL || "https://oddsmash.vercel.app";
+const API_URL = process.env.API_URL || PRODUCTION_URL + "/api/kotp/cron/update-cache";
 
 async function triggerCacheUpdate() {
   console.log("Attempting to update KOTP playoff cache...");
@@ -21,6 +22,7 @@ async function triggerCacheUpdate() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "User-Agent": "OddsMash-CacheUpdater/1.0",
       },
     });
     
@@ -34,6 +36,11 @@ async function triggerCacheUpdate() {
     
     if (data.success) {
       console.log(`Successfully updated playoff cache with ${data.count} game logs`);
+      
+      // Check if leaderboard was generated
+      if (data.players) {
+        console.log(`Leaderboard was also updated with ${data.players} players`);
+      }
     } else {
       console.log("Cache update was not successful");
       if (data.message) {
