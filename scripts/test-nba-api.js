@@ -6,6 +6,12 @@ const https = require('https');
 const NBA_API_URL = 'https://stats.nba.com/stats/leaguegamelog';
 const TIMEOUT_MS = 30000; // 30 second timeout
 
+// Helper function to get today's date in YYYY-MM-DD format
+function getTodayDateString() {
+  const today = new Date();
+  return today.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+}
+
 // Helper function to make a GET request with custom headers
 function makeRequest(url, params, headers) {
   return new Promise((resolve, reject) => {
@@ -57,13 +63,17 @@ function makeRequest(url, params, headers) {
 async function main() {
   console.log('Testing NBA Stats API...');
   
+  // Get today's date
+  const todayDate = getTodayDateString();
+  console.log(`Using today's date: ${todayDate}`);
+  
   const params = {
     LeagueID: '00', // NBA
     Season: '2024-25',
     SeasonType: 'Playoffs',
     Direction: 'DESC',
-    DateFrom: '',
-    DateTo: '',
+    DateFrom: todayDate,
+    DateTo: todayDate,
     PlayerOrTeam: 'P',
     Counter: 0,
     Sorter: 'DATE',
@@ -99,7 +109,7 @@ async function main() {
           console.log(`${index + 1}. ${log[playerNameIndex]} (${log[teamAbbrevIndex]}) - ${log[pointsIndex]} pts - ${log[gameDateIndex]} - ${log[matchupIndex]}`);
         });
       } else {
-        console.log('No game logs found.');
+        console.log('No game logs found for today.');
       }
     } else {
       console.log('Invalid or empty response format. Full response:');

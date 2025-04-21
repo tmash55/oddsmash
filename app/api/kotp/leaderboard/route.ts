@@ -298,6 +298,10 @@ function formatDateToNBAFormat(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+function getTodayDate(): string {
+  return formatDateToNBAFormat(new Date());
+}
+
 function getPlayerTeam(player: any): string {
   // Try different possible paths to the team code based on NBA API structure
   if (player.teamTricode) return player.teamTricode;
@@ -330,11 +334,31 @@ export async function GET() {
     
     console.log("Cache miss - building fresh leaderboard data");
     
+    // Get today's date for filtering
+    const todayString = getTodayDate();
+    console.log(`Today's date: ${todayString} - Will filter out today's games from historical logs`);
+    
     // Fetch game logs and scoreboard data (mostly from cache now)
-    const [gameLogs, scoreboard] = await Promise.all([
+    const [allGameLogs, scoreboard] = await Promise.all([
       fetchPlayoffGameLogs(),
       fetchScoreboard(),
     ]);
+    
+    // Create a set to track which completed games from today are already in the historical data
+    const todayHistoricalGameIds = new Set<string>();
+
+    // First identify today's games that are already in the historical data
+    allGameLogs.forEach((game: PlayerGameLog) => {
+      if (game.gameDate === todayString) {
+        todayHistoricalGameIds.add(game.gameId);
+      }
+    });
+
+    console.log(`Found ${todayHistoricalGameIds.size} completed games from today already in historical data`);
+
+    // Filter out today's games from historical logs to prevent double counting
+    const gameLogs = allGameLogs.filter((game: PlayerGameLog) => game.gameDate !== todayString);
+    console.log(`Found ${allGameLogs.length} total game logs, using ${gameLogs.length} after filtering out today's games`);
     
     // Process the game logs to get player points
     const playersByID: { [key: string]: Player } = {};
@@ -485,21 +509,28 @@ export async function GET() {
           
           // Add live points if the player has statistics
           if (player.statistics && player.statistics.points > 0) {
-            playersByID[playerId].livePts = player.statistics.points;
-            playersByID[playerId].playedToday = true;
-            
-            // If the game is final, update their wins/losses record
-            if (game.gameStatus === 3) {
-              const playerTeamId = getPlayerTeam(player);
-              const isHomeTeam = playerTeamId === game.homeTeam.teamId.toString();
-              const playerTeamPoints = isHomeTeam ? game.homeTeam.score : game.awayTeam.score;
-              const opponentPoints = isHomeTeam ? game.awayTeam.score : game.homeTeam.score;
+            // Only add points if this game isn't already in the historical data
+            if (!todayHistoricalGameIds.has(game.gameId)) {
+              playersByID[playerId].livePts = player.statistics.points;
+              playersByID[playerId].playedToday = true;
               
-              if (playerTeamPoints > opponentPoints) {
-                playersByID[playerId].seriesRecord.wins += 1;
-              } else if (playerTeamPoints < opponentPoints) {
-                playersByID[playerId].seriesRecord.losses += 1;
+              // If the game is final, update their wins/losses record
+              if (game.gameStatus === 3) {
+                const playerTeamId = getPlayerTeam(player);
+                const isHomeTeam = playerTeamId === game.homeTeam.teamId.toString();
+                const playerTeamPoints = isHomeTeam ? game.homeTeam.score : game.awayTeam.score;
+                const opponentPoints = isHomeTeam ? game.awayTeam.score : game.homeTeam.score;
+                
+                if (playerTeamPoints > opponentPoints) {
+                  playersByID[playerId].seriesRecord.wins += 1;
+                } else if (playerTeamPoints < opponentPoints) {
+                  playersByID[playerId].seriesRecord.losses += 1;
+                }
               }
+            } else {
+              console.log(`Skipping live points for ${playersByID[playerId].name} (${player.statistics.points} pts) in game ${game.gameId} - already in historical data`);
+              // Still mark that they played today, but don't add the points twice
+              playersByID[playerId].playedToday = true;
             }
           }
         }

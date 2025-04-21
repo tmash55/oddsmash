@@ -3,8 +3,7 @@ import { GAMELOG_CACHE_KEY, CACHE_TTL, PlayerGameLog } from "@/app/api/kotp/cons
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
 // Set a more aggressive timeout than the default
-const NBA_API_TIMEOUT = 8000; // 8 seconds
-
+const NBA_API_TIMEOUT = 25000; // Increase to 25 seconds for better reliability
 
 // Define a type for the function result
 type FetchResult = {
@@ -22,12 +21,28 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
     // Return cached data immediately if available (don't wait for fresh data)
     const cachedLogs = await redis.get(GAMELOG_CACHE_KEY) as PlayerGameLog[] | null;
     
+    console.log("Checking for cached playoff game logs...");
+    if (cachedLogs && Array.isArray(cachedLogs) && cachedLogs.length > 0) {
+      console.log(`Found ${cachedLogs.length} cached playoff game logs. Using cache.`);
+      return {
+        success: true,
+        message: `Using ${cachedLogs.length} cached game logs`,
+        data: cachedLogs,
+        fromCache: true
+      };
+    } else {
+      console.log("No cached game logs found or cache is empty. Fetching fresh data.");
+    }
+    
     // Set up a timeout for the NBA API call
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), NBA_API_TIMEOUT);
     
     try {
-      console.log("Fetching fresh playoff game logs data");
+      console.log("Fetching fresh playoff game logs data from NBA API");
+      console.log("Request URL:", url);
+      
+      const startTime = Date.now();
       const response = await fetch(
         url,
         {
@@ -44,9 +59,19 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
       );
       
       clearTimeout(timeoutId);
+      const requestTime = Date.now() - startTime;
+      console.log(`NBA API request completed in ${requestTime}ms with status: ${response.status}`);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch playoff game logs: ${response.status}`);
+        let errorText = "";
+        try {
+          errorText = await response.text();
+          errorText = errorText.substring(0, 200); // Just a preview of the error
+        } catch (e) {
+          errorText = "Could not read error response";
+        }
+        
+        throw new Error(`Failed to fetch playoff game logs: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -67,6 +92,8 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
       // Parse the response data
       const headers = data.resultSets[0].headers;
       const rows = data.resultSets[0].rowSet;
+      
+      console.log(`Found ${rows.length} game logs in the NBA API response`);
 
       // Find indices for the columns we need
       const playerIdIndex = headers.indexOf("PLAYER_ID");
@@ -92,9 +119,11 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
         winLoss: row[wlIndex],
       }));
 
-      // Store in Redis cache
-      await redis.set(GAMELOG_CACHE_KEY, gameLogs, { ex: CACHE_TTL });
-      console.log("Stored playoff game logs in cache, count:", gameLogs.length);
+      console.log(`Processed ${gameLogs.length} game logs, sample player: ${gameLogs[0]?.playerName || 'none'}`);
+      
+      // Store in Redis cache - use a longer TTL since this data doesn't change
+      await redis.set(GAMELOG_CACHE_KEY, gameLogs, { ex: CACHE_TTL * 2 }); // Doubling the cache TTL
+      console.log(`Stored ${gameLogs.length} playoff game logs in cache`);
       
       return {
         success: true,
@@ -103,6 +132,7 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
       };
     } catch (fetchError) {
       clearTimeout(timeoutId);
+      // Handle fetch timeout or error
       console.error("NBA API fetch error:", fetchError);
       
       // If we had cached data, return that instead

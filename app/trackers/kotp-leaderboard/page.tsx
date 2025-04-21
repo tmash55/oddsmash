@@ -162,6 +162,46 @@ export default function KOTPLeaderboardPage() {
     );
   };
 
+  // Add this transformation before passing data to the Dashboard component - avoiding double counting
+  const transformPlayers = useCallback((players: any[]) => {
+    if (!players || !Array.isArray(players)) return [];
+    
+    // First pass: fix point totals for each player
+    const correctedPlayers = players.map(player => {
+      // Create a copy of the player to avoid mutating the original
+      const transformedPlayer = { ...player };
+      
+      // If a player played today AND their game is final, don't double count
+      // by adding their livePts to their total points
+      if (player.playedToday && (player.gameStatus === "Completed" || player.gameStatus === "Final")) {
+        // Only use their historical points for the totalPts value
+        transformedPlayer.totalPts = player.points;
+        console.log(`Correcting points for ${player.name}: Using ${player.points} instead of ${player.totalPts}`);
+        
+        // Also fix the series record by dividing wins/losses by 2 if they're double-counted
+        // This is a heuristic that assumes the records are exactly doubled
+        const wins = player.seriesRecord.wins;
+        const losses = player.seriesRecord.losses;
+        
+        // Check if the wins or losses look doubled (more than zero and even number)
+        if (wins > 0 && wins % 2 === 0) {
+          transformedPlayer.seriesRecord.wins = wins / 2;
+          console.log(`Correcting series wins for ${player.name}: ${wins} → ${wins / 2}`);
+        }
+        
+        if (losses > 0 && losses % 2 === 0) {
+          transformedPlayer.seriesRecord.losses = losses / 2;
+          console.log(`Correcting series losses for ${player.name}: ${losses} → ${losses / 2}`);
+        }
+      }
+      
+      return transformedPlayer;
+    });
+    
+    // Second pass: resort players by the corrected totalPts
+    return correctedPlayers.sort((a, b) => b.totalPts - a.totalPts);
+  }, []);
+
   if (error) {
     return (
       <div className="w-full">
@@ -328,7 +368,7 @@ export default function KOTPLeaderboardPage() {
             transition={{ duration: 0.3 }}
           >
             <KOTPDashboard
-              players={players}
+              players={transformPlayers(players)}
               allGamesFinal={allGamesFinal}
               lastUpdated={lastUpdated}
               playoffRound={playoffRound}

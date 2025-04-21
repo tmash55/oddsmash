@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { GAMELOG_CACHE_KEY } from "@/app/api/kotp/constants";
+import { fetchPlayoffGameLogs } from "@/lib/kotp/fetchGameLogs";
 
 // Runtime config for better timeouts
 export const runtime = 'nodejs';
@@ -54,6 +55,16 @@ function getOrdinal(n: number): string {
 
 // For now we're still in Round 1
 const PLAYOFF_ROUND = "Round 1";
+
+// Helper function to format date to NBA format (YYYY-MM-DD)
+function formatDateToNBAFormat(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+// Helper function to get today's date in NBA format
+function getTodayDate(): string {
+  return formatDateToNBAFormat(new Date());
+}
 
 // Types for our data structures
 type PlayerGameLog = {
@@ -240,19 +251,41 @@ export async function GET() {
   try {
     console.log("Hybrid leaderboard endpoint called:", new Date().toISOString());
     
-    // Get cached game logs first (this should be populated by our background job)
-    console.log("Retrieving cached game logs");
-    const cachedGameLogs = await redis.get(GAMELOG_CACHE_KEY) as PlayerGameLog[] | null;
+    // Instead of just getting the cache, use the fetchPlayoffGameLogs function
+    // which will either return cached data or fetch fresh data if needed
+    console.log("Retrieving playoff game logs (cached or fresh)");
+    const gameLogsResult = await fetchPlayoffGameLogs();
+    const cachedGameLogs = gameLogsResult.data;
+    const fromCache = gameLogsResult.fromCache || false;
+    
+    // Get today's date for filtering
+    const todayString = getTodayDate();
+    console.log(`Today's date: ${todayString} - Will filter out today's games from historical logs`);
     
     // Create a map to store player data
     const playerMap: Record<string, SimplePlayer> = {};
     
+    // Add a set to track game IDs from today that exist in historical data
+    const todayHistoricalGameIds = new Set<string>();
+
     // Process historical game logs first (if any)
     if (cachedGameLogs && Array.isArray(cachedGameLogs)) {
-      console.log(`Found ${cachedGameLogs.length} cached game logs`);
+      // First identify today's games in the historical data
+      cachedGameLogs.forEach(game => {
+        if (game.gameDate === todayString) {
+          todayHistoricalGameIds.add(game.gameId);
+        }
+      });
+      
+      console.log(`Found ${todayHistoricalGameIds.size} completed games from today already in historical data`);
+      
+      // Filter out today's games to prevent double counting
+      const filteredGameLogs = cachedGameLogs.filter(game => game.gameDate !== todayString);
+      
+      console.log(`Found ${cachedGameLogs.length} playoff game logs, using ${filteredGameLogs.length} after filtering out today's games`);
       
       // Process each game log
-      cachedGameLogs.forEach(game => {
+      filteredGameLogs.forEach(game => {
         if (!playerMap[game.playerId]) {
           playerMap[game.playerId] = {
             personId: game.playerId,
@@ -433,24 +466,32 @@ export async function GET() {
               }
             }
             
-            // Add live points if the player has statistics
+            // Add live points if the player has statistics and the game isn't already in historical data
             if (player.statistics && player.statistics.points !== undefined) {
               const livePoints = parseInt(player.statistics.points) || 0;
-              playerMap[playerId].livePts = livePoints;
-              playerMap[playerId].playedToday = livePoints > 0;
               
-              // If the game is final, mark it in the series record
-              if (game.gameStatus === 3) {
-                const playerTeamId = getPlayerTeam(player, boxscore);
-                const isHomeTeam = playerTeamId === game.homeTeam.teamTricode;
-                const playerTeamPoints = isHomeTeam ? game.homeTeam.score : game.awayTeam.score;
-                const opponentPoints = isHomeTeam ? game.awayTeam.score : game.homeTeam.score;
+              // Only count live points if this game isn't already in the historical data
+              if (!todayHistoricalGameIds.has(game.gameId)) {
+                playerMap[playerId].livePts = livePoints;
+                playerMap[playerId].playedToday = livePoints > 0;
                 
-                if (playerTeamPoints > opponentPoints) {
-                  playerMap[playerId].seriesRecord.wins += 1;
-                } else if (playerTeamPoints < opponentPoints) {
-                  playerMap[playerId].seriesRecord.losses += 1;
+                // If the game is final, mark it in the series record
+                if (game.gameStatus === 3) {
+                  const playerTeamId = getPlayerTeam(player, boxscore);
+                  const isHomeTeam = playerTeamId === game.homeTeam.teamTricode;
+                  const playerTeamPoints = isHomeTeam ? game.homeTeam.score : game.awayTeam.score;
+                  const opponentPoints = isHomeTeam ? game.awayTeam.score : game.homeTeam.score;
+                  
+                  if (playerTeamPoints > opponentPoints) {
+                    playerMap[playerId].seriesRecord.wins += 1;
+                  } else if (playerTeamPoints < opponentPoints) {
+                    playerMap[playerId].seriesRecord.losses += 1;
+                  }
                 }
+              } else {
+                console.log(`Skipping live points for ${playerMap[playerId].name} (${livePoints} pts) in game ${game.gameId} - already in historical data`);
+                // Still mark that they played today, but don't double-count points
+                playerMap[playerId].playedToday = true;
               }
             }
           }
@@ -481,7 +522,14 @@ export async function GET() {
       lastUpdated: getFormattedTime(),
       hasCachedData: !!cachedGameLogs && Array.isArray(cachedGameLogs),
       cachedGameLogsCount: cachedGameLogs && Array.isArray(cachedGameLogs) ? cachedGameLogs.length : 0,
-      hasLiveGames: gamesScheduled
+      hasLiveGames: gamesScheduled,
+      cacheInfo: {
+        fromCache,
+        logCount: cachedGameLogs ? cachedGameLogs.length : 0,
+        cacheMessage: gameLogsResult.message,
+        todayHistoricalGames: todayHistoricalGameIds.size,
+        todayHistoricalGameIds: Array.from(todayHistoricalGameIds)
+      }
     };
     
     return NextResponse.json(responseData);

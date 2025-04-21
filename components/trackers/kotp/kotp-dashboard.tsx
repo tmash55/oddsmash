@@ -192,9 +192,9 @@ export default function KOTPDashboard({
   const getStatusBadge = (player: PlayoffPlayer) => {
     if (!player.isPlaying) {
       return (
-        <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
-          Inactive
-        </Badge>
+        <span className="text-gray-400 dark:text-gray-500 text-sm">
+          -
+        </span>
       )
     }
 
