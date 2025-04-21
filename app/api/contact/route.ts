@@ -42,11 +42,18 @@ export async function POST(request: Request) {
 
     // Setup email data
     const mailOptions = {
-      from: `"${firstName} ${lastName}" <${email}>`,
+      from: `"OddSmash Contact Form - ${firstName} ${lastName}" <${process.env.EMAIL_USER || "tyler@oddsmash.io"}>`,
       replyTo: email,
       to: to || config.gmail?.supportEmail || "support@oddsmash.io",
       subject: subject || `Contact Form Submission from ${firstName} ${lastName}`,
-      text: message,
+      text: `
+New message from: ${firstName} ${lastName} (${email})
+
+${message}
+
+---
+Sent from the OddSmash.io contact form
+      `,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #444;">New Contact Form Submission</h2>
