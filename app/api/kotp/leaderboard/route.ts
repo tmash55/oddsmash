@@ -200,7 +200,7 @@ async function fetchLivePlayerData(): Promise<any[]> {
     // Use absolute URL to ensure it works in all environments
     console.log("Constructing URL for live data...");
     const host = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
+      ? `https://oddsmash.io` 
       : "http://localhost:3000";
     const url = `${host}/api/kotp/allPlayers`;
     
