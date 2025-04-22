@@ -35,6 +35,7 @@ type PlayoffPlayer = {
   teamTricode: string
   points: number // Total playoff points
   livePts: number // Points from currently active game
+  todayPts: number // Points scored today
   totalPts: number // Combined total (playoff + live)
   gamesPlayed: number
   ppg: number // Points per game
@@ -56,7 +57,7 @@ type KOTPDashboardProps = {
 }
 
 type ChangedStats = {
-  [key: string]: Set<"totalPts" | "livePts" | "points" | "gameStatus" | "ppg">
+  [key: string]: Set<"totalPts" | "livePts" | "points" | "gameStatus" | "ppg" | "todayPts">
 }
 
 const OnCourtIndicator = ({ isOnCourt }: { isOnCourt: boolean }) =>
@@ -117,11 +118,12 @@ export default function KOTPDashboard({
     players.forEach((player) => {
       const prevPlayer = prevPlayersRef.current.find((p) => p.personId === player.personId)
       if (prevPlayer) {
-        const changedFields = new Set<"totalPts" | "livePts" | "points" | "gameStatus" | "ppg">()
+        const changedFields = new Set<"totalPts" | "livePts" | "points" | "gameStatus" | "ppg" | "todayPts">()
         if (prevPlayer.totalPts !== player.totalPts) changedFields.add("totalPts")
         if (prevPlayer.livePts !== player.livePts) changedFields.add("livePts")
         if (prevPlayer.points !== player.points) changedFields.add("points")
         if (prevPlayer.gameStatus !== player.gameStatus) changedFields.add("gameStatus")
+        if (prevPlayer.todayPts !== player.todayPts) changedFields.add("todayPts")
         if (changedFields.size > 0) {
           newChangedStats[player.personId] = changedFields
         }
@@ -267,7 +269,7 @@ export default function KOTPDashboard({
     label: string
     value: number
     playerId: string
-    statKey: "totalPts" | "livePts" | "points" | "ppg"
+    statKey: "totalPts" | "livePts" | "points" | "ppg" | "todayPts"
   }) => (
     <div className="space-y-1">
       <span
@@ -386,7 +388,7 @@ export default function KOTPDashboard({
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center mt-4">
-          <StatDisplay label="TOTAL PTS" value={player.points} playerId={player.personId} statKey="points" />
+          <StatDisplay label="TOTAL PTS" value={player.totalPts} playerId={player.personId} statKey="totalPts" />
           <StatDisplay label="PPG" value={player.ppg} playerId={player.personId} statKey="ppg" />
           <div className="space-y-1">
             <span className="text-lg font-bold">
@@ -395,6 +397,15 @@ export default function KOTPDashboard({
             <span className="text-xs text-muted-foreground block">SERIES</span>
           </div>
         </div>
+        
+        {/* Today's points display at bottom */}
+        {player.playedToday && player.todayPts > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 text-center">
+            <p className="text-sm font-medium">
+              Today: {player.todayPts} pts
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -591,6 +602,7 @@ export default function KOTPDashboard({
                 <TableHead>Player</TableHead>
                 <TableHead className="w-[80px] text-muted-foreground text-xs uppercase">Team</TableHead>
                 <TableHead className="text-right text-muted-foreground text-xs uppercase">Total Pts</TableHead>
+                <TableHead className="text-right text-muted-foreground text-xs uppercase">Today</TableHead>
                 <TableHead className="text-right hidden sm:table-cell text-muted-foreground text-xs uppercase">
                   PPG
                 </TableHead>
@@ -645,7 +657,16 @@ export default function KOTPDashboard({
                           : ""
                       }`}
                     >
-                      {player.points}
+                      {player.totalPts}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-medium ${
+                        player.playedToday && player.todayPts > 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {player.playedToday && player.todayPts > 0 ? player.todayPts : "-"}
                     </TableCell>
                     <TableCell className="text-right hidden sm:table-cell font-medium">
                       {player.ppg.toFixed(1)}
