@@ -23,7 +23,9 @@ export const metadata = getSEOTags();
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head></head>
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6979411075342172" crossOrigin="anonymous"></script>
+      </head>
       <body className={font.className}>
         <ThemeProvider
           attribute="class"
