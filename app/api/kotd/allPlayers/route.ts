@@ -27,6 +27,7 @@ type Player = {
   gameStatus: string;
   winningTeam: boolean;
   isPostponed: boolean;
+  position: string;
 };
 
 type Game = {
@@ -210,67 +211,69 @@ export async function GET(request: NextRequest) {
 
           // Process players with home runs
           if (liveData.liveData && liveData.liveData.boxscore) {
-            // Check if we're looking at today's data or historical
-            const isToday = formatDateForAPI(new Date()) === dateStr;
+            // Always include all players, even for historical dates
+            // The client-side filtering will handle showing only HR hitters if desired
             
             // Process home team players
             const homePlayers = liveData.liveData.boxscore.teams.home.players;
             for (const playerId in homePlayers) {
               const playerData = homePlayers[playerId];
-              // For today's games include all players, for historical dates only include HR hitters
               const hasHomeRun = playerData.stats && playerData.stats.batting && playerData.stats.batting.homeRuns > 0;
-              if (isToday || hasHomeRun) {
-                allPlayers.push({
-                  personId: playerData.person.id.toString(),
-                  name: playerData.person.fullName,
-                  team: gameData.homeTeam,
-                  teamId: gameData.homeTeamId,
-                  opponent: gameData.awayTeam,
-                  opponentId: gameData.awayTeamId,
-                  homeRun: hasHomeRun,
-                  homeRunCount: playerData.stats?.batting?.homeRuns || 0,
-                  atBats: playerData.stats?.batting?.atBats || 0,
-                  teamRuns: gameData.homeTeamRuns,
-                  opponentRuns: gameData.awayTeamRuns,
-                  currentInning: `${gameData.inningHalf} ${gameData.inning}`,
-                  inningNumber: gameData.inning,
-                  inningHalf: gameData.inningHalf,
-                  gameId: gameData.gamePk,
-                  gameStatus: gameData.gameStatus,
-                  winningTeam: gameData.homeTeamRuns > gameData.awayTeamRuns,
-                  isPostponed: gameData.isPostponed
-                });
-              }
+              // Include position information for filtering
+              const position = playerData.position?.abbreviation || '';
+              
+              allPlayers.push({
+                personId: playerData.person.id.toString(),
+                name: playerData.person.fullName,
+                team: gameData.homeTeam,
+                teamId: gameData.homeTeamId,
+                opponent: gameData.awayTeam,
+                opponentId: gameData.awayTeamId,
+                homeRun: hasHomeRun,
+                homeRunCount: playerData.stats?.batting?.homeRuns || 0,
+                atBats: playerData.stats?.batting?.atBats || 0,
+                teamRuns: gameData.homeTeamRuns,
+                opponentRuns: gameData.awayTeamRuns,
+                currentInning: `${gameData.inningHalf} ${gameData.inning}`,
+                inningNumber: gameData.inning,
+                inningHalf: gameData.inningHalf,
+                gameId: gameData.gamePk,
+                gameStatus: gameData.gameStatus,
+                winningTeam: gameData.homeTeamRuns > gameData.awayTeamRuns,
+                isPostponed: gameData.isPostponed,
+                position: position
+              });
             }
 
             // Process away team players
             const awayPlayers = liveData.liveData.boxscore.teams.away.players;
             for (const playerId in awayPlayers) {
               const playerData = awayPlayers[playerId];
-              // For today's games include all players, for historical dates only include HR hitters
               const hasHomeRun = playerData.stats && playerData.stats.batting && playerData.stats.batting.homeRuns > 0;
-              if (isToday || hasHomeRun) {
-                allPlayers.push({
-                  personId: playerData.person.id.toString(),
-                  name: playerData.person.fullName,
-                  team: gameData.awayTeam,
-                  teamId: gameData.awayTeamId,
-                  opponent: gameData.homeTeam,
-                  opponentId: gameData.homeTeamId,
-                  homeRun: hasHomeRun,
-                  homeRunCount: playerData.stats?.batting?.homeRuns || 0,
-                  atBats: playerData.stats?.batting?.atBats || 0,
-                  teamRuns: gameData.awayTeamRuns,
-                  opponentRuns: gameData.homeTeamRuns,
-                  currentInning: `${gameData.inningHalf} ${gameData.inning}`,
-                  inningNumber: gameData.inning,
-                  inningHalf: gameData.inningHalf,
-                  gameId: gameData.gamePk,
-                  gameStatus: gameData.gameStatus,
-                  winningTeam: gameData.awayTeamRuns > gameData.homeTeamRuns,
-                  isPostponed: gameData.isPostponed
-                });
-              }
+              // Include position information for filtering
+              const position = playerData.position?.abbreviation || '';
+              
+              allPlayers.push({
+                personId: playerData.person.id.toString(),
+                name: playerData.person.fullName,
+                team: gameData.awayTeam,
+                teamId: gameData.awayTeamId,
+                opponent: gameData.homeTeam,
+                opponentId: gameData.homeTeamId,
+                homeRun: hasHomeRun,
+                homeRunCount: playerData.stats?.batting?.homeRuns || 0,
+                atBats: playerData.stats?.batting?.atBats || 0,
+                teamRuns: gameData.awayTeamRuns,
+                opponentRuns: gameData.homeTeamRuns,
+                currentInning: `${gameData.inningHalf} ${gameData.inning}`,
+                inningNumber: gameData.inning,
+                inningHalf: gameData.inningHalf,
+                gameId: gameData.gamePk,
+                gameStatus: gameData.gameStatus,
+                winningTeam: gameData.awayTeamRuns > gameData.homeTeamRuns,
+                isPostponed: gameData.isPostponed,
+                position: position
+              });
             }
           }
         }
