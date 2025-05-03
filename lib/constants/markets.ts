@@ -136,7 +136,7 @@ export const SPORT_MARKETS: SportMarkets = {
     {
       value: "Player_Assists_Q1",
       label: "Assists- 1st Quarter",
-      apiKey: "player_assits_q1",
+      apiKey: "player_assists_q1",
     },
     {
       value: "Player_Rebounds_Q1",

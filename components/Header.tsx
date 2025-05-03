@@ -99,17 +99,22 @@ export function Header() {
   const trackerItems = [
     {
       title: "KOTP Leaderboard",
-      description: "Track King of the Parlay leaderboard stats",
+      description: "Track the King of the Playoffs",
       href: "/trackers/kotp-leaderboard",
       icon: <Crown className="h-4 w-4 text-primary" />,
     },
     {
+      title: "KOTD Leaderboard",
+      description: "Track MLB home runs for King of the Diamond",
+      href: "/trackers/kotd-leaderboard",
+      icon: <Crown className="h-4 w-4 text-primary" />,
+    },
+    {
       title: "PRA Leaderboard",
-      description: "Track player PRA stats for NBA games",
+      description: "Track PRA stats for NBA games",
       href: "/trackers/pra-leaderboard",
       icon: <Activity className="h-4 w-4 text-primary" />,
-    },
-    
+    }
   ];
 
   // Navigation items for mobile menu
@@ -385,17 +390,9 @@ export function Header() {
               </div>
 
               <div className="mt-auto border-t p-4">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    openSportsbookSelector();
-                    setIsSheetOpen(false);
-                  }}
-                >
-                  <Zap className="mr-2 h-4 w-4 text-primary" />
-                  Sportsbooks
-                </Button>
+                <div className="text-xs text-center text-muted-foreground">
+                  ODDSMASH © {new Date().getFullYear()}
+                </div>
               </div>
             </SheetContent>
           </Sheet>

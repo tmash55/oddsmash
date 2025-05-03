@@ -73,6 +73,12 @@ export function Footer() {
               >
                 Parlay Builder
               </Link>
+              <Link
+                href="/ev-scanner"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                EV Scanner
+              </Link>
             </nav>
           </div>
 

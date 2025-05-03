@@ -1,106 +1,108 @@
-# 📊 EV Bet Finder Tool — Build Plan & Documentation
+📊 EV Tool Setup Guide
+This markdown file provides an overview and implementation guide for building an Expected Value (EV) scanning tool using sportsbook data. The goal is to scan odds from multiple sportsbooks and compare them against Pinnacle (as the sharp line) to identify +EV betting opportunities.
 
-## 🎯 Goal
-Create a new page in the Oddsmash app that displays Expected Value (EV) bets across multiple sportsbooks for upcoming games. This tool helps bettors find +EV opportunities by comparing sportsbook lines against the market consensus.
-
----
-
-## ✅ Features
-- Displays EV bets sorted by highest value.
-- Focused on games that have not started (`commence_time` > now).
-- Supports H2H, Spread, Totals, and select Player Prop markets.
-- Uses Redis (Upstash) to cache event/odds data.
-- Includes a manual refresh button (can be expanded into cron/refetch logic).
-- Identifies the best line per outcome and calculates EV% using implied probabilities.
-
----
-
-## 🧮 EV Calculation Methodology
-
-### Formula:
-```
-EV = (Implied Probability of Best Odds - Market Average Probability) * 100
-```
-
-### Implied Probability:
-- Positive Odds: `100 / (odds + 100)`
-- Negative Odds: `-odds / (-odds + 100)`
-
-### Process:
-1. For each event + market (e.g., Yankees ML, Over 8.5 Runs):
-   - Get all available odds from different sportsbooks.
-   - Find the best (highest value) odds.
-   - Calculate implied probability for each book.
-   - Average those probabilities (market consensus).
-   - Compare average to best odds → calculate EV%.
-2. Include if EV > threshold (e.g. 2% or 3%).
-
----
-
-## 🧱 Folder & File Structure
-
-```bash
-/app
-  /ev-bets
-    page.tsx               # Renders EV table and refresh UI
-    components/
-      EVTable.tsx          # Displays EV bets in a sortable table
-      EVRefreshButton.tsx  # Optional button to trigger refetch
-
-/lib
-  /ev
-    calculateEV.ts         # Contains pure logic for calculating EV
-    getEVBets.ts           # Fetches event + odds data and processes EV
-
-/api
-  /ev
-    route.ts               # API route to expose EV bets to frontend
-
-/lib
-  redis.ts                 # Redis client setup (already exists)
-```
-
----
-
-## 🔁 Data Flow
-
-```text
-User clicks "Refresh EV Bets"
- → /api/ev route is called
-   → Calls getEVBets.ts
-     → Fetches cached events
-     → Filters by commence_time > now
-     → Fetches markets for each event (H2H, Totals, Spreads, or Props)
-     → Compares odds across books
-     → Calculates EV% for each possible outcome
-   → Returns sorted list of EV bets
- → Frontend renders with EVTable
-```
-
----
-
-## 🛑 Filters & Constraints
-- **Exclude events** where `commence_time < Date.now()`
-- **Require minimum odds coverage** (3+ books preferred)
-- **Ignore markets** with no significant line variance
-- **Only show EV% > threshold** (configurable, default 2-3%)
-
----
-
-## 📋 Display Table Columns
-| Game | Market | Outcome | Best Book | Best Odds | Market Avg | EV% |
-|------|--------|---------|-----------|-----------|------------|-----|
-
----
-
-Other Files that can help that we already have created:
-
-odds-api.ts
-redis.ts
-sportsbooks.ts
-sports-data.ts
-markets.ts
-api routes
+📁 Important Files
+These are the core files this agent or developer should reference and work with:
 
 
-We will be adding more sportsbooks in the future and want an easy way to update the calculation or add more books into the calculation. Or even use weights for a certain sport. 
+File	Purpose
+lib/constants/markets.ts	Defines all market types supported (e.g., Points, Rebounds, Assists, etc.)
+lib/redis.ts	Provides Redis caching logic (to avoid redundant API calls)
+lib/odds-api.ts	Responsible for calling the odds API and formatting responses
+data/sportsbooks.ts	List of supported sportsbooks, their internal IDs, and affiliate link info
+data/sports-data.ts	Additional sports mappings and league-level identifiers
+app/api/events/route.ts	Fetches all upcoming events and matchups (used to generate EV scan targets)
+app/api/events/[eventId]/props/route.ts	Retrieves player prop odds per market for a given game/event
+🏀 Step 1: Filter by Sport (Start with Basketball)
+Start by scanning basketball markets (nba, ncaab, wnba), using identifiers in sports-data.ts. Later we can add nfl, mlb, etc.
+
+🔁 Step 2: Loop Through Markets
+Loop through each entry in markets.ts. For each market:
+
+Use the event API route (/api/events) to get all upcoming basketball events.
+
+For each event, hit /api/events/[eventId]/props for every market.
+
+Collect odds from all sportsbooks listed in sportsbooks.ts.
+
+🧮 Step 3: Calculate Expected Value (EV%)
+The formula to compute Expected Value:
+
+EV%
+=
+(
+True Probability
+×
+(
+Decimal Odds
+−
+1
+)
+)
+−
+(
+1
+−
+True Probability
+)
+EV%=(True Probability×(Decimal Odds−1))−(1−True Probability)
+Definitions:
+True Probability is derived from Pinnacle's line:
+
+If Pinnacle odds are +121, the implied probability is:
+
+100
+121
++
+100
+=
+0.4525
+121+100
+100
+​
+ =0.4525
+If odds are negative (e.g., -130), it's:
+
+130
+130
++
+100
+=
+0.5652
+130+100
+130
+​
+ =0.5652
+Decimal Odds is:
+
+For positive American odds: (odds / 100) + 1
+
+For negative American odds: (100 / abs(odds)) + 1
+
+📊 Step 4: Display Format
+Display data in a sortable, searchable table view with the following columns:
+
+
+Column	Description
+EV %	Expected value percentage (sorted highest to lowest)
+Market	e.g., Points, Rebounds, etc.
+Player Line	e.g., Jalen Brunson o/u 27.5
+Sportsbook	Book with the most favorable odds
+Odds	Odds being offered at the value sportsbook
+True Line	Pinnacle's odds
+Win Probability	Based on Pinnacle's line
+Game / Matchup	e.g., Knicks vs 76ers
+SID Link	Direct link to place the bet on that sportsbook
+All Books View	Expandable row with a list of other sportsbooks and their odds for that same line
+Average Line	Average odds across all books (used for context)
+🔓 Optional Features
+✅ Filter by min EV % threshold (e.g., only show EV > 3%)
+
+🔍 Filter by sportsbook(s)
+
+⚠️ Warning if value line is too far off average (risk of stale/inaccurate data)
+
+💾 Cache results with Redis (use TTL of 2–5 min)
+
+📩 Add webhook or cron job to run scans on a timer and push updates to Redis
+
