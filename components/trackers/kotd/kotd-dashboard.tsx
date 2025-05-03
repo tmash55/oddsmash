@@ -12,6 +12,7 @@ import ScheduledGames from "./scheduled-games"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import Link from "next/link"
 
 type ViewMode = "card" | "table"
 
@@ -579,6 +580,12 @@ export default function KOTDDashboard({ players, games, allGamesFinal, lastUpdat
               </Badge>
             )}
           </h2>
+          <Link href="/kotd" className="ml-2">
+            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+              <Crown className="h-3 w-3 text-yellow-500" />
+              How It Works
+            </Button>
+          </Link>
         </div>
 
         <div className="text-xs sm:text-sm text-muted-foreground">
