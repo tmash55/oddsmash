@@ -32,9 +32,21 @@ export async function GET(req: Request) {
     const firstStart = new Date(firstGame.gameDate);
     const now = new Date();
 
-    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000); // Start 1 hour before
+    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000);
     const notBefore = Date.now() + delayMs;
-    const expiresAt = notBefore + 7 * 60 * 60 * 1000; // 7 hours from start
+    const expiresAt = notBefore + 7 * 60 * 60 * 1000; // 7 hours
+
+    const maxAllowedDelay = 31622400 * 1000; // in ms, based on QStash error message (366 days)
+    const requestedDelay = notBefore - Date.now();
+    if (requestedDelay > maxAllowedDelay) {
+      return NextResponse.json({
+        error: "Requested delay exceeds QStash limit",
+        details: {
+          requestedDelayMs: requestedDelay,
+          maxAllowedDelayMs: maxAllowedDelay
+        }
+      }, { status: 400 });
+    }
 
     const result = await client.publishJSON({
       url: POLLING_ENDPOINT,
