@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN!;
-const QSTASH_ENDPOINT = "https://qstash.upstash.io/v1/publish";
+const QSTASH_ENDPOINT = "https://qstash.upstash.io/v2/publish";
 const POLLING_ENDPOINT = "https://oddsmash.io/api/cron/mlb/cache"; // replace with your real endpoint
 
 export async function GET() {
@@ -40,11 +40,12 @@ export async function GET() {
         headers: {
           Authorization: `Bearer ${QSTASH_TOKEN}`,
           "Content-Type": "application/json",
-          "Upstash-Delay": delayMs.toString(),
-          "Upstash-Cron": "*/5 * * * *"
+          "Upstash-Delay": delayMs.toString(), // optional
+          "Upstash-Cron": "*/5 * * * *"        // optional if recurring
         },
-        body: JSON.stringify({ action: "start-multi-game-polling" }),
+        body: JSON.stringify({ type: "poll-today" })
       });
+      
       
 
     if (!res.ok) {
