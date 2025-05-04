@@ -1,3 +1,4 @@
+// ✅ /api/cron/mlb/polling/route.ts
 import { NextResponse } from "next/server";
 import { Client } from "@upstash/qstash";
 
@@ -31,14 +32,13 @@ export async function GET(req: Request) {
     const firstStart = new Date(firstGame.gameDate);
     const now = new Date();
 
-    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000);
-    const maxPollingDurationMs = 8 * 60 * 60 * 1000;
+    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000); // Start 1 hour before
     const notBefore = Date.now() + delayMs;
-    const expiresAt = notBefore + maxPollingDurationMs;
+    const expiresAt = notBefore + 7 * 60 * 60 * 1000; // 7 hours from start
 
     const result = await client.publishJSON({
       url: POLLING_ENDPOINT,
-      body: { reason: "initial-job" },
+      body: { reason: "initial-polling-window" },
       delay: delayMs,
       cron: "*/5 * * * *",
       notBefore,
