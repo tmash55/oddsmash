@@ -1,12 +1,20 @@
-import { Client } from "@upstash/qstash";
 import { NextResponse } from "next/server";
+import { Client } from "@upstash/qstash";
 
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN!;
+const CRON_SECRET = process.env.CRON_SECRET!;
 const client = new Client({ token: QSTASH_TOKEN });
-const POLLING_ENDPOINT = "https://oddsmash.io/api/cron/mlb/cache"; // replace with prod
 
-export async function GET() {
+const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache"; // ✅ your live endpoint
+
+export async function GET(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
+    // 👇 your existing logic here
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -33,17 +41,16 @@ export async function GET() {
     const now = new Date();
 
     const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000); // 1 hour before first pitch
-    const expiresAt = new Date(lastStart.getTime() + 4.5 * 60 * 60 * 1000); // 4.5 hrs after last game starts
+    const expiresAt = new Date(lastStart.getTime() + 4.5 * 60 * 60 * 1000); // 4.5 hours after last game
 
     const result = await client.publishJSON({
-        url: POLLING_ENDPOINT,
-        body: { reason: "hour-before-first-pitch" },
-        delay: delayMs,
-        cron: "*/5 * * * *",
-        notBefore: Date.now() + delayMs, // ✅ use number (ms)
-        expiresAt: expiresAt.getTime(), // ✅ convert Date to ms
-      });
-      
+      url: POLLING_ENDPOINT,
+      body: { reason: "hour-before-first-pitch" },
+      delay: delayMs,
+      cron: "*/5 * * * *",
+      notBefore: Date.now() + delayMs,
+      expiresAt: expiresAt.getTime(),
+    });
 
     return NextResponse.json({
       message: "Polling job scheduled",
