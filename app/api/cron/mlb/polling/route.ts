@@ -4,16 +4,11 @@ import { Client } from "@upstash/qstash";
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN!;
 const client = new Client({ token: QSTASH_TOKEN });
 
-const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache"; // ✅ Make sure this is correct
+const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache";
+const MAX_DELAY_MS = 31622400; // 8.78 hours in ms (QStash max delay)
 
 export async function GET(req: Request) {
   try {
-    // TEMP: No auth while testing
-    // const authHeader = req.headers.get("authorization");
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
-
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -41,19 +36,22 @@ export async function GET(req: Request) {
     const lastStart = new Date(lastGame.gameDate);
     const now = new Date();
 
-    const delayMs = Math.max(
-      0,
-      firstStart.getTime() - now.getTime() - 60 * 60 * 1000
-    ); // 1 hour before first pitch
-    const expiresAt = new Date(lastStart.getTime() + 4.5 * 60 * 60 * 1000); // 4.5 hours after last game
+    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000);
+    const notBefore = Date.now() + delayMs;
+
+    // Raw desired expiration time: 4.5 hours after last game
+    const rawExpiresAt = lastStart.getTime() + 4.5 * 60 * 60 * 1000;
+
+    // Cap expiresAt to the max QStash delay if necessary
+    const expiresAt = Math.min(notBefore + MAX_DELAY_MS, rawExpiresAt);
 
     const result = await client.publishJSON({
       url: POLLING_ENDPOINT,
       body: { reason: "hour-before-first-pitch" },
       delay: delayMs,
       cron: "*/5 * * * *",
-      notBefore: Date.now() + delayMs,
-      expiresAt: expiresAt.getTime(),
+      notBefore,
+      expiresAt,
     });
 
     return NextResponse.json({
@@ -61,14 +59,11 @@ export async function GET(req: Request) {
       delayMinutes: Math.floor(delayMs / 60000),
       firstGameTime: firstStart,
       lastGameTime: lastStart,
-      expiresAt,
+      expiresAt: new Date(expiresAt),
       qstashMessageId: result.messageId,
     });
   } catch (error) {
     console.error("Error setting up polling schedule:", error);
-    return NextResponse.json(
-      { error: "Internal error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
