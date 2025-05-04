@@ -5,7 +5,7 @@ const QSTASH_TOKEN = process.env.QSTASH_TOKEN!;
 const client = new Client({ token: QSTASH_TOKEN });
 
 const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache";
-const MAX_DELAY_MS = 31622400; // 8.78 hours in ms (QStash max delay)
+const MAX_DELAY_MS = 31622400; // QStash max delay (8.78 hours)
 
 export async function GET(req: Request) {
   try {
@@ -34,16 +34,29 @@ export async function GET(req: Request) {
 
     const firstStart = new Date(firstGame.gameDate);
     const lastStart = new Date(lastGame.gameDate);
-    const now = new Date();
+    const now = Date.now();
 
-    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000);
-    const notBefore = Date.now() + delayMs;
-
-    // Raw desired expiration time: 4.5 hours after last game
+    const delayMs = Math.max(0, firstStart.getTime() - now - 60 * 60 * 1000); // 1h before first pitch
+    const notBefore = now + delayMs;
     const rawExpiresAt = lastStart.getTime() + 4.5 * 60 * 60 * 1000;
 
-    // Cap expiresAt to the max QStash delay if necessary
-    const expiresAt = Math.min(notBefore + MAX_DELAY_MS, rawExpiresAt);
+    // ❌ Prevent QStash error if duration exceeds 8.78h
+    if ((rawExpiresAt - notBefore) > MAX_DELAY_MS) {
+      return NextResponse.json(
+        {
+          error: "Polling window too long for QStash",
+          details: {
+            notBefore: new Date(notBefore),
+            rawExpiresAt: new Date(rawExpiresAt),
+            durationHours: ((rawExpiresAt - notBefore) / 3600000).toFixed(2),
+          },
+          suggestion: "Run this endpoint later in the day (closer to first pitch)",
+        },
+        { status: 400 }
+      );
+    }
+
+    const expiresAt = rawExpiresAt;
 
     const result = await client.publishJSON({
       url: POLLING_ENDPOINT,
@@ -57,13 +70,19 @@ export async function GET(req: Request) {
     return NextResponse.json({
       message: "Polling job scheduled",
       delayMinutes: Math.floor(delayMs / 60000),
-      firstGameTime: firstStart,
-      lastGameTime: lastStart,
+      firstGameTime: new Date(firstStart),
+      lastGameTime: new Date(lastStart),
       expiresAt: new Date(expiresAt),
       qstashMessageId: result.messageId,
     });
   } catch (error) {
-    console.error("Error setting up polling schedule:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    console.error("❌ Error setting up polling schedule:", error);
+    return NextResponse.json(
+      {
+        error: "Internal error",
+        message: (error as Error).message,
+      },
+      { status: 500 }
+    );
   }
 }
