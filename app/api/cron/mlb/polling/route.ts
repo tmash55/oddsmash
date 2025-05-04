@@ -2,26 +2,27 @@ import { NextResponse } from "next/server";
 import { Client } from "@upstash/qstash";
 
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN!;
-const CRON_SECRET = process.env.CRON_SECRET!;
 const client = new Client({ token: QSTASH_TOKEN });
 
-const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache"; // ✅ your live endpoint
+const POLLING_ENDPOINT = "https://www.oddsmash.io/api/cron/mlb/cache"; // ✅ Make sure this is correct
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    // 👇 your existing logic here
+    // TEMP: No auth while testing
+    // const authHeader = req.headers.get("authorization");
+    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // }
+
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
     const dateStr = `${yyyy}-${mm}-${dd}`;
 
-    const scheduleRes = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${dateStr}`);
+    const scheduleRes = await fetch(
+      `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${dateStr}`
+    );
     const scheduleData = await scheduleRes.json();
 
     const games = scheduleData?.dates?.[0]?.games || [];
@@ -29,10 +30,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "No games today" });
     }
 
-    const firstGame = games.reduce((a:any, b:any) =>
+    const firstGame = games.reduce((a: any, b: any) =>
       new Date(a.gameDate) < new Date(b.gameDate) ? a : b
     );
-    const lastGame = games.reduce((a:any, b:any) =>
+    const lastGame = games.reduce((a: any, b: any) =>
       new Date(a.gameDate) > new Date(b.gameDate) ? a : b
     );
 
@@ -40,7 +41,10 @@ export async function GET(req: Request) {
     const lastStart = new Date(lastGame.gameDate);
     const now = new Date();
 
-    const delayMs = Math.max(0, firstStart.getTime() - now.getTime() - 60 * 60 * 1000); // 1 hour before first pitch
+    const delayMs = Math.max(
+      0,
+      firstStart.getTime() - now.getTime() - 60 * 60 * 1000
+    ); // 1 hour before first pitch
     const expiresAt = new Date(lastStart.getTime() + 4.5 * 60 * 60 * 1000); // 4.5 hours after last game
 
     const result = await client.publishJSON({
@@ -62,6 +66,9 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Error setting up polling schedule:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal error" },
+      { status: 500 }
+    );
   }
 }
