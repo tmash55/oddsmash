@@ -194,7 +194,7 @@ export default function JoinUs() {
 
       {/* X (Twitter) link in top right corner */}
       <Link 
-        href="https://x.com/oddsmash" 
+        href="https://x.com/OddSmashApp" 
         target="_blank"
         rel="noopener noreferrer" 
         className="absolute top-4 right-4 z-30 flex items-center gap-2 text-white/80 hover:text-white transition-colors"
