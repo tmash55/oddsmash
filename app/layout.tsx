@@ -2,14 +2,9 @@ import type { ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import type { Viewport } from "next";
 import { getSEOTags } from "@/libs/seo";
+import { LayoutContent } from "./components/layout-content";
 
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Analytics } from "@vercel/analytics/react";
-import { Footer } from "@/components/landing-page/footer";
-import { Header } from "@/components/Header";
-import { SportsbookProvider } from "@/contexts/sportsbook-context";
-import { Toaster } from "@/components/ui/toaster";
 
 const font = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
@@ -27,23 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6979411075342172" crossOrigin="anonymous"></script>
       </head>
       <body className={font.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SportsbookProvider>
-            <Header />
-
-            {/* Apply full width on mobile, container with padding on larger screens */}
-            <main className="w-full mx-auto max-w-screen-2xl">{children}</main>
-
-            <Toaster />
-            <Footer />
-            <Analytics />
-          </SportsbookProvider>
-        </ThemeProvider>
+        <LayoutContent>{children}</LayoutContent>
       </body>
     </html>
   );
