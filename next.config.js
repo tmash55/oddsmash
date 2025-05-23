@@ -10,6 +10,7 @@ const nextConfig = {
       "logos-world.net",
       "avatar.vercel.sh",
       "randomuser.me",
+      "img.mlbstatic.com",
     ],
   },
 };
