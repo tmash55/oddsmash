@@ -1,5 +1,5 @@
 'use client';
-
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
@@ -64,8 +64,8 @@ const SuccessAnimation = ({ onReset }: SuccessAnimationProps) => (
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.7 }}
     >
-      <h2 className="text-2xl font-bold text-white/90 mb-2">You're on the list! 🎉</h2>
-      <p className="text-gray-300/90 mb-8">We'll notify you when the features are live.</p>
+      <h2 className="text-2xl font-bold text-white/90 mb-2">You&apos;re on the list! 🎉</h2>
+      <p className="text-gray-300/90 mb-8">We&apos;ll notify you when the features are live.</p>
       
       <div className="flex flex-col gap-3">
         <motion.button
@@ -276,7 +276,7 @@ export default function JoinUs() {
                       required
                     />
                     <p className="mt-2 text-xs text-gray-400/80 text-center">
-                      We'll only email you about feature launches. No spam, ever.
+                    We&apos;ll only email you about feature launches. No spam, ever.
                     </p>
                   </div>
                   <motion.button
