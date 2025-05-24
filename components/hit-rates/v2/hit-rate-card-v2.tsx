@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, ExternalLink, TrendingUp, TrendingDown, Minus, Info, X, Scale, Clock } from "lucide-react"
+import { Star, ExternalLink, TrendingUp, TrendingDown, Minus, Info, X, Scale, Clock, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Image from "next/image"
@@ -101,6 +101,9 @@ interface HitRateCardV3Props {
     sportsbook: string
     link?: string | null
   } | null
+  onSort?: (field: string, direction: "asc" | "desc") => void
+  sortField?: string
+  sortDirection?: "asc" | "desc"
 }
 
 // Mobile info modal component
@@ -211,13 +214,97 @@ export default function HitRateCardV3({
   selectedTimeWindow,
   getPlayerData,
   bestOdds,
+  onSort,
+  sortField = "L10",
+  sortDirection = "desc",
 }: HitRateCardV3Props) {
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [showInfoModal, setShowInfoModal] = useState(false)
-  const [sportsbookToDisplay, setSportsbookToDisplay] = useState<string | null>(null) // State for displayed sportsbook
+  // Format American odds
+  const formatOdds = (odds: number): string => {
+    // Handle NaN, undefined or null values
+    if (odds === undefined || odds === null || isNaN(odds)) {
+      return "-";
+    }
+    return odds > 0 ? `+${odds}` : odds.toString();
+  }
 
-  // Check if the user is on mobile
-  const isMobile = useMediaQuery("(max-width: 768px)")
+  // Helper to convert a full team name to an abbreviation
+  const getTeamAbbreviation = (teamName: string): string => {
+    // Common team name mappings
+    const teamAbbreviations: Record<string, string> = {
+      "New York Yankees": "NYY",
+      "New York Mets": "NYM",
+      "Boston Red Sox": "BOS",
+      "Los Angeles Dodgers": "LAD",
+      "Los Angeles Angels": "LAA",
+      "Chicago Cubs": "CHC",
+      "Chicago White Sox": "CHW",
+      "Milwaukee Brewers": "MIL",
+      "Atlanta Braves": "ATL",
+      "Houston Astros": "HOU",
+      "Philadelphia Phillies": "PHI",
+      "San Francisco Giants": "SF",
+      "San Diego Padres": "SD",
+      "Toronto Blue Jays": "TOR",
+      "Texas Rangers": "TEX",
+      "Cleveland Guardians": "CLE",
+      "Detroit Tigers": "DET",
+      "Minnesota Twins": "MIN",
+      "Kansas City Royals": "KC",
+      "Colorado Rockies": "COL",
+      "Arizona Diamondbacks": "AZ",
+      "Seattle Mariners": "SEA",
+      "Tampa Bay Rays": "TB",
+      "Miami Marlins": "MIA",
+      "Baltimore Orioles": "BAL",
+      "Washington Nationals": "WSH",
+      "Pittsburgh Pirates": "PIT",
+      "Cincinnati Reds": "CIN",
+      "Oakland Athletics": "OAK",
+      "St. Louis Cardinals": "STL",
+    }
+
+    // Check if we have a direct mapping
+    if (teamAbbreviations[teamName]) {
+      return teamAbbreviations[teamName]
+    }
+
+    // If no direct mapping, generate an abbreviation from the team name
+    return teamName
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+  }
+
+  // Format the game time from ISO string to a readable format
+  const formatGameTime = (timeString?: string): string => {
+    if (!timeString) return "TBD";
+
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (e) {
+      return "TBD";
+    }
+  }
+
+  // Generate random game info (in a real app, this would come from the API)
+  const getGameInfo = () => {
+    const teams = ["NYY", "BOS", "LAD", "CHC", "MIL", "ATL", "HOU", "PHI"]
+    const randomTeam = teams[Math.floor(Math.random() * teams.length)]
+    const isHome = Math.random() > 0.5
+
+    return {
+      opponent: randomTeam,
+      isHome,
+      matchupText: isHome ? `vs ${randomTeam}` : `@ ${randomTeam}`,
+      time: "7:05 PM ET",
+    }
+  }
 
   // Get player data including team and position
   const playerData = getPlayerData(profile.player_id)
@@ -227,128 +314,62 @@ export default function HitRateCardV3({
   // Generate MLB headshot URL
   const playerHeadshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${profile.player_id}/headshot/67/current`
 
-  // Get trend indicator
-  const getTrend = (): "up" | "down" | "neutral" => {
-    // Use custom tier hit rates if available
-    const l5 = customTier !== null 
-      ? calculateHitRateWithCustomTier(profile, customTier, "last_5")
-      : profile.last_5_hit_rate;
+  // Format a matchup text based on actual game data
+  const getActualMatchupInfo = () => {
+    if (!profile.away_team || !profile.home_team) {
+      // Fallback to random generation if game data is missing
+      return getGameInfo()
+    }
+
+    // Get abbreviations for both teams
+    const awayTeamAbbr = getTeamAbbreviation(profile.away_team)
+    const homeTeamAbbr = getTeamAbbreviation(profile.home_team)
+
+    // Determine if the player's team is home or away by comparing abbreviations
+    const isPlayerTeamHome = teamAbbreviation === homeTeamAbbr || 
+                            homeTeamAbbr.includes(teamAbbreviation) || 
+                            teamAbbreviation.includes(homeTeamAbbr)
     
-    const l10 = customTier !== null
-      ? calculateHitRateWithCustomTier(profile, customTier, "last_10")
-      : profile.last_10_hit_rate;
+    const isPlayerTeamAway = teamAbbreviation === awayTeamAbbr || 
+                            awayTeamAbbr.includes(teamAbbreviation) || 
+                            teamAbbreviation.includes(awayTeamAbbr)
 
-    if (l5 > l10 + 5) return "up"
-    if (l5 < l10 - 5) return "down"
-    return "neutral"
-  }
+    // If player is on home team, the opponent is the away team
+    if (isPlayerTeamHome) {
+      return {
+        opponent: awayTeamAbbr,
+        isHome: true,
+        matchupText: `vs ${awayTeamAbbr}`,
+        time: formatGameTime(profile.commence_time),
+      }
+    }
+    
+    // If player is on away team, the opponent is the home team
+    if (isPlayerTeamAway) {
+      return {
+        opponent: homeTeamAbbr,
+        isHome: false,
+        matchupText: `@ ${homeTeamAbbr}`,
+        time: formatGameTime(profile.commence_time),
+      }
+    }
 
-  // Get the trend direction
-  const trend = getTrend()
-
-  // Get trend icon and color
-  const getTrendDisplay = () => {
-    if (trend === "up") {
-      return {
-        icon: <TrendingUp className="h-3 w-3" />,
-        color: "text-green-500",
-        bgColor: "bg-green-100 dark:bg-green-900/30",
-        borderColor: "border-green-500",
-      }
-    } else if (trend === "down") {
-      return {
-        icon: <TrendingDown className="h-3 w-3" />,
-        color: "text-red-500",
-        bgColor: "bg-red-100 dark:bg-red-900/30",
-        borderColor: "border-red-500",
-      }
-    } else {
-      return {
-        icon: <Minus className="h-3 w-3" />,
-        color: "text-gray-500",
-        bgColor: "bg-gray-100 dark:bg-gray-800",
-        borderColor: "border-gray-400",
-      }
+    // If we can't determine which team the player is on, use the first team as opponent
+    return {
+      opponent: awayTeamAbbr,
+      isHome: true,
+      matchupText: `vs ${awayTeamAbbr}`,
+      time: formatGameTime(profile.commence_time),
     }
   }
 
-  const trendDisplay = getTrendDisplay()
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [showInfoModal, setShowInfoModal] = useState(false)
+  const [sportsbookToDisplay, setSportsbookToDisplay] = useState<string | null>(null)
+  const previousCustomTierRef = useRef<number | null>(customTier);
 
-  // Calculate hit rate based on selected time window and custom tier
-  const getHitRate = (): number => {
-    if (customTier === null) {
-      return selectedTimeWindow === "5_games"
-        ? profile.last_5_hit_rate
-        : selectedTimeWindow === "10_games"
-          ? profile.last_10_hit_rate
-          : profile.last_20_hit_rate
-    }
-
-    const windowKey =
-      selectedTimeWindow === "5_games" ? "last_5" : selectedTimeWindow === "10_games" ? "last_10" : "last_20"
-
-    const histogram = profile.points_histogram[windowKey]
-    const totalGames = Object.values(histogram).reduce((sum, count) => sum + count, 0)
-
-    if (totalGames === 0) return 0
-
-    // Sum all games where player had >= tier
-    let gamesHittingTier = 0
-    Object.entries(histogram).forEach(([value, count]) => {
-      if (Number(value) >= customTier) {
-        gamesHittingTier += count
-      }
-    })
-
-    return Math.round((gamesHittingTier / totalGames) * 100)
-  }
-
-  // Get the hit rate value
-  const hitRate = getHitRate()
-
-  // Get the number of games in the selected time window
-  const getGamesCount = (): number => {
-    const windowKey =
-      selectedTimeWindow === "5_games" ? "last_5" : selectedTimeWindow === "10_games" ? "last_10" : "last_20"
-    const histogram = profile.points_histogram[windowKey]
-    return Object.values(histogram).reduce((sum, count) => sum + count, 0)
-  }
-
-  // Calculate the number of hits and games
-  const gamesCount = getGamesCount()
-  const hitsCount = Math.round(gamesCount * (hitRate / 100))
-
-  // Get color for hit rate
-  const getHitRateColor = (rate: number): string => {
-    if (rate >= 75) return "text-green-600 dark:text-green-400"
-    if (rate >= 60) return "text-blue-600 dark:text-blue-400"
-    if (rate >= 50) return "text-amber-600 dark:text-amber-400"
-    return "text-red-600 dark:text-red-400"
-  }
-
-  // Get background color for hit rate badge
-  const getHitRateBgColor = (rate: number): string => {
-    // Good percentages (Green variations - from deep to light)
-    if (rate >= 90) return "bg-green-200 dark:bg-green-800/50 text-green-900 dark:text-green-200" // Deep green
-    if (rate >= 80) return "bg-green-100 dark:bg-green-800/40 text-green-800 dark:text-green-300"
-    if (rate >= 70) return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-    if (rate >= 60) return "bg-green-50 dark:bg-green-900/25 text-green-700 dark:text-green-400"
-    if (rate >= 50) return "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" // Lightest green
-
-    // Bad percentages (Red variations - from light to deep)
-    if (rate >= 40) return "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" // Lightest red
-    if (rate >= 30) return "bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-400"
-    if (rate >= 20) return "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-    if (rate >= 10) return "bg-red-100 dark:bg-red-800/40 text-red-800 dark:text-red-300"
-    return "bg-red-200 dark:bg-red-800/50 text-red-900 dark:text-red-200" // Deep red
-  }
-
-  // Generate random odds for demonstration
-  const getRandomOdds = () => {
-    const baseOdds = Math.random() > 0.5 ? -110 : 110
-    const variation = Math.floor(Math.random() * 20) * 5
-    return baseOdds > 0 ? baseOdds + variation : baseOdds - variation
-  }
+  // Check if the user is on mobile
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   // Get random sportsbook for demonstration
   const getRandomSportsbook = () => {
@@ -358,71 +379,6 @@ export default function HitRateCardV3({
 
   // Use real odds if available, otherwise use mock odds
   const sportsbook = bestOdds ? bestOdds.sportsbook : getRandomSportsbook()
-
-  // Add useEffect to update sportsbookToDisplay only when needed
-  useEffect(() => {
-    // Calculate the sportsbook to display once
-    let newDisplaySportsbook = sportsbook;
-    
-    // If we have a custom tier, check odds for that tier first
-    if (customTier !== null && profile.all_odds) {
-      const actualLineValue = (customTier - 0.5).toString();
-      
-      if (profile.all_odds[actualLineValue]) {
-        // Check if we have the preferred sportsbook first
-        // First check if there's an "odds" property
-        if (profile.all_odds[actualLineValue][sportsbook]?.odds !== undefined) {
-          // Use the preferred sportsbook
-          newDisplaySportsbook = sportsbook;
-        } 
-        // Then check if the value itself is a valid number (direct odds)
-        else if (!isNaN(Number(profile.all_odds[actualLineValue][sportsbook]))) {
-          // Use the preferred sportsbook
-          newDisplaySportsbook = sportsbook;
-        } 
-        // If neither condition is met, choose the first available book
-        else {
-          const availableBooks = Object.keys(profile.all_odds[actualLineValue]);
-          if (availableBooks.length > 0) {
-            newDisplaySportsbook = availableBooks[0];
-          }
-        }
-      }
-    } else if (profile.all_odds && profile.line) {
-      // Use default line
-      const lineStr = profile.line.toString();
-      if (profile.all_odds[lineStr]) {
-        // Check if we have the preferred sportsbook first
-        // First check if there's an "odds" property
-        if (profile.all_odds[lineStr][sportsbook]?.odds !== undefined) {
-          // Use the preferred sportsbook
-          newDisplaySportsbook = sportsbook;
-        } 
-        // Then check if the value itself is a valid number (direct odds)
-        else if (!isNaN(Number(profile.all_odds[lineStr][sportsbook]))) {
-          // Use the preferred sportsbook
-          newDisplaySportsbook = sportsbook;
-        }
-        // If neither condition is met, choose the first available book
-        else {
-          const availableBooks = Object.keys(profile.all_odds[lineStr]);
-          if (availableBooks.length > 0) {
-            newDisplaySportsbook = availableBooks[0];
-          }
-        }
-      }
-    }
-    
-    // Fall back to bestOdds if needed
-    if (bestOdds && !profile.all_odds) {
-      newDisplaySportsbook = bestOdds.sportsbook;
-    }
-    
-    // Only update state if it's different to avoid re-renders
-    if (newDisplaySportsbook !== sportsbookToDisplay) {
-      setSportsbookToDisplay(newDisplaySportsbook);
-    }
-  }, [profile, customTier, sportsbook, bestOdds, sportsbookToDisplay]);
 
   // Get odds value from all_odds if available
   const getOddsValue = (): number => {
@@ -556,21 +512,280 @@ export default function HitRateCardV3({
     return bestOdds?.link;
   }
 
+  // Add helper function to get the display sort field (for arrow indicator)
+  const getDisplaySortField = (field: string): string => {
+    // If we have a custom sort field, show the arrow on the base field
+    if (field.endsWith("_custom")) {
+      return field.replace("_custom", "");
+    }
+    return field;
+  };
+
+  // Effect to maintain sort when custom tier changes
+  useEffect(() => {
+    // Only trigger resort if customTier actually changed
+    if (customTier !== previousCustomTierRef.current && onSort && sortField) {
+      previousCustomTierRef.current = customTier;
+      
+      // If we're currently sorting by hit rates
+      if (sortField === "L5" || sortField === "L10" || sortField === "L20" || sortField.endsWith("_custom")) {
+        // Get the base field without _custom suffix
+        const baseField = sortField.replace("_custom", "");
+        
+        // If switching to custom tier, add _custom suffix
+        if (customTier !== null) {
+          onSort(`${baseField}_custom`, sortDirection || "desc");
+        } 
+        // If switching back to default tier, remove _custom suffix
+        else {
+          onSort(baseField, sortDirection || "desc");
+        }
+      }
+      // For non-hit-rate sorts, maintain current sort but refresh to account for new tier
+      else if (onSort) {
+        onSort(sortField, sortDirection || "desc");
+      }
+    }
+  }, [customTier, sortDirection, sortField, onSort]);
+
+  // Add handleSort function
+  const handleSort = (field: string) => {
+    if (onSort) {
+      // Get the current effective sort field (without _custom suffix)
+      const currentBaseField = getDisplaySortField(sortField);
+      
+      // Determine the new direction
+      const newDirection = currentBaseField === field && sortDirection === "desc" ? "asc" : "desc";
+
+      // If we're sorting by hit rates and have a custom tier
+      if (customTier !== null && (field === "L5" || field === "L10" || field === "L20")) {
+        onSort(`${field}_custom`, newDirection);
+      } else if (customTier === null && field === currentBaseField && sortField.endsWith("_custom")) {
+        // If we're already using a custom sort but switching back to default
+        onSort(field, newDirection);
+      } else {
+        // For regular sorts
+        onSort(field, newDirection);
+      }
+    }
+  };
+
+  // Add sort icon helper
+  const getSortIcon = (field: string, currentSortField: string, currentSortDirection: "asc" | "desc") => {
+    if (field !== currentSortField) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground/50" />
+    }
+    return currentSortDirection === "asc" ? (
+      <ArrowUp className="ml-1 h-3 w-3 text-indigo-500 dark:text-indigo-400" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3 text-indigo-500 dark:text-indigo-400" />
+    )
+  };
+
+  // Get the game info and other values after all functions are defined
+  const gameInfo = getActualMatchupInfo()
   const odds = getOddsValue()
   const directBetLink = getDirectBetLink()
   const hasDirectLink = !!directBetLink
-  
-  // Use the sportsbookToDisplay if available, otherwise use the original sportsbook
   const displaySportsbook = sportsbookToDisplay || sportsbook
 
-  // Format American odds
-  const formatOdds = (odds: number): string => {
-    // Handle NaN, undefined or null values
-    if (odds === undefined || odds === null || isNaN(odds)) {
-      return "-";
+  // Function to handle click on sportsbook logo
+  const handleSportsbookClick = () => {
+    if (hasDirectLink) {
+      window.open(directBetLink, "_blank");
+      console.log(`[CARD] Opening bet link: ${directBetLink}`);
+    } else {
+      console.log(`[CARD] No bet link available for ${displaySportsbook}`);
     }
-    return odds > 0 ? `+${odds}` : odds.toString();
   }
+
+  // Get trend indicator
+  const getTrend = (): "up" | "down" | "neutral" => {
+    // Use custom tier hit rates if available
+    const l5 = customTier !== null 
+      ? calculateHitRateWithCustomTier(profile, customTier, "last_5")
+      : profile.last_5_hit_rate;
+    
+    const l10 = customTier !== null
+      ? calculateHitRateWithCustomTier(profile, customTier, "last_10")
+      : profile.last_10_hit_rate;
+
+    if (l5 > l10 + 5) return "up"
+    if (l5 < l10 - 5) return "down"
+    return "neutral"
+  }
+
+  // Get the trend direction
+  const trend = getTrend()
+
+  // Get trend icon and color
+  const getTrendDisplay = () => {
+    if (trend === "up") {
+      return {
+        icon: <TrendingUp className="h-3 w-3" />,
+        color: "text-green-500",
+        bgColor: "bg-green-100 dark:bg-green-900/30",
+        borderColor: "border-green-500",
+      }
+    } else if (trend === "down") {
+      return {
+        icon: <TrendingDown className="h-3 w-3" />,
+        color: "text-red-500",
+        bgColor: "bg-red-100 dark:bg-red-900/30",
+        borderColor: "border-red-500",
+      }
+    } else {
+      return {
+        icon: <Minus className="h-3 w-3" />,
+        color: "text-gray-500",
+        bgColor: "bg-gray-100 dark:bg-gray-800",
+        borderColor: "border-gray-400",
+      }
+    }
+  }
+
+  const trendDisplay = getTrendDisplay()
+
+  // Calculate hit rate based on selected time window and custom tier
+  const getHitRate = (): number => {
+    if (customTier === null) {
+      return selectedTimeWindow === "5_games"
+        ? profile.last_5_hit_rate
+        : selectedTimeWindow === "10_games"
+          ? profile.last_10_hit_rate
+          : profile.last_20_hit_rate
+    }
+
+    const windowKey =
+      selectedTimeWindow === "5_games" ? "last_5" : selectedTimeWindow === "10_games" ? "last_10" : "last_20"
+
+    const histogram = profile.points_histogram[windowKey]
+    const totalGames = Object.values(histogram).reduce((sum, count) => sum + count, 0)
+
+    if (totalGames === 0) return 0
+
+    // Sum all games where player had >= tier
+    let gamesHittingTier = 0
+    Object.entries(histogram).forEach(([value, count]) => {
+      if (Number(value) >= customTier) {
+        gamesHittingTier += count
+      }
+    })
+
+    return Math.round((gamesHittingTier / totalGames) * 100)
+  }
+
+  // Get the hit rate value
+  const hitRate = getHitRate()
+
+  // Get the number of games in the selected time window
+  const getGamesCount = (): number => {
+    const windowKey =
+      selectedTimeWindow === "5_games" ? "last_5" : selectedTimeWindow === "10_games" ? "last_10" : "last_20"
+    const histogram = profile.points_histogram[windowKey]
+    return Object.values(histogram).reduce((sum, count) => sum + count, 0)
+  }
+
+  // Calculate the number of hits and games
+  const gamesCount = getGamesCount()
+  const hitsCount = Math.round(gamesCount * (hitRate / 100))
+
+  // Get color for hit rate
+  const getHitRateColor = (rate: number): string => {
+    if (rate >= 75) return "text-green-600 dark:text-green-400"
+    if (rate >= 60) return "text-blue-600 dark:text-blue-400"
+    if (rate >= 50) return "text-amber-600 dark:text-amber-400"
+    return "text-red-600 dark:text-red-400"
+  }
+
+  // Get background color for hit rate badge
+  const getHitRateBgColor = (rate: number): string => {
+    // Good percentages (Green variations - from deep to light)
+    if (rate >= 90) return "bg-green-200 dark:bg-green-800/50 text-green-900 dark:text-green-200" // Deep green
+    if (rate >= 80) return "bg-green-100 dark:bg-green-800/40 text-green-800 dark:text-green-300"
+    if (rate >= 70) return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+    if (rate >= 60) return "bg-green-50 dark:bg-green-900/25 text-green-700 dark:text-green-400"
+    if (rate >= 50) return "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" // Lightest green
+
+    // Bad percentages (Red variations - from light to deep)
+    if (rate >= 40) return "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" // Lightest red
+    if (rate >= 30) return "bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-400"
+    if (rate >= 20) return "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+    if (rate >= 10) return "bg-red-100 dark:bg-red-800/40 text-red-800 dark:text-red-300"
+    return "bg-red-200 dark:bg-red-800/50 text-red-900 dark:text-red-200" // Deep red
+  }
+
+  // Generate random odds for demonstration
+  const getRandomOdds = () => {
+    const baseOdds = Math.random() > 0.5 ? -110 : 110
+    const variation = Math.floor(Math.random() * 20) * 5
+    return baseOdds > 0 ? baseOdds + variation : baseOdds - variation
+  }
+
+  // Add useEffect to update sportsbookToDisplay only when needed
+  useEffect(() => {
+    // Calculate the sportsbook to display once
+    let newDisplaySportsbook = sportsbook;
+    
+    // If we have a custom tier, check odds for that tier first
+    if (customTier !== null && profile.all_odds) {
+      const actualLineValue = (customTier - 0.5).toString();
+      
+      if (profile.all_odds[actualLineValue]) {
+        // Check if we have the preferred sportsbook first
+        // First check if there's an "odds" property
+        if (profile.all_odds[actualLineValue][sportsbook]?.odds !== undefined) {
+          // Use the preferred sportsbook
+          newDisplaySportsbook = sportsbook;
+        } 
+        // Then check if the value itself is a valid number (direct odds)
+        else if (!isNaN(Number(profile.all_odds[actualLineValue][sportsbook]))) {
+          // Use the preferred sportsbook
+          newDisplaySportsbook = sportsbook;
+        } 
+        // If neither condition is met, choose the first available book
+        else {
+          const availableBooks = Object.keys(profile.all_odds[actualLineValue]);
+          if (availableBooks.length > 0) {
+            newDisplaySportsbook = availableBooks[0];
+          }
+        }
+      }
+    } else if (profile.all_odds && profile.line) {
+      // Use default line
+      const lineStr = profile.line.toString();
+      if (profile.all_odds[lineStr]) {
+        // Check if we have the preferred sportsbook first
+        // First check if there's an "odds" property
+        if (profile.all_odds[lineStr][sportsbook]?.odds !== undefined) {
+          // Use the preferred sportsbook
+          newDisplaySportsbook = sportsbook;
+        } 
+        // Then check if the value itself is a valid number (direct odds)
+        else if (!isNaN(Number(profile.all_odds[lineStr][sportsbook]))) {
+          // Use the preferred sportsbook
+          newDisplaySportsbook = sportsbook;
+        }
+        // If neither condition is met, choose the first available book
+        else {
+          const availableBooks = Object.keys(profile.all_odds[lineStr]);
+          if (availableBooks.length > 0) {
+            newDisplaySportsbook = availableBooks[0];
+          }
+        }
+      }
+    }
+    
+    // Fall back to bestOdds if needed
+    if (bestOdds && !profile.all_odds) {
+      newDisplaySportsbook = bestOdds.sportsbook;
+    }
+    
+    // Only update state if it's different to avoid re-renders
+    if (newDisplaySportsbook !== sportsbookToDisplay) {
+      setSportsbookToDisplay(newDisplaySportsbook);
+    }
+  }, [profile, customTier, sportsbook, bestOdds, sportsbookToDisplay]);
 
   // Generate game-by-game performance data
   const getGameByGameData = () => {
@@ -702,151 +917,6 @@ export default function HitRateCardV3({
         return 0.5 // Make each 0.5 unit significant visually
       default:
         return 1 // Default unit scale
-    }
-  }
-
-  // Generate random game info (in a real app, this would come from the API)
-  const getGameInfo = () => {
-    const teams = ["NYY", "BOS", "LAD", "CHC", "MIL", "ATL", "HOU", "PHI"]
-    const randomTeam = teams[Math.floor(Math.random() * teams.length)]
-    const isHome = Math.random() > 0.5
-
-    return {
-      opponent: randomTeam,
-      isHome,
-      matchupText: isHome ? `vs ${randomTeam}` : `@ ${randomTeam}`,
-      time: "7:05 PM ET",
-    }
-  }
-
-  // Format a matchup text based on actual game data
-  const getActualMatchupInfo = () => {
-    if (!profile.away_team || !profile.home_team) {
-      // Fallback to random generation if game data is missing
-      return getGameInfo()
-    }
-
-    // Get abbreviations for both teams
-    const awayTeamAbbr = getTeamAbbreviation(profile.away_team)
-    const homeTeamAbbr = getTeamAbbreviation(profile.home_team)
-
-    // Determine if the player's team is home or away by comparing abbreviations
-    const isPlayerTeamHome = teamAbbreviation === homeTeamAbbr || 
-                            homeTeamAbbr.includes(teamAbbreviation) || 
-                            teamAbbreviation.includes(homeTeamAbbr)
-    
-    const isPlayerTeamAway = teamAbbreviation === awayTeamAbbr || 
-                            awayTeamAbbr.includes(teamAbbreviation) || 
-                            teamAbbreviation.includes(awayTeamAbbr)
-
-    console.log(`[CARD MATCHUP DEBUG] Player: ${profile.player_name}, Team: ${teamAbbreviation}, Home: ${homeTeamAbbr}, Away: ${awayTeamAbbr}, isHome: ${isPlayerTeamHome}, isAway: ${isPlayerTeamAway}`)
-
-    // If player is on home team, the opponent is the away team
-    if (isPlayerTeamHome) {
-      return {
-        opponent: awayTeamAbbr,
-        isHome: true,
-        matchupText: `vs ${awayTeamAbbr}`,
-        time: formatGameTime(profile.commence_time),
-      }
-    }
-    
-    // If player is on away team, the opponent is the home team
-    if (isPlayerTeamAway) {
-      return {
-        opponent: homeTeamAbbr,
-        isHome: false,
-        matchupText: `@ ${homeTeamAbbr}`,
-        time: formatGameTime(profile.commence_time),
-      }
-    }
-
-    // If we can't determine which team the player is on, use the first team as opponent
-    return {
-      opponent: awayTeamAbbr,
-      isHome: true,
-      matchupText: `vs ${awayTeamAbbr}`,
-      time: formatGameTime(profile.commence_time),
-    }
-  }
-
-  // Helper to convert a full team name to an abbreviation
-  const getTeamAbbreviation = (teamName: string): string => {
-    // Common team name mappings
-    const teamAbbreviations: Record<string, string> = {
-      "New York Yankees": "NYY",
-      "New York Mets": "NYM",
-      "Boston Red Sox": "BOS",
-      "Los Angeles Dodgers": "LAD",
-      "Los Angeles Angels": "LAA",
-      "Chicago Cubs": "CHC",
-      "Chicago White Sox": "CHW",
-      "Milwaukee Brewers": "MIL",
-      "Atlanta Braves": "ATL",
-      "Houston Astros": "HOU",
-      "Philadelphia Phillies": "PHI",
-      "San Francisco Giants": "SF",
-      "San Diego Padres": "SD",
-      "Toronto Blue Jays": "TOR",
-      "Texas Rangers": "TEX",
-      "Cleveland Guardians": "CLE",
-      "Detroit Tigers": "DET",
-      "Minnesota Twins": "MIN",
-      "Kansas City Royals": "KC",
-      "Colorado Rockies": "COL",
-      "Arizona Diamondbacks": "AZ",
-      "Seattle Mariners": "SEA",
-      "Tampa Bay Rays": "TB",
-      "Miami Marlins": "MIA",
-      "Baltimore Orioles": "BAL",
-      "Washington Nationals": "WSH",
-      "Pittsburgh Pirates": "PIT",
-      "Cincinnati Reds": "CIN",
-      "Oakland Athletics": "OAK",
-      "St. Louis Cardinals": "STL",
-    }
-
-    // Check if we have a direct mapping
-    if (teamAbbreviations[teamName]) {
-      return teamAbbreviations[teamName]
-    }
-
-    // If no direct mapping, generate an abbreviation from the team name
-    // by taking the first letter of each word
-    return teamName
-      .split(" ")
-      .map((word) => word.charAt(0))
-      .join("")
-      .toUpperCase()
-  }
-
-  // Format the game time from ISO string to a readable format
-  const formatGameTime = (timeString?: string): string => {
-    if (!timeString) return "TBD";
-
-    try {
-      const date = new Date(timeString);
-
-      // Format time as "7:05 PM"
-      return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch (e) {
-      return "TBD";
-    }
-  }
-
-  const gameInfo = getActualMatchupInfo()
-
-  // Function to handle click on sportsbook logo
-  const handleSportsbookClick = () => {
-    if (hasDirectLink) {
-      window.open(directBetLink, "_blank");
-      console.log(`[CARD] Opening bet link: ${directBetLink}`);
-    } else {
-      console.log(`[CARD] No bet link available for ${displaySportsbook}`);
     }
   }
 
@@ -1005,8 +1075,14 @@ export default function HitRateCardV3({
 
         {/* Hit Rate Stats - Emphasized */}
         <div className={`grid ${customTier !== null ? 'grid-cols-3' : 'grid-cols-4'} gap-2 mb-3`}>
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">L5</span>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center p-0 h-auto hover:bg-transparent"
+            onClick={() => handleSort("L5")}
+          >
+            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+              L5 {getDisplaySortField(sortField) === "L5" && getSortIcon("L5", getDisplaySortField(sortField), sortDirection)}
+            </span>
             <span className={`w-full text-center py-1 rounded-md font-bold text-sm ${getHitRateBgColor(
               customTier !== null 
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_5") 
@@ -1016,9 +1092,15 @@ export default function HitRateCardV3({
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_5") 
                 : Math.round(profile.last_5_hit_rate)}%
             </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">L10</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center p-0 h-auto hover:bg-transparent"
+            onClick={() => handleSort("L10")}
+          >
+            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+              L10 {getDisplaySortField(sortField) === "L10" && getSortIcon("L10", getDisplaySortField(sortField), sortDirection)}
+            </span>
             <span className={`w-full text-center py-1 rounded-md font-bold text-sm ${getHitRateBgColor(
               customTier !== null 
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_10") 
@@ -1028,9 +1110,15 @@ export default function HitRateCardV3({
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_10") 
                 : Math.round(profile.last_10_hit_rate)}%
             </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">L20</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center p-0 h-auto hover:bg-transparent"
+            onClick={() => handleSort("L20")}
+          >
+            <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+              L20 {getDisplaySortField(sortField) === "L20" && getSortIcon("L20", getDisplaySortField(sortField), sortDirection)}
+            </span>
             <span className={`w-full text-center py-1 rounded-md font-bold text-sm ${getHitRateBgColor(
               customTier !== null 
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_20") 
@@ -1040,14 +1128,20 @@ export default function HitRateCardV3({
                 ? calculateHitRateWithCustomTier(profile, customTier, "last_20") 
                 : Math.round(profile.last_20_hit_rate)}%
             </span>
-          </div>
+          </Button>
           {customTier === null && (
-            <div className="flex flex-col items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">2025</span>
+            <Button 
+              variant="ghost" 
+              className="flex flex-col items-center p-0 h-auto hover:bg-transparent"
+              onClick={() => handleSort("seasonHitRate")}
+            >
+              <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+                2025 {getDisplaySortField(sortField) === "seasonHitRate" && getSortIcon("seasonHitRate", getDisplaySortField(sortField), sortDirection)}
+              </span>
               <span className={`w-full text-center py-1 rounded-md font-bold text-sm ${getHitRateBgColor(profile.season_hit_rate || 0)}`}>
                 {Math.round(profile.season_hit_rate || 0)}%
               </span>
-            </div>
+            </Button>
           )}
         </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Share2, TrendingDown, TrendingUp, Minus, Star, Scale, ArrowUpDown, ArrowUp, ArrowDown, Clock, BarChart2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -326,6 +326,7 @@ export default function HitRateTableV2({
   getBestOddsForProfile,
 }: HitRateTableV2Props) {
   const [favorites, setFavorites] = useState<Record<number, boolean>>({})
+  const previousCustomTierRef = useRef<number | null>(customTier);
 
   // Toggle favorite status for a player
   const toggleFavorite = (playerId: number) => {
@@ -346,48 +347,89 @@ export default function HitRateTableV2({
   const getOddsValue = (
     profile: PlayerHitRateProfile,
     sbName: string,
-    bestOddsData: { american: number } | null,
+    bestOddsData: { 
+      american: number;
+      decimal?: number;
+      sportsbook?: string;
+      link?: string | null;
+    } | null,
   ): number => {
     // Store available odds for this line/tier
     let availableOddsForLine: Record<string, any> = {};
     let bestOddsValue = -Infinity;
     let bestBook = sbName;
+    let directLink = bestOddsData?.link;
     
     // If we have a custom tier, try to get odds for that tier first
     if (customTier !== null && profile.all_odds) {
       const actualLineValue = (customTier - 0.5).toString();
-      
       if (profile.all_odds[actualLineValue]) {
         availableOddsForLine = profile.all_odds[actualLineValue];
+        // Find best odds for this line
+        Object.entries(availableOddsForLine).forEach(([book, bookData]) => {
+          let currentOdds: number | undefined;
+          if (bookData && bookData.odds !== undefined) {
+            currentOdds = Math.round(Number(bookData.odds));
+          } else if (!isNaN(Number(bookData))) {
+            currentOdds = Math.round(Number(bookData));
+          }
+          if (currentOdds !== undefined && !isNaN(currentOdds)) {
+            if ((currentOdds > 0 && currentOdds > bestOddsValue) || 
+                (currentOdds < 0 && currentOdds > bestOddsValue)) {
+              bestOddsValue = currentOdds;
+              bestBook = book;
+              // Get direct link if available
+              if (bookData && bookData.over_link) {
+                directLink = bookData.over_link;
+              } else if (bookData && bookData.link) {
+                directLink = bookData.link;
+              }
+            }
+          }
+        });
       }
     } else if (profile.all_odds && profile.line) {
-      // Use default line
       const lineStr = profile.line.toString();
       if (profile.all_odds[lineStr]) {
         availableOddsForLine = profile.all_odds[lineStr];
+        // Find best odds for this line
+        Object.entries(availableOddsForLine).forEach(([book, bookData]) => {
+          let currentOdds: number | undefined;
+          if (bookData && bookData.odds !== undefined) {
+            currentOdds = Math.round(Number(bookData.odds));
+          } else if (!isNaN(Number(bookData))) {
+            currentOdds = Math.round(Number(bookData));
+          }
+          if (currentOdds !== undefined && !isNaN(currentOdds)) {
+            if ((currentOdds > 0 && currentOdds > bestOddsValue) || 
+                (currentOdds < 0 && currentOdds > bestOddsValue)) {
+              bestOddsValue = currentOdds;
+              bestBook = book;
+              // Get direct link if available
+              if (bookData && bookData.over_link) {
+                directLink = bookData.over_link;
+              } else if (bookData && bookData.link) {
+                directLink = bookData.link;
+              }
+            }
+          }
+        });
       }
     }
-    
-    // If we have odds for this line, find the best odds
-    if (Object.keys(availableOddsForLine).length > 0) {
-      // Sort odds from best to worst
-      const sortedEntries = sortOddsEntries(Object.entries(availableOddsForLine));
-      if (sortedEntries.length > 0) {
-        const [bestBookName, bestBookData] = sortedEntries[0];
-        bestOddsValue = getOddsValueFromBookData(bestBookData);
-        bestBook = bestBookName;
-        return bestOddsValue;
-      }
+
+    // If we haven't found any valid odds yet, use bestOdds as fallback
+    if (bestOddsValue === -Infinity && bestOddsData?.american) {
+      bestOddsValue = Math.round(bestOddsData.american);
+      bestBook = bestOddsData.sportsbook || bestBook;
+      directLink = bestOddsData.link || undefined;
     }
-    
-    // Fallback to bestOdds prop if available
-    if (bestOddsData && typeof bestOddsData === 'object' && typeof bestOddsData.american === 'number' && !isNaN(bestOddsData.american)) {
-      return Math.round(bestOddsData.american);
+
+    // If we still don't have valid odds, use random odds as last resort
+    if (bestOddsValue === -Infinity) {
+      bestOddsValue = Math.round(getRandomOdds());
     }
-    
-    // Last resort: random odds
-    const randomOdds = Math.round(getRandomOdds());
-    return randomOdds;
+
+    return bestOddsValue;
   }
 
   // Get trend indicator
@@ -526,21 +568,56 @@ export default function HitRateTableV2({
     return odds > 0 ? `+${odds}` : odds.toString()
   }
 
-  // Modified handle sort to call the parent's onSort function if provided
+  // Modified handle sort to maintain sort when custom tier changes
   const handleSort = (field: string) => {
     // If parent provided onSort function, use it
     if (onSort) {
-      const newDirection = sortField === field && sortDirection === "desc" ? "asc" : "desc"
+      // Get the current effective sort field (without _custom suffix)
+      const currentBaseField = getDisplaySortField(sortField);
+      
+      // Determine the new direction
+      const newDirection = currentBaseField === field && sortDirection === "desc" ? "asc" : "desc";
 
-      // If we're sorting by hit rates and have a custom tier, we need to use a custom sort
+      // If we're sorting by hit rates and have a custom tier
       if (customTier !== null && (field === "L5" || field === "L10" || field === "L20")) {
-        // We'll pass the same field but add a custom sort function to the data in the dashboard component
-        onSort(`${field}_custom`, newDirection)
+        onSort(`${field}_custom`, newDirection);
+      } else if (customTier === null && field === currentBaseField && sortField.endsWith("_custom")) {
+        // If we're already using a custom sort but switching back to default
+        onSort(field, newDirection);
       } else {
-        onSort(field, newDirection)
+        // For regular sorts
+        onSort(field, newDirection);
       }
     }
   }
+
+  // Add helper function to get the display sort field (for arrow indicator)
+  const getDisplaySortField = (field: string): string => {
+    // If we have a custom sort field, show the arrow on the base field
+    if (field.endsWith("_custom")) {
+      return field.replace("_custom", "");
+    }
+    return field;
+  };
+
+  // Effect to maintain sort when custom tier changes
+  useEffect(() => {
+    // Only trigger resort if customTier actually changed
+    if (customTier !== previousCustomTierRef.current && onSort && sortField) {
+      previousCustomTierRef.current = customTier;
+      
+      // If we're currently sorting by hit rates and have a custom tier
+      if (customTier !== null && (sortField === "L5" || sortField === "L10" || sortField === "L20")) {
+        // Remove _custom suffix if it exists before adding it
+        const baseField = sortField.replace("_custom", "");
+        onSort(`${baseField}_custom`, sortDirection || "desc");
+      } else if (customTier === null && sortField.endsWith("_custom")) {
+        // If we're going back to default tier, remove the _custom suffix
+        onSort(sortField.replace("_custom", ""), sortDirection || "desc");
+      }
+      // Don't trigger resort for other sort fields when customTier changes
+    }
+  }, [customTier, sortDirection]); // Include sortDirection in dependencies
 
   // Format a matchup text based on actual game data
   const getActualMatchupInfo = (profile: PlayerHitRateProfile, playerTeam: string) => {
@@ -712,8 +789,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("name")}
               >
-                <span className={sortField === "name" ? "text-indigo-500 dark:text-indigo-400" : ""}>Name</span>
-                {getSortIcon("name", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "name" ? "text-indigo-500 dark:text-indigo-400" : ""}>Name</span>
+                {getSortIcon("name", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* Matchup - now in the second row for alignment */}
@@ -727,8 +804,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("line")}
               >
-                <span className={sortField === "line" ? "text-indigo-500 dark:text-indigo-400" : ""}>Line</span>
-                {getSortIcon("line", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "line" ? "text-indigo-500 dark:text-indigo-400" : ""}>Line</span>
+                {getSortIcon("line", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* Avg - fixed width */}
@@ -738,8 +815,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("average")}
               >
-                <span className={sortField === "average" ? "text-indigo-500 dark:text-indigo-400" : ""}>Avg</span>
-                {getSortIcon("average", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "average" ? "text-indigo-500 dark:text-indigo-400" : ""}>Avg</span>
+                {getSortIcon("average", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* L5 - fixed width */}
@@ -749,8 +826,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("L5")}
               >
-                <span className={sortField === "L5" ? "text-indigo-500 dark:text-indigo-400" : ""}>L5</span>
-                {getSortIcon("L5", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "L5" ? "text-indigo-500 dark:text-indigo-400" : ""}>L5</span>
+                {getSortIcon("L5", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* L10 - fixed width */}
@@ -760,8 +837,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("L10")}
               >
-                <span className={sortField === "L10" ? "text-indigo-500 dark:text-indigo-400" : ""}>L10</span>
-                {getSortIcon("L10", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "L10" ? "text-indigo-500 dark:text-indigo-400" : ""}>L10</span>
+                {getSortIcon("L10", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* L20 - fixed width */}
@@ -771,8 +848,8 @@ export default function HitRateTableV2({
                 className="p-0 font-semibold text-sm" 
                 onClick={() => handleSort("L20")}
               >
-                <span className={sortField === "L20" ? "text-indigo-500 dark:text-indigo-400" : ""}>L20</span>
-                {getSortIcon("L20", sortField, sortDirection)}
+                <span className={getDisplaySortField(sortField) === "L20" ? "text-indigo-500 dark:text-indigo-400" : ""}>L20</span>
+                {getSortIcon("L20", getDisplaySortField(sortField), sortDirection)}
               </Button>
             </TableHead>
             {/* Season Hit Rate - fixed width - only shown when customTier is null */}
@@ -786,8 +863,8 @@ export default function HitRateTableV2({
                         className="p-0 font-semibold text-sm"
                         onClick={() => handleSort("seasonHitRate")}
                       >
-                        <span className={sortField === "seasonHitRate" ? "text-indigo-500 dark:text-indigo-400" : ""}>2025</span>
-                        {getSortIcon("seasonHitRate", sortField, sortDirection)}
+                        <span className={getDisplaySortField(sortField) === "seasonHitRate" ? "text-indigo-500 dark:text-indigo-400" : ""}>2025</span>
+                        {getSortIcon("seasonHitRate", getDisplaySortField(sortField), sortDirection)}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -827,22 +904,77 @@ export default function HitRateTableV2({
             // Get the best odds and sportsbook for the current line/tier
             let availableOddsForLine: Record<string, any> = {};
             let bestBook = bestOdds ? bestOdds.sportsbook : getRandomSportsbook();
-            let bestOddsValue = bestOdds ? bestOdds.american : 0;
+            let bestOddsValue = -Infinity;
             let directLink = bestOdds?.link;
             
+            // If we have a custom tier, try to get odds for that tier first
             if (customTier !== null && profile.all_odds) {
               const actualLineValue = (customTier - 0.5).toString();
               if (profile.all_odds[actualLineValue]) {
                 availableOddsForLine = profile.all_odds[actualLineValue];
+                // Find best odds for this line
+                Object.entries(availableOddsForLine).forEach(([book, bookData]) => {
+                  let currentOdds: number | undefined;
+                  if (bookData && bookData.odds !== undefined) {
+                    currentOdds = Math.round(Number(bookData.odds));
+                  } else if (!isNaN(Number(bookData))) {
+                    currentOdds = Math.round(Number(bookData));
+                  }
+                  if (currentOdds !== undefined && !isNaN(currentOdds)) {
+                    if ((currentOdds > 0 && currentOdds > bestOddsValue) || 
+                        (currentOdds < 0 && currentOdds > bestOddsValue)) {
+                      bestOddsValue = currentOdds;
+                      bestBook = book;
+                      // Get direct link if available
+                      if (bookData && bookData.over_link) {
+                        directLink = bookData.over_link;
+                      } else if (bookData && bookData.link) {
+                        directLink = bookData.link;
+                      }
+                    }
+                  }
+                });
               }
             } else if (profile.all_odds && profile.line) {
               const lineStr = profile.line.toString();
               if (profile.all_odds[lineStr]) {
                 availableOddsForLine = profile.all_odds[lineStr];
+                // Find best odds for this line
+                Object.entries(availableOddsForLine).forEach(([book, bookData]) => {
+                  let currentOdds: number | undefined;
+                  if (bookData && bookData.odds !== undefined) {
+                    currentOdds = Math.round(Number(bookData.odds));
+                  } else if (!isNaN(Number(bookData))) {
+                    currentOdds = Math.round(Number(bookData));
+                  }
+                  if (currentOdds !== undefined && !isNaN(currentOdds)) {
+                    if ((currentOdds > 0 && currentOdds > bestOddsValue) || 
+                        (currentOdds < 0 && currentOdds > bestOddsValue)) {
+                      bestOddsValue = currentOdds;
+                      bestBook = book;
+                      // Get direct link if available
+                      if (bookData && bookData.over_link) {
+                        directLink = bookData.over_link;
+                      } else if (bookData && bookData.link) {
+                        directLink = bookData.link;
+                      }
+                    }
+                  }
+                });
               }
             }
 
-            const odds = getOddsValue(profile, bestBook, bestOdds);
+            // If we haven't found any valid odds yet, use bestOdds as fallback
+            if (bestOddsValue === -Infinity && bestOdds?.american) {
+              bestOddsValue = Math.round(bestOdds.american);
+              bestBook = bestOdds.sportsbook || bestBook;
+              directLink = bestOdds.link || undefined;
+            }
+
+            // If we still don't have valid odds, use random odds as last resort
+            if (bestOddsValue === -Infinity) {
+              bestOddsValue = Math.round(getRandomOdds());
+            }
 
             const isFavorite = !!favorites[profile.player_id]
 
