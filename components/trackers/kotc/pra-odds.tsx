@@ -325,8 +325,7 @@ export default function PRAOdds() {
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious 
-              href="#"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.preventDefault();
                 handlePageChange(currentPage - 1);
               }}
@@ -344,8 +343,7 @@ export default function PRAOdds() {
               return (
                 <PaginationItem key={pageNum}>
                   <PaginationLink
-                    href="#"
-                    onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                       e.preventDefault();
                       handlePageChange(pageNum);
                     }}
@@ -369,8 +367,7 @@ export default function PRAOdds() {
           })}
           <PaginationItem>
             <PaginationNext
-              href="#"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.preventDefault();
                 handlePageChange(currentPage + 1);
               }}
