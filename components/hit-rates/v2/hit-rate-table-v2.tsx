@@ -877,14 +877,23 @@ export default function HitRateTableV2({
                       <Star className={`h-3 w-3 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
                     </Button>
                     <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm">
-                      <AvatarImage
-                        src={playerHeadshotUrl || "/placeholder.svg"}
-                        alt={profile.player_name}
-                        onError={(e) => {
-                          // Just let AvatarFallback handle the error instead of trying to load a placeholder
-                          ;(e.target as HTMLImageElement).style.display = "none"
-                        }}
-                      />
+                      <div data-image-id={profile.player_id}>
+                        <AvatarImage
+                          src={playerHeadshotUrl || "/placeholder.svg"}
+                          alt={profile.player_name}
+                          onError={() => {
+                            const fallback = document.createElement("div")
+                            fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                            fallback.textContent = profile.player_name.substring(0, 2)
+                            
+                            const imgContainer = document.querySelector(`[data-image-id="${profile.player_id}"]`)
+                            if (imgContainer) {
+                              imgContainer.innerHTML = ""
+                              imgContainer.appendChild(fallback)
+                            }
+                          }}
+                        />
+                      </div>
                       <AvatarFallback className="bg-slate-200 text-slate-800">
                         {profile.player_name.substring(0, 2)}
                       </AvatarFallback>
@@ -892,27 +901,22 @@ export default function HitRateTableV2({
                     <div className="flex flex-col">
                       <div className="font-bold text-sm">{profile.player_name}</div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <div className="w-4 h-4 relative flex-shrink-0">
+                        <div className="w-4 h-4 relative flex-shrink-0" data-team-logo={teamAbbreviation}>
                           <Image
                             src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(teamAbbreviation))}.svg`}
                             alt={teamAbbreviation || "Team"}
                             width={16}
                             height={16}
                             className="object-contain w-full h-full p-0.5"
-                            onError={(e) => {
-                              ;(e.target as HTMLImageElement).src =
-                                `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(teamAbbreviation))}.png`
-                              ;(e.target as HTMLImageElement).onerror = () => {
-                                ;(e.target as HTMLImageElement).style.display = "none"
-                                const parent = (e.target as HTMLImageElement).parentNode as HTMLElement
-                                if (parent) {
-                                  const fallback = document.createElement("div")
-                                  fallback.className =
-                                    "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                  fallback.textContent =
-                                    getStandardAbbreviation(teamAbbreviation)?.substring(0, 2) || "?"
-                                  parent.appendChild(fallback)
-                                }
+                            onError={() => {
+                              const fallback = document.createElement("div")
+                              fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                              fallback.textContent = getStandardAbbreviation(teamAbbreviation)?.substring(0, 2) || "?"
+                              
+                              const imgContainer = document.querySelector(`[data-team-logo="${teamAbbreviation}"]`)
+                              if (imgContainer) {
+                                imgContainer.innerHTML = ""
+                                imgContainer.appendChild(fallback)
                               }
                             }}
                           />
@@ -934,27 +938,22 @@ export default function HitRateTableV2({
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-medium">vs</span>
                           <span className="text-xs font-medium">{gameInfo.opponent}</span>
-                          <div className="w-5 h-5 relative flex-shrink-0">
+                          <div className="w-5 h-5 relative flex-shrink-0" data-team-logo={gameInfo.opponent}>
                             <Image
                               src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.svg`}
                               alt={gameInfo.opponent}
                               width={20}
                               height={20}
                               className="object-contain w-full h-full p-0.5"
-                              onError={(e) => {
-                                ;(e.target as HTMLImageElement).src =
-                                  `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.png`
-                                ;(e.target as HTMLImageElement).onerror = () => {
-                                  ;(e.target as HTMLImageElement).style.display = "none"
-                                  const parent = (e.target as HTMLImageElement).parentNode as HTMLElement
-                                  if (parent) {
-                                    const fallback = document.createElement("div")
-                                    fallback.className =
-                                      "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                    fallback.textContent =
-                                      getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
-                                    parent.appendChild(fallback)
-                                  }
+                              onError={() => {
+                                const fallback = document.createElement("div")
+                                fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                                fallback.textContent = getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
+                                
+                                const imgContainer = document.querySelector(`[data-team-logo="${gameInfo.opponent}"]`)
+                                if (imgContainer) {
+                                  imgContainer.innerHTML = ""
+                                  imgContainer.appendChild(fallback)
                                 }
                               }}
                             />
@@ -964,28 +963,22 @@ export default function HitRateTableV2({
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-medium">@</span>
                           <span className="text-xs font-medium">{gameInfo.opponent}</span>
-                          <div className="w-5 h-5 relative flex-shrink-0">
+                          <div className="w-5 h-5 relative flex-shrink-0" data-team-logo={gameInfo.opponent}>
                             <Image
                               src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.svg`}
                               alt={gameInfo.opponent}
                               width={20}
                               height={20}
                               className="object-contain w-full h-full p-0.5"
-                              onError={(e) => {
-                                ;(e.target as HTMLImageElement).src =
-                                  `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.png`
-                                ;(e.target as HTMLImageElement).onerror = () => {
-                                  ;(e.target as HTMLImageElement).style.display = "none"
-                                  const parent = (e.target as HTMLImageElement)
-                                    .parentNode as HTMLElement
-                                  if (parent) {
-                                    const fallback = document.createElement("div")
-                                    fallback.className =
-                                      "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                    fallback.textContent =
-                                      getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
-                                    parent.appendChild(fallback)
-                                  }
+                              onError={() => {
+                                const fallback = document.createElement("div")
+                                fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                                fallback.textContent = getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
+                                
+                                const imgContainer = document.querySelector(`[data-team-logo="${gameInfo.opponent}"]`)
+                                if (imgContainer) {
+                                  imgContainer.innerHTML = ""
+                                  imgContainer.appendChild(fallback)
                                 }
                               }}
                             />
@@ -1274,28 +1267,22 @@ export default function HitRateTableV2({
                                         <div className="text-xs text-muted-foreground flex items-center">
                                           {game.isHome ? "vs" : "@"}
                                           <span className="mx-1">{game.opponent}</span>
-                                          <div className="w-4 h-4 relative flex-shrink-0">
+                                          <div className="w-4 h-4 relative flex-shrink-0" data-team-logo={game.opponent}>
                                             <Image
                                               src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(game.opponent))}.svg`}
-                                              alt={game.opponent}
+                                              alt={game.opponent || "Team"}
                                               width={16}
                                               height={16}
                                               className="object-contain w-full h-full p-0.5"
-                                              onError={(e) => {
-                                                ;(e.target as HTMLImageElement).src =
-                                                  `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(game.opponent))}.png`
-                                                ;(e.target as HTMLImageElement).onerror = () => {
-                                                  ;(e.target as HTMLImageElement).style.display = "none"
-                                                  const parent = (e.target as HTMLImageElement)
-                                                    .parentNode as HTMLElement
-                                                  if (parent) {
-                                                    const fallback = document.createElement("div")
-                                                    fallback.className =
-                                                      "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                                    fallback.textContent =
-                                                      getStandardAbbreviation(game.opponent)?.substring(0, 2) || "?"
-                                                    parent.appendChild(fallback)
-                                                  }
+                                              onError={() => {
+                                                const fallback = document.createElement("div")
+                                                fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                                                fallback.textContent = getStandardAbbreviation(game.opponent)?.substring(0, 2) || "?"
+                                                
+                                                const imgContainer = document.querySelector(`[data-team-logo="${game.opponent}"]`)
+                                                if (imgContainer) {
+                                                  imgContainer.innerHTML = ""
+                                                  imgContainer.appendChild(fallback)
                                                 }
                                               }}
                                             />

@@ -197,7 +197,7 @@ export default function HitStreaks({ data }: HitStreaksProps) {
         <p className="text-sm text-muted-foreground leading-relaxed">
           Track active MLB hitting streaks and find the best odds for players to extend their streaks. 
           Our data shows players with streaks of 5 or more games who have a game scheduled today. 
-          We automatically filter out players who are likely injured or haven't played in several days.
+          We automatically filter out players who are likely injured or haven&apos;t played in several days.
         </p>
       </div>
 

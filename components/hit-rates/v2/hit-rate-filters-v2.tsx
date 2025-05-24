@@ -232,12 +232,14 @@ export default function HitRateFiltersV2({
               width={20}
               height={20}
               className="object-contain w-full h-full p-0.5"
-              onError={(e) => {
+              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                const target = e.target as HTMLImageElement;
                 // Try PNG if SVG fails
-                ;(e.target as HTMLImageElement).src = `/images/mlb-teams/${getTeamLogoFilename(awayTeamCode)}.png`
+                target.src = `/images/mlb-teams/${getTeamLogoFilename(awayTeamCode)}.png`;
                 // Fallback to placeholder if PNG also fails
-                ;(e.target as HTMLImageElement).onerror = () => {
-                  ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=20&width=20"
+                target.onerror = () => {
+                  target.src = "/placeholder.svg?height=20&width=20";
+                  target.onerror = null; // Prevent infinite loop
                 }
               }}
             />
@@ -257,12 +259,14 @@ export default function HitRateFiltersV2({
               width={20}
               height={20}
               className="object-contain w-full h-full p-0.5"
-              onError={(e) => {
+              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                const target = e.target as HTMLImageElement;
                 // Try PNG if SVG fails
-                ;(e.target as HTMLImageElement).src = `/images/mlb-teams/${getTeamLogoFilename(homeTeamCode)}.png`
+                target.src = `/images/mlb-teams/${getTeamLogoFilename(homeTeamCode)}.png`;
                 // Fallback to placeholder if PNG also fails
-                ;(e.target as HTMLImageElement).onerror = () => {
-                  ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=20&width=20"
+                target.onerror = () => {
+                  target.src = "/placeholder.svg?height=20&width=20";
+                  target.onerror = null; // Prevent infinite loop
                 }
               }}
             />

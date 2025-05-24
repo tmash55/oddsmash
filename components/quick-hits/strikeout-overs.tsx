@@ -65,7 +65,7 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
                 src={playerHeadshotUrl}
                 alt={row.out_full_name}
                 onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = "none"
+                  (e.target as HTMLImageElement).style.display = "none"
                 }}
               />
               <AvatarFallback className="bg-slate-200 text-slate-800">
@@ -82,17 +82,16 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
                     width={16}
                     height={16}
                     className="object-contain w-full h-full p-0.5"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(teamAbbr))}.png`
-                      ;(e.target as HTMLImageElement).onerror = () => {
-                        ;(e.target as HTMLImageElement).style.display = "none"
-                        const parent = (e.target as HTMLImageElement).parentNode as HTMLElement
-                        if (parent) {
-                          const fallback = document.createElement("div")
-                          fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                          fallback.textContent = teamAbbr?.substring(0, 2) || "??"
-                          parent.appendChild(fallback)
-                        }
+                    onError={() => {
+                      // Use fallback text instead of trying PNG
+                      const container = document.createElement("div")
+                      container.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                      container.textContent = teamAbbr?.substring(0, 2) || "??"
+                      
+                      const img = document.querySelector(`img[alt="${row.out_team_name || "Team"}"]`) as HTMLImageElement
+                      if (img && img.parentElement) {
+                        img.style.display = "none"
+                        img.parentElement.appendChild(container)
                       }
                     }}
                   />
@@ -147,17 +146,16 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
                       width={20}
                       height={20}
                       className="object-contain w-full h-full p-0.5"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = `/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(opponentAbbr))}.png`
-                        ;(e.target as HTMLImageElement).onerror = () => {
-                          ;(e.target as HTMLImageElement).style.display = "none"
-                          const parent = (e.target as HTMLImageElement).parentNode as HTMLElement
-                          if (parent) {
-                            const fallback = document.createElement("div")
-                            fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                            fallback.textContent = opponentAbbr?.substring(0, 2) || "??"
-                            parent.appendChild(fallback)
-                          }
+                      onError={() => {
+                        // Use fallback text instead of trying PNG
+                        const container = document.createElement("div")
+                        container.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
+                        container.textContent = opponentAbbr?.substring(0, 2) || "??"
+                        
+                        const img = document.querySelector(`img[alt="${opponentTeam || "Team"}"]`) as HTMLImageElement
+                        if (img && img.parentElement) {
+                          img.style.display = "none"
+                          img.parentElement.appendChild(container)
                         }
                       }}
                     />
@@ -263,7 +261,7 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
       {/* Explanation section */}
       <div className="space-y-2 border-b border-slate-200 dark:border-slate-700 pb-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Find MLB pitchers with high strikeout line hit rates. We analyze each pitcher's recent performance 
+          Find MLB pitchers with high strikeout line hit rates. We analyze each pitcher&apos;s recent performance 
           and identify those who consistently hit their strikeout totals, helping you make more informed betting decisions.
         </p>
       </div>

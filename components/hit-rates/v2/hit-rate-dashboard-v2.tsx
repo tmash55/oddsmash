@@ -655,59 +655,65 @@ export default function HitRateDashboardV2() {
 
       // Sort based on the selected field
       switch (tableSortField) {
-        case "name":
+        case "name": {
           result = a.player_name.localeCompare(b.player_name);
           break;
-        case "line":
+        }
+        case "line": {
           result = a.line - b.line;
           break;
-        case "hitRate":
-          // Get hit rates for the currently selected time window
-          const aHitRate = calculateHitRate(a, activeTimeWindow)
-          const bHitRate = calculateHitRate(b, activeTimeWindow)
+        }
+        case "hitRate": {
+          const aHitRate = calculateHitRate(a, activeTimeWindow);
+          const bHitRate = calculateHitRate(b, activeTimeWindow);
           result = aHitRate - bHitRate;
           break;
-        case "L5":
+        }
+        case "L5": {
           result = a.last_5_hit_rate - b.last_5_hit_rate;
           break;
-        case "L5_custom":
-          // Use the custom tier calculation
+        }
+        case "L5_custom": {
           const aL5CustomRate = calculateHitRateWithCustomTier(a, customTier!, "last_5");
           const bL5CustomRate = calculateHitRateWithCustomTier(b, customTier!, "last_5");
           result = aL5CustomRate - bL5CustomRate;
           break;
-        case "L10":
+        }
+        case "L10": {
           result = a.last_10_hit_rate - b.last_10_hit_rate;
           break;
-        case "L10_custom":
-          // Use the custom tier calculation
+        }
+        case "L10_custom": {
           const aL10CustomRate = calculateHitRateWithCustomTier(a, customTier!, "last_10");
           const bL10CustomRate = calculateHitRateWithCustomTier(b, customTier!, "last_10");
           result = aL10CustomRate - bL10CustomRate;
           break;
-        case "L20":
+        }
+        case "L20": {
           result = a.last_20_hit_rate - b.last_20_hit_rate;
           break;
-        case "L20_custom":
-          // Use the custom tier calculation
+        }
+        case "L20_custom": {
           const aL20CustomRate = calculateHitRateWithCustomTier(a, customTier!, "last_20");
           const bL20CustomRate = calculateHitRateWithCustomTier(b, customTier!, "last_20");
           result = aL20CustomRate - bL20CustomRate;
           break;
-        case "seasonHitRate":
-          // Handle season hit rate sorting
+        }
+        case "seasonHitRate": {
           const aSeasonRate = a.season_hit_rate || 0;
           const bSeasonRate = b.season_hit_rate || 0;
           result = aSeasonRate - bSeasonRate;
           break;
-        case "average":
+        }
+        case "average": {
           result = a.avg_stat_per_game - b.avg_stat_per_game;
           break;
-        default:
-          // Default to sort by hit rate
-          const aDefaultRate = calculateHitRate(a, activeTimeWindow)
-          const bDefaultRate = calculateHitRate(b, activeTimeWindow)
+        }
+        default: {
+          const aDefaultRate = calculateHitRate(a, activeTimeWindow);
+          const bDefaultRate = calculateHitRate(b, activeTimeWindow);
           result = aDefaultRate - bDefaultRate;
+        }
       }
       
       // Apply the sort direction

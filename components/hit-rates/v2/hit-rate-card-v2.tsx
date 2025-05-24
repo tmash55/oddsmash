@@ -864,7 +864,7 @@ export default function HitRateCardV3({
               className="object-contain"
               onError={(e) => {
                 // Fallback to placeholder if image fails to load
-                ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
+                (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
               }}
             />
           </div>
