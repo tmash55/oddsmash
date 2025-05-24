@@ -95,6 +95,22 @@ export function Header() {
     };
   });
 
+  // Hit rates items
+  const hitRatesItems = [
+    {
+      title: "Hit Rates",
+      description: "Track player prop hit rates and trends",
+      href: "/hit-rates",
+      icon: <BarChart3 className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "Quick Hits",
+      description: "Find the best value props for today",
+      href: "/quick-hits",
+      icon: <Zap className="h-4 w-4 text-primary" />,
+    },
+  ];
+
   // Tracker items
   const trackerItems = [
     {
@@ -127,10 +143,17 @@ export function Header() {
     },
     {
       title: "Player Props",
-      href: "//mlb/props",
+      href: "/mlb/props",
       icon: <BarChart3 className="h-5 w-5 text-primary" />,
       isActive: pathname?.startsWith("/props"),
       children: playerPropsItems,
+    },
+    {
+      title: "Hit Rates",
+      href: "/hit-rates",
+      icon: <Activity className="h-5 w-5 text-primary" />,
+      isActive: pathname?.startsWith("/hit-rates") || pathname?.startsWith("/quick-hits"),
+      children: hitRatesItems,
     },
     {
       title: "Parlay Builder",
@@ -193,7 +216,7 @@ export function Header() {
                       <NavigationMenuLink asChild>
                         <a
                           className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
-                          href="//mlb/props"
+                          href="/mlb/props"
                         >
                           <div className="mt-4 mb-2 text-lg font-medium text-white">
                             Player Props
@@ -206,6 +229,47 @@ export function Header() {
                       </NavigationMenuLink>
                     </li>
                     {playerPropsItems.map((item) => (
+                      <ListItem
+                        key={item.title}
+                        title={item.title}
+                        href={item.href}
+                        icon={item.icon}
+                      >
+                        {item.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuTrigger
+                  className={cn(
+                    "px-3 transition-all duration-300 group",
+                    (pathname?.startsWith("/hit-rates") || pathname?.startsWith("/quick-hits")) && "bg-muted"
+                  )}
+                >
+                  Hit Rates
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4">
+                    <li className="row-span-3 rounded-md bg-gradient-to-b from-primary to-primary/80 shadow-lg overflow-hidden group relative">
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <NavigationMenuLink asChild>
+                        <a
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline outline-none focus:shadow-md"
+                          href="/hit-rates"
+                        >
+                          <div className="mt-4 mb-2 text-lg font-medium text-white">
+                            Hit Rates
+                          </div>
+                          <p className="text-sm leading-tight text-white/90">
+                            Track player prop hit rates and find the best value bets
+                          </p>
+                        </a>
+                      </NavigationMenuLink>
+                    </li>
+                    {hitRatesItems.map((item) => (
                       <ListItem
                         key={item.title}
                         title={item.title}
