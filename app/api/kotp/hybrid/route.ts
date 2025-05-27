@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
 import { GAMELOG_CACHE_KEY } from "@/app/api/kotp/constants";
 import { fetchPlayoffGameLogs } from "@/lib/kotp/fetchGameLogs";
 
@@ -505,7 +504,7 @@ export async function GET() {
     
     // Calculate total points for each player
     Object.values(playerMap).forEach(player => {
-      player.totalPts =  player.livePts;
+      player.totalPts = player.points + player.livePts;
     });
     
     // Sort by total points
@@ -536,13 +535,21 @@ export async function GET() {
   } catch (error) {
     console.error("Error generating hybrid leaderboard:", error);
     
+    // Return a more detailed error response
     return NextResponse.json({
       players: [],
       allGamesFinal: true,
       playoffRound: PLAYOFF_ROUND,
       lastUpdated: getFormattedTime(),
       error: "Failed to generate leaderboard",
-      errorMessage: error.message
-    });
+      errorMessage: error.message,
+      errorDetails: {
+        name: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      },
+      hasCachedData: false,
+      hasLiveGames: false
+    }, { status: 500 });
   }
 } 
