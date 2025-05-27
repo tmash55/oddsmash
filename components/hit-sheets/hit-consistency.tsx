@@ -2,61 +2,55 @@
 
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import QuickHitTable from "./quick-hit-table"
-import { StrikeoutOverCandidate } from "./types"
 import { Badge } from "@/components/ui/badge"
+import QuickHitTable from "./quick-hit-table"
+import { HitConsistencyCandidate } from "./types"
 import { formatOdds } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Copy, Loader2 } from "lucide-react"
-import { ReactNode } from "react"
 import OddsCell from "@/components/shared/odds-cell"
-import { cn } from "@/lib/utils"
-import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 import { getTeamAbbreviation, getTeamLogoFilename, getStandardAbbreviation } from "@/lib/team-utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { cn } from "@/lib/utils"
 
-interface StrikeoutOversProps {
-  data: StrikeoutOverCandidate[]
+interface HitConsistencyProps {
+  data: HitConsistencyCandidate[]
+  onParamsChange: (params: { hitRate?: string; sampleSpan?: string }) => void
+  params: {
+    hitRate: string
+    sampleSpan: string
+  }
 }
 
-export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
+export default function HitConsistency({ data, onParamsChange, params }: HitConsistencyProps) {
   const [sortField, setSortField] = useState("out_hit_rate")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [isLoading, setIsLoading] = useState(false)
-
-  // Add debug logging
-  console.log("Initial data:", data)
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   const handleSort = (field: string, direction: "asc" | "desc") => {
     setSortField(field)
     setSortDirection(direction)
   }
 
+  const handleHitRateChange = (value: string) => {
+    onParamsChange({ hitRate: value })
+  }
+
+  const handleSampleSpanChange = (value: string) => {
+    onParamsChange({ sampleSpan: value })
+  }
+
   const columns = [
     {
       key: "out_player",
       title: "Player",
-      width: "30%",
-      render: (value: any, row: StrikeoutOverCandidate) => {
-        // Debug logging for player column
-        console.log("Player row data:", {
-          fullName: row.out_full_name,
-          teamName: row.out_team_name,
-          playerId: row.out_player_id
-        })
-
-        // Generate MLB headshot URL
+      width: isMobile ? "100%" : "30%",
+      className: isMobile ? "pb-2" : "pr-0",
+      order: 1,
+      render: (value: any, row: HitConsistencyCandidate) => {
         const playerHeadshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${row.out_player_id}/headshot/67/current`
-
-        // Debug logging for team abbreviation
-        const teamAbbr = getTeamAbbreviation(row.out_team_name)
-        console.log("Team abbreviation conversion:", {
-          teamName: row.out_team_name,
-          abbreviation: teamAbbr
-        })
+        const teamAbbr = row.out_team_abbreviation
 
         return (
           <div className="flex items-center gap-2">
@@ -82,20 +76,20 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
                     width={16}
                     height={16}
                     className="object-contain w-full h-full p-0.5"
-                    onError={() => {
-                      // Use fallback text instead of trying PNG
+                    onError={(e) => {
                       const container = document.createElement("div")
                       container.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
                       container.textContent = teamAbbr?.substring(0, 2) || "??"
                       
-                      const img = document.querySelector(`img[alt="${row.out_team_name || "Team"}"]`) as HTMLImageElement
-                      if (img && img.parentElement) {
+                      const img = e.target as HTMLImageElement
+                      if (img.parentElement) {
                         img.style.display = "none"
                         img.parentElement.appendChild(container)
                       }
                     }}
                   />
                 </div>
+                <span>{teamAbbr}</span>
               </div>
             </div>
           </div>
@@ -105,27 +99,18 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
     {
       key: "out_matchup",
       title: "Next Game",
-      width: "20%",
-      render: (value: any, row: StrikeoutOverCandidate) => {
-        const isHome = row.out_team_name === row.out_home_team
-        const opponentTeam = isHome ? row.out_away_team : row.out_home_team
+      width: isMobile ? "34%" : "25%",
+      className: "text-center pl-0",
+      order: isMobile ? 3 : 2,
+      render: (value: any, row: HitConsistencyCandidate) => {
+        if (!row.out_is_playing_today) {
+          return <span className="text-xs text-muted-foreground">No Game Today</span>
+        }
 
-        // Debug logging for matchup
-        console.log("Matchup data:", {
-          isHome,
-          teamName: row.out_team_name,
-          homeTeam: row.out_home_team,
-          awayTeam: row.out_away_team,
-          opponentTeam
-        })
-
+        const isHome = row.out_team_name === row.out_home_team_name
+        const opponentTeam = isHome ? row.out_away_team_name : row.out_home_team_name
         const opponentAbbr = getTeamAbbreviation(opponentTeam)
-        console.log("Opponent abbreviation:", {
-          opponentTeam,
-          abbreviation: opponentAbbr
-        })
         
-        // Format the commence time
         const gameTime = new Date(row.out_commence_time)
         const timeString = gameTime.toLocaleTimeString('en-US', { 
           hour: 'numeric',
@@ -134,26 +119,25 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
         })
 
         return (
-          <div className="flex items-center justify-center gap-2">
-            <div className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">
+          <div className="flex items-center justify-start">
+            <div className="px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800">
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium">{isHome ? "vs" : "@"}</span>
                   <div className="w-5 h-5 relative flex-shrink-0">
                     <Image
                       src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(opponentAbbr))}.svg`}
-                      alt={opponentTeam || "Team"}
+                      alt={opponentTeam}
                       width={20}
                       height={20}
                       className="object-contain w-full h-full p-0.5"
-                      onError={() => {
-                        // Use fallback text instead of trying PNG
+                      onError={(e) => {
                         const container = document.createElement("div")
                         container.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
                         container.textContent = opponentAbbr?.substring(0, 2) || "??"
                         
-                        const img = document.querySelector(`img[alt="${opponentTeam || "Team"}"]`) as HTMLImageElement
-                        if (img && img.parentElement) {
+                        const img = e.target as HTMLImageElement
+                        if (img.parentElement) {
                           img.style.display = "none"
                           img.parentElement.appendChild(container)
                         }
@@ -170,70 +154,63 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
       }
     },
     {
-      key: "out_line",
-      title: "Line",
-      width: "15%",
-      sortable: true,
-      render: (value: any, row: StrikeoutOverCandidate) => {
-        const line = row.out_line_used
-        if (typeof line !== 'number' && typeof line !== 'string') return null
-        const lineValue = typeof line === 'string' ? parseFloat(line) : line
-        return (
-          <Badge variant="secondary" className="font-bold whitespace-nowrap">
-            {lineValue.toFixed(1)}
-          </Badge>
-        )
-      },
-    },
-    {
       key: "out_hit_rate",
       title: "Hit Rate",
-      width: "15%",
+      width: isMobile ? "33%" : "25%",
       sortable: true,
-      render: (value: any, row: StrikeoutOverCandidate) => {
+      className: "text-center",
+      order: isMobile ? 2 : 3,
+      render: (value: any, row: HitConsistencyCandidate) => {
         const hitRate = row.out_hit_rate
-        if (typeof hitRate !== 'number' && typeof hitRate !== 'string') return null
-        const hitRateValue = typeof hitRate === 'string' ? parseFloat(hitRate) : hitRate
+        if (typeof hitRate !== 'number') return null
         return (
-          <span className={cn(
-            "font-medium",
-            hitRateValue >= 0.9 ? "text-green-600 dark:text-green-400" :
-            hitRateValue >= 0.8 ? "text-emerald-600 dark:text-emerald-400" :
-            "text-slate-600 dark:text-slate-400"
-          )}>
-            {(hitRateValue * 100).toFixed(1)}%
-          </span>
+          <div
+            className={cn(
+              "flex items-center justify-center rounded-lg shadow-sm",
+              hitRate >= 0.9 ? "bg-green-200 dark:bg-green-800/50 text-green-900 dark:text-green-200" :
+              hitRate >= 0.8 ? "bg-green-100 dark:bg-green-800/40 text-green-800 dark:text-green-300" :
+              hitRate >= 0.7 ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300" :
+              hitRate >= 0.6 ? "bg-green-50 dark:bg-green-900/25 text-green-700 dark:text-green-400" :
+              "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+            )}
+          >
+            <div className="py-2 px-3 font-medium text-sm sm:text-base">
+              {(hitRate * 100).toFixed(1)}%
+            </div>
+          </div>
         )
       },
     },
     {
       key: "out_odds",
       title: "Best Odds",
-      width: "15%",
-      render: (value: any, row: StrikeoutOverCandidate) => {
+      width: isMobile ? "33%" : "20%",
+      className: "text-center",
+      order: 4,
+      render: (value: any, row: HitConsistencyCandidate) => {
         if (row.out_odds_json && Object.keys(row.out_odds_json).length > 0) {
           const sortedOdds = Object.entries(row.out_odds_json).sort(([, a], [, b]) => b.odds - a.odds)
           const [bestBook, bestOddsData] = sortedOdds[0]
           
           return (
-            <OddsCell
+            <div className="flex justify-center"><OddsCell
               odds={bestOddsData.odds}
               sportsbook={bestBook}
-              market={row.out_market}
-              line={parseFloat(row.out_line_used)}
+              market="Hit"
+              line={0.5}
               customTier={null}
               allOdds={row.out_odds_json}
               directLink={bestOddsData.over_link}
               compact={true}
-            />
+            /></div>
           )
         }
         return null
       },
     },
-  ]
+  ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
-  const handleShare = (player: StrikeoutOverCandidate) => {
+  const handleShare = (player: HitConsistencyCandidate) => {
     const bestOdds = player.out_odds_json
       ? Object.entries(player.out_odds_json).reduce(
           (best, [book, odds]) => {
@@ -246,11 +223,11 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
         )
       : null
 
-    const shareText = `⚾️ ${player.out_full_name} (${getTeamAbbreviation(player.out_team_name)}) - Strikeout Over Candidate\n` +
-      `📊 Hit Rate: ${(parseFloat(player.out_hit_rate) * 100).toFixed(1)}%\n` +
-      `🎯 Line: Over ${parseFloat(player.out_line_used).toFixed(1)}\n` +
+    const shareText = `⚾️ ${player.out_full_name} (${player.out_team_abbreviation}) - Hit Consistency\n` +
+      `📊 Hit Rate: ${(player.out_hit_rate * 100).toFixed(1)}%\n` +
+      `🎯 Sample: ${player.out_games_sampled} games\n` +
       (bestOdds ? `💰 Best odds: ${formatOdds(bestOdds.odds)} (${bestOdds.book})\n` : "") +
-      `🏟️ Today's game: ${player.out_away_team} @ ${player.out_home_team}\n` +
+      `🏟️ Today's game: ${player.out_away_team_name} @ ${player.out_home_team_name}\n` +
       "\nvia @oddsmash"
 
     navigator.clipboard.writeText(shareText)
@@ -258,19 +235,51 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
 
   return (
     <div className="space-y-6">
-      {/* Explanation section */}
       <div className="space-y-2 border-b border-slate-200 dark:border-slate-700 pb-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Find MLB pitchers with high strikeout line hit rates. We analyze each pitcher&apos;s recent performance 
-          and identify those who consistently hit their strikeout totals, helping you make more informed betting decisions.
+          Find MLB players who have been consistently getting hits. We analyze each player's recent 
+          performance to identify those with high hit rates over their last several games, helping 
+          you make more informed betting decisions.
         </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-1 block">Hit Rate Threshold</label>
+            <Select value={params.hitRate} onValueChange={handleHitRateChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.5">50%</SelectItem>
+                <SelectItem value="0.6">60%</SelectItem>
+                <SelectItem value="0.7">70%</SelectItem>
+                <SelectItem value="0.8">80%</SelectItem>
+                <SelectItem value="0.9">90%</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-1 block">Sample Size</label>
+            <Select value={params.sampleSpan} onValueChange={handleSampleSpanChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="last_5">Last 5 Games</SelectItem>
+                <SelectItem value="last_10">Last 10 Games</SelectItem>
+                <SelectItem value="last_20">Last 20 Games</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <QuickHitTable
         data={data}
         columns={columns}
-        title="Strikeout Over Candidates"
-        subtitle="Players with high hit rates against their strikeout over line"
+        title="Hit Consistency"
+        subtitle="Players with consistent hitting performance"
         onSort={handleSort}
         sortField={sortField}
         sortDirection={sortDirection}
@@ -278,4 +287,4 @@ export default function StrikeoutOvers({ data }: StrikeoutOversProps) {
       />
     </div>
   )
-}
+} 

@@ -1,5 +1,5 @@
 import { createClient } from "@/libs/supabase/client"
-import { HitStreakPlayer } from "@/components/quick-hits/types"
+import { HitStreakPlayer } from "@/components/hit-sheets/types"
 
 /**
  * Fetch players with active hit streaks

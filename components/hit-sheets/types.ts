@@ -3,6 +3,9 @@ export interface HitOdds {
   decimal: number
   sportsbook: string
   link?: string | null
+  odds: number
+  over_link?: string
+  under_link?: string
 }
 
 export interface HitOddsJson {
@@ -43,8 +46,8 @@ export interface StrikeoutOverCandidate {
   out_line_used: string
   out_line_attempts: number
   out_is_playing_today: boolean
-  out_home_team: string
-  out_away_team: string
+  out_home_team_name: string
+  out_away_team_name: string
   out_home_team_abbreviation: string
   out_away_team_abbreviation: string
   out_commence_time?: string
@@ -53,4 +56,42 @@ export interface StrikeoutOverCandidate {
   out_updated_at: string
   out_official_date: string
   out_games_sampled: number
+}
+
+export interface BounceBackCandidate {
+  out_player_id: number
+  out_full_name: string
+  out_market: string
+  out_line: number
+  out_hit_rate: number
+  out_games_sampled: number
+  out_sample_span: string
+  out_team_name: string
+  out_team_abbreviation: string
+  out_is_playing_today: boolean
+  out_home_team_name: string
+  out_away_team_name: string
+  out_official_date: string
+  out_commence_time: string
+  out_odds_json: Record<string, HitOdds>
+  out_pre_slump_hits: number
+  out_pre_slump_total: number
+}
+
+export interface HitConsistencyCandidate {
+  out_player_id: number
+  out_full_name: string
+  out_market: string
+  out_line: number
+  out_hit_rate: number
+  out_games_sampled: number
+  out_sample_span: string
+  out_team_name: string
+  out_team_abbreviation: string
+  out_is_playing_today: boolean
+  out_home_team_name: string
+  out_away_team_name: string
+  out_official_date: string
+  out_commence_time: string
+  out_odds_json: Record<string, { odds: number; over_link: string }>
 } 

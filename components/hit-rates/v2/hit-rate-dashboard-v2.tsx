@@ -1064,7 +1064,16 @@ export default function HitRateDashboardV2() {
   return (
     <main className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Player Hit Rates</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Player Hit Rates</h1>
+          <p className="text-muted-foreground">
+            Detailed hit rate analysis and trends. For quick research and daily props, check out our{" "}
+            <a href="/hit-sheets" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
+              Hit Sheets
+            </a>
+            .
+          </p>
+        </div>
 
         <div className="flex items-center gap-2">
           {useMockData && (

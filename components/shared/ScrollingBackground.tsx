@@ -12,7 +12,7 @@ const COLUMN_DATA = [
       image: '/images/features/hitrate-dashboard1.png'
     },
     { 
-      title: 'Quick Hits Dashboard',
+      title: 'Hit Sheets Dashboard',
       description: 'Access trending picks and analysis from top cappers, updated in real-time',
       image: '/images/features/quickhit-dashboard1.png'
     },

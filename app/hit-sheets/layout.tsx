@@ -5,7 +5,7 @@ import { createClient } from "@/libs/supabase/server";
 import config from "@/config";
 
 export const metadata: Metadata = {
-  title: "Quick Hits | OddSmash",
+  title: "Hit Sheets | OddSmash",
   description: "Fast access to popular hit rate functions and data sets",
 }
 

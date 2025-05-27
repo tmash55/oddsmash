@@ -246,7 +246,7 @@ export default function JoinUs() {
                   Join the Waitlist
                 </h1>
                 <p className="mb-4 text-center text-gray-300/90">
-                  Be among the first to experience our new Hit Rate and Quick Hits features
+                  Be among the first to experience our new Hit Rate and Hit Sheets features
                 </p>
 
                 {/* Progress Indicator */}

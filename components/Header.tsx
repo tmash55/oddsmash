@@ -117,9 +117,9 @@ export function Header() {
       icon: <BarChart3 className="h-4 w-4 text-primary" />,
     },
     {
-      title: "Quick Hits",
-      description: "Find the best value props for today",
-      href: "/quick-hits",
+      title: "Hit Sheets",
+      description: "Instant access to the most popular hit-rate sheets—player streaks, strikeout rates, and More",
+      href: "/hit-sheets",
       icon: <Zap className="h-4 w-4 text-primary" />,
     },
   ];
@@ -165,7 +165,7 @@ export function Header() {
       title: "Hit Rates",
       href: "/hit-rates",
       icon: <Activity className="h-5 w-5 text-primary" />,
-      isActive: pathname?.startsWith("/hit-rates") || pathname?.startsWith("/quick-hits"),
+      isActive: pathname?.startsWith("/hit-rates") || pathname?.startsWith("/hit-sheets"),
       children: hitRatesItems,
     },
     {
@@ -259,7 +259,7 @@ export function Header() {
                 <NavigationMenuTrigger
                   className={cn(
                     "px-3 transition-all duration-300 group",
-                    (pathname?.startsWith("/hit-rates") || pathname?.startsWith("/quick-hits")) && "bg-muted"
+                    (pathname?.startsWith("/hit-rates") || pathname?.startsWith("/hit-sheets")) && "bg-muted"
                   )}
                 >
                   Hit Rates
