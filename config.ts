@@ -67,8 +67,8 @@ const config = {
     main: themes["light"]["primary"],
   },
   auth: {
-    loginUrl: "/signin",
-    callbackUrl: "/dashboard",
+    loginUrl: "/sign-in",
+    callbackUrl: "/hit-rates",
   },
 } as ConfigProps;
 

@@ -11,7 +11,11 @@ import { Toaster } from "@/components/ui/toaster";
 
 export function LayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isJoinUsPage = pathname === '/join-us';
+  const hideHeaderFooter = [
+    '/join-us',
+    '/sign-in',
+    '/sign-up',
+  ].some((path) => pathname.startsWith(path));
 
   return (
     <ThemeProvider
@@ -21,16 +25,20 @@ export function LayoutContent({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <SportsbookProvider>
-        {!isJoinUsPage && <Header />}
+        {!hideHeaderFooter && <Header />}
 
         {/* Apply full width on mobile, container with padding on larger screens */}
         <main className="w-full mx-auto max-w-screen-2xl">{children}</main>
 
         <Toaster />
-        
         <Analytics />
+
+        {!hideHeaderFooter && (
+          <footer>
+            <Footer />
+          </footer>
+        )}
       </SportsbookProvider>
-      {!isJoinUsPage && <footer><Footer /></footer>}
     </ThemeProvider>
   );
-} 
+}

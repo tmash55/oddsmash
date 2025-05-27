@@ -22,6 +22,14 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
@@ -33,8 +41,11 @@ import {
   ChevronRight,
   Home,
   Activity,
-  Crown
+  Crown,
+  User,
+  LogOut,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { useSportsbooks } from "@/contexts/sportsbook-context";
 import { ThemeToggle } from "./theme-toggle";
@@ -42,6 +53,7 @@ import { SportLogo } from "./sport-logo";
 import { sports } from "@/data/sports-data";
 import { StateSelector } from "./state-selector";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -50,6 +62,7 @@ export function Header() {
   const pathname = usePathname();
   const { openSportsbookSelector } = useSportsbooks();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { user, signOut } = useAuth();
 
   // Filter active sports
   const activeSports = sports.filter((sport) => sport.active);
@@ -346,12 +359,97 @@ export function Header() {
           <StateSelector />
           <ThemeToggle />
           
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email || ""} />
+                    <AvatarFallback className="bg-primary/10">
+                      {user.email?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.email}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.user_metadata.full_name || "User"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 dark:text-red-400"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="default" size="sm" asChild>
+              <Link href="/sign-in">Sign In</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
         <div className="flex md:hidden col-span-2 justify-end items-center space-x-2">
           <StateSelector />
           <ThemeToggle />
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email || ""} />
+                    <AvatarFallback className="bg-primary/10">
+                      {user.email?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.email}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.user_metadata.full_name || "User"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 dark:text-red-400"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="default" size="sm" asChild className="mr-2">
+              <Link href="/sign-in">Sign In</Link>
+            </Button>
+          )}
 
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>

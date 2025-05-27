@@ -3,6 +3,9 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import type { Viewport } from "next";
 import { getSEOTags } from "@/libs/seo";
 import { LayoutContent } from "./components/layout-content";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
 import "./globals.css";
 
@@ -21,8 +24,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6979411075342172" crossOrigin="anonymous"></script>
       </head>
-      <body className={font.className}>
-        <LayoutContent>{children}</LayoutContent>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", font.className)}>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            <LayoutContent>{children}</LayoutContent>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
