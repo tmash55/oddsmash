@@ -57,23 +57,27 @@ export default function StrikeoutOvers({ data, onParamsChange, params }: Strikeo
     return [...data].sort((a, b) => {
       let result = 0
       switch (sortField) {
-        case "out_hit_rate":
+        case "out_hit_rate": {
           const hitRateA = typeof a.out_hit_rate === 'number' ? a.out_hit_rate : 0
           const hitRateB = typeof b.out_hit_rate === 'number' ? b.out_hit_rate : 0
           result = hitRateB - hitRateA
           break
-        case "out_line":
+        }
+        case "out_line": {
           const lineA = typeof a.out_line_used === 'string' ? parseFloat(a.out_line_used) : (typeof a.out_line_used === 'number' ? a.out_line_used : 0)
           const lineB = typeof b.out_line_used === 'string' ? parseFloat(b.out_line_used) : (typeof b.out_line_used === 'number' ? b.out_line_used : 0)
           result = lineB - lineA
           break
-        case "out_player":
+        }
+        case "out_player": {
           result = a.out_full_name.localeCompare(b.out_full_name)
           break
-        default:
+        }
+        default: {
           const defaultHitRateA = typeof a.out_hit_rate === 'number' ? a.out_hit_rate : 0
           const defaultHitRateB = typeof b.out_hit_rate === 'number' ? b.out_hit_rate : 0
           result = defaultHitRateB - defaultHitRateA
+        }
       }
       return sortDirection === "asc" ? -result : result
     })
