@@ -164,7 +164,7 @@ export default function SignUpForm({
                         ) : (
                           <>
                             <X className="w-4 h-4" />
-                            <span>Passwords don't match</span>
+                            <span>Passwords don&apos;t match</span>
                           </>
                         )}
                       </motion.div>
