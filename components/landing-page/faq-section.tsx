@@ -34,7 +34,7 @@ export function FaqSection() {
               <AccordionItem value="item-1">
                 <AccordionTrigger>Is OddSmash really free?</AccordionTrigger>
                 <AccordionContent>
-                  Yep — 100% free to use with no sign-up required. Just head to
+                  Yep — 100% free to use. Just head to
                   the tools and start comparing odds right away.
                 </AccordionContent>
               </AccordionItem>
