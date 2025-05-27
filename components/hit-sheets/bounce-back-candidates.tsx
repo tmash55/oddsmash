@@ -269,7 +269,7 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
       <div className="space-y-2 border-b border-slate-200 dark:border-slate-700 pb-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
           Find MLB players who are due for a bounce back based on their historical performance. 
-          We analyze each player's pre-slump stats and current trends to identify those likely 
+          We analyze each player&apos;s pre-slump stats and current trends to identify those likely 
           to return to their previous form, helping you make more informed betting decisions.
         </p>
 

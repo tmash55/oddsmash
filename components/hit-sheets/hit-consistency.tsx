@@ -237,7 +237,7 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
     <div className="space-y-6">
       <div className="space-y-2 border-b border-slate-200 dark:border-slate-700 pb-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Find MLB players who have been consistently getting hits. We analyze each player's recent 
+          Find MLB players who have been consistently getting hits. We analyze each player&apos;s recent 
           performance to identify those with high hit rates over their last several games, helping 
           you make more informed betting decisions.
         </p>
