@@ -6,7 +6,7 @@ import { fetchMockHitRateProfiles } from "@/services/mock-hit-rates"
 import { fetchPlayerTeamData } from "@/services/teams"
 import { fetchBestOddsForHitRateProfiles, PlayerPropOdds } from "@/services/player-prop-odds"
 import type { PlayerHitRateProfile, HitRateFilters as HitRateFiltersType, Market, TimeWindow } from "@/types/hit-rates"
-import { MoonIcon, SunIcon, Grid, List, RefreshCw, AlertTriangle } from "lucide-react"
+import { MoonIcon, SunIcon, Grid, List, RefreshCw, AlertTriangle, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
@@ -22,6 +22,7 @@ import HitRateCardV2 from "./hit-rate-card-v2"
 import HitRateTableV2 from "./hit-rate-table-v2"
 import HitRateFiltersV2 from "./hit-rate-filters-v2"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import  FeedbackButton  from "@/components/shared/FeedbackButton"
 
 
 // Default filters with "Hits" market selected
@@ -51,6 +52,8 @@ interface GameInfo {
 type ViewMode = "table" | "grid"
 
 export default function HitRateDashboardV2() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [profiles, setProfiles] = useState<PlayerHitRateProfile[]>([])
   const [filteredProfiles, setFilteredProfiles] = useState<PlayerHitRateProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -1065,8 +1068,8 @@ export default function HitRateDashboardV2() {
     <main className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Player Hit Rates</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2">Player Hit Rates</h1>
+          <p className="text-base text-muted-foreground/90 leading-relaxed max-w-[85ch]">
             Detailed hit rate analysis and trends. For quick research and daily props, check out our{" "}
             <a href="/hit-sheets" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
               Hit Sheets
@@ -1076,16 +1079,11 @@ export default function HitRateDashboardV2() {
         </div>
 
         <div className="flex items-center gap-2">
-          {useMockData && (
-            <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
-              <AlertTriangle size={12} className="mr-1" />
-              Using mock data
-            </Badge>
-          )}
-          
+          <FeedbackButton toolName="hit_rates" />
           
         </div>
       </div>
+
 
       {/* Filters Component */}
       <HitRateFiltersV2 

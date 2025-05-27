@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useRouter, useSearchParams } from "next/navigation"
+import FeedbackButton from "@/components/shared/FeedbackButton"
 
 interface QuickHitsProps {
   className?: string
@@ -244,58 +245,61 @@ export default function HitSheetsDashboard({ className }: QuickHitsProps) {
   }
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Hit Sheets</h2>
-          <p className="text-muted-foreground">
-            Fast access to popular hit rate functions and data sets. For detailed hit rate analysis, visit our{" "}
-            <a href="/hit-rates" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
-              High Hit Rate
-            </a>
-            {" "}page.
-          </p>
-        </div>
-      </div>
-
-      {isMobile ? (
-        <div className="space-y-4">
-          <Select value={activeTab} onValueChange={handleTabChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue>
-                {tabs.find(tab => tab.id === activeTab)?.label}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {tabs.map(tab => (
-                <SelectItem key={tab.id} value={tab.id}>
-                  {tab.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="space-y-4">
-            {renderContent(activeTab)}
+    <main className="container mx-auto py-8 px-4">
+      <div className={cn("space-y-4", className)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight mb-2">Hit Sheets</h2>
+            <p className="text-base text-muted-foreground/90 leading-relaxed max-w-[85ch]">
+              Fast access to popular hit rate functions and data sets. For detailed hit rate analysis, visit our{" "}
+              <a href="/hit-rates" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
+                High Rate
+              </a>
+              {" "}page.
+            </p>
           </div>
+          <FeedbackButton toolName="hit_sheets" />
         </div>
-      ) : (
-        <Tabs defaultValue="hit-streaks" className="space-y-4" onValueChange={handleTabChange}>
-          <TabsList>
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
 
-          {tabs.map(tab => (
-            <TabsContent key={tab.id} value={tab.id} className="space-y-4">
-              {renderContent(tab.id)}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
-    </div>
+        {isMobile ? (
+          <div className="space-y-4">
+            <Select value={activeTab} onValueChange={handleTabChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {tabs.find(tab => tab.id === activeTab)?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {tabs.map(tab => (
+                  <SelectItem key={tab.id} value={tab.id}>
+                    {tab.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="space-y-4">
+              {renderContent(activeTab)}
+            </div>
+          </div>
+        ) : (
+          <Tabs defaultValue="hit-streaks" className="space-y-4" onValueChange={handleTabChange}>
+            <TabsList>
+              {tabs.map(tab => (
+                <TabsTrigger key={tab.id} value={tab.id}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {tabs.map(tab => (
+              <TabsContent key={tab.id} value={tab.id} className="space-y-4">
+                {renderContent(tab.id)}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
+      </div>
+    </main>
   )
 } 

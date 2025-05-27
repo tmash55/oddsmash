@@ -5,10 +5,15 @@ import HitSheetsDashboard from "@/components/hit-sheets/hit-sheets-dashboard"
 
 export default function QuickHitsPage() {
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="w-full min-h-screen bg-background">
 
-        <HitSheetsDashboard />
+        {/* Hit Rate Dashboard - full width on mobile */}
+        <div className="mt-2 sm:mt-4 md:mt-8">
 
-    </div>
+            <HitSheetsDashboard />
+
+        </div>
+      </div>
   )
-} 
+  
+}   
