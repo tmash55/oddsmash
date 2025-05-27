@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import config from "@/config";
 import { createClient } from "@/libs/supabase/client";
-
+import React from "react";
 export function Footer() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
