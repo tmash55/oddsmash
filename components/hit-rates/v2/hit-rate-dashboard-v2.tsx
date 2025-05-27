@@ -194,7 +194,7 @@ export default function HitRateDashboardV2() {
         }
         
         // Fetch player metadata
-        const playerIds = profilesData.map(profile => profile.player_id);
+        const playerIds = profilesData.map((profile: PlayerHitRateProfile) => profile.player_id);
         console.log(`[DASHBOARD] Fetching team data for ${playerIds.length} players`);
         
         const teamData = await fetchPlayerTeamData(playerIds);
