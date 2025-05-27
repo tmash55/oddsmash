@@ -1,5 +1,5 @@
 'use client';
-
+import React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +58,7 @@ export default function ForgotPasswordForm({
         <CardHeader>
           <CardTitle className="text-2xl text-white">Forgot Password</CardTitle>
           <CardDescription className="text-gray-400">
-            Enter your email and we'll send you a password reset link
+            Enter your email and we&apos;ll send you a password reset link
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -5,7 +5,7 @@ import { createClient } from "@/libs/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import config from "@/config";
-
+import React from "react";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
