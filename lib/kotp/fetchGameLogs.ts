@@ -1,4 +1,4 @@
-import { redis } from "@/lib/redis";
+import { getCachedData, setCachedData } from "@/lib/redis";
 import { GAMELOG_CACHE_KEY, CACHE_TTL, PlayerGameLog } from "@/app/api/kotp/constants";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -19,7 +19,7 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
 
   try {
     // Return cached data immediately if available (don't wait for fresh data)
-    const cachedLogs = await redis.get(GAMELOG_CACHE_KEY) as PlayerGameLog[] | null;
+    const cachedLogs = await getCachedData<PlayerGameLog[]>(GAMELOG_CACHE_KEY);
     
     console.log("Checking for cached playoff game logs...");
     if (cachedLogs && Array.isArray(cachedLogs) && cachedLogs.length > 0) {
@@ -81,7 +81,7 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
         console.log("No playoff games have been played yet");
         // Cache empty array to prevent continuous fetching
         const emptyLogs: PlayerGameLog[] = [];
-        await redis.set(GAMELOG_CACHE_KEY, emptyLogs, { ex: 60 * 15 }); // Cache for 15 minutes
+        await setCachedData(GAMELOG_CACHE_KEY, emptyLogs, 60 * 15); // Cache for 15 minutes
         return {
           success: true,
           message: "Cached empty game logs data",
@@ -122,7 +122,7 @@ export async function fetchPlayoffGameLogs(): Promise<FetchResult> {
       console.log(`Processed ${gameLogs.length} game logs, sample player: ${gameLogs[0]?.playerName || 'none'}`);
       
       // Store in Redis cache - use a longer TTL since this data doesn't change
-      await redis.set(GAMELOG_CACHE_KEY, gameLogs, { ex: CACHE_TTL * 2 }); // Doubling the cache TTL
+      await setCachedData(GAMELOG_CACHE_KEY, gameLogs, CACHE_TTL * 2); // Doubling the cache TTL
       console.log(`Stored ${gameLogs.length} playoff game logs in cache`);
       
       return {
