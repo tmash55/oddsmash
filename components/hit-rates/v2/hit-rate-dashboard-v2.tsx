@@ -153,36 +153,39 @@ export default function HitRateDashboardV2() {
       setLoading(true);
       
       try {
-        // First load hit rate profiles
-        const profilesData = await fetchHitRateProfiles();
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (activeFilters.market) params.append("market", activeFilters.market);
+        if (activeFilters.team) params.append("team", activeFilters.team);
+        if (activeFilters.minHitRate) params.append("minHitRate", activeFilters.minHitRate.toString());
+        if (activeFilters.timeWindow) params.append("timeWindow", activeFilters.timeWindow);
+
+        // Fetch profiles from API
+        const response = await fetch(`/api/hit-rates?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch hit rate profiles: ${response.statusText}`);
+        }
+
+        const profilesData = await response.json();
         setProfiles(profilesData);
         console.log(`[DASHBOARD] Loaded ${profilesData.length} hit rate profiles`);
         
-        // Default filtering and sorting
-        // Apply filters manually instead of using a non-existent function
-        const filtered = profilesData.filter(profile => {
-          // Apply market filter if set
+        // Apply default filtering and sorting
+        const filtered = profilesData.filter((profile: PlayerHitRateProfile) => {
           if (activeFilters.market && profile.market !== activeFilters.market) return false;
-          
-          // Apply team filter if set
           if (activeFilters.team && profile.team_name !== activeFilters.team) return false;
-          
-          // Apply min hit rate filter if set
           if (activeFilters.minHitRate) {
             const hitRate = calculateHitRate(profile, activeFilters.timeWindow || "10_games");
             if (hitRate < activeFilters.minHitRate) return false;
           }
-          
           return true;
         });
         
         const sorted = sortProfiles(filtered);
         setFilteredProfiles(sorted);
         
-        // Check if profiles already have all_odds data
+        // Check and fetch odds data if needed
         const hasAllOddsData = profilesData.length > 0 && profilesData[0].all_odds;
-        
-        // Only fetch odds data if profiles don't already have it
         if (!hasAllOddsData) {
           console.log("[DASHBOARD] Profiles don't have all_odds data, fetching separate odds data");
           await fetchOddsDataForProfiles(profilesData);
@@ -190,29 +193,18 @@ export default function HitRateDashboardV2() {
           console.log("[DASHBOARD] Profiles already have all_odds data, skipping odds fetch");
         }
         
-        // Fetch player metadata (team, position, etc)
-        // Pass player IDs instead of profiles to match the function's parameter type
+        // Fetch player metadata
         const playerIds = profilesData.map(profile => profile.player_id);
-        console.log(`[DASHBOARD] Fetching team data for ${playerIds.length} players in initial load`);
+        console.log(`[DASHBOARD] Fetching team data for ${playerIds.length} players`);
         
         const teamData = await fetchPlayerTeamData(playerIds);
-        console.log(`[DASHBOARD] Received team data for ${Object.keys(teamData).length} players in initial load`);
-        
-        // Log a sample of the data received
-        const samplePlayerIds = Object.keys(teamData).slice(0, 3);
-        if (samplePlayerIds.length > 0) {
-          samplePlayerIds.forEach(id => {
-            const playerData = teamData[Number(id)];
-            console.log(`[DASHBOARD] Sample player ${id} data:`, 
-              playerData ? `${playerData.team_abbreviation}, ${playerData.position_abbreviation}` : 'No data');
-          });
-        }
-        
+        console.log(`[DASHBOARD] Received team data for ${Object.keys(teamData).length} players`);
         setPlayerTeamData(teamData);
         
-      } catch (err) {
-        console.error("Error loading dashboard data:", err);
-        setError("Failed to load hit rate data");
+      } catch (error) {
+        console.error("[DASHBOARD] Error loading data:", error);
+        setError("Failed to load hit rate profiles");
+        setErrorDetails(error instanceof Error ? error.message : "Unknown error");
       } finally {
         setLoading(false);
       }

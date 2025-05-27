@@ -1,11 +1,24 @@
 import { createClient } from "@/libs/supabase/client";
 import { PlayerHitRateProfile, HitRateFilters, TimeWindow } from "@/types/hit-rates";
+import { getCachedHitRateProfiles, setCachedHitRateProfiles, generateHitRatesCacheKey } from "@/lib/redis";
 
 /**
  * Fetch hit rate profiles with optional filtering
  */
 export async function fetchHitRateProfiles(filters?: HitRateFilters): Promise<PlayerHitRateProfile[]> {
   try {
+    const cacheKey = generateHitRatesCacheKey(filters);
+    console.log(`[REDIS] Checking cache for key: ${cacheKey}`);
+    
+    // Try to get cached data first
+    const cachedProfiles = await getCachedHitRateProfiles(filters);
+    if (cachedProfiles) {
+      console.log(`[REDIS] Cache HIT - Found ${cachedProfiles.length} profiles`);
+      return cachedProfiles;
+    }
+
+    console.log(`[REDIS] Cache MISS - Fetching from database`);
+    
     // Create Supabase client
     const supabase = createClient();
     if (!supabase) {
@@ -37,15 +50,20 @@ export async function fetchHitRateProfiles(filters?: HitRateFilters): Promise<Pl
     const { data, error } = await query;
     
     if (error) {
-      console.error("Supabase query error:", error);
+      console.error("[DB] Supabase query error:", error);
       throw new Error(`Database query failed: ${error.message}`);
     }
     
-    // If no data found, return empty array instead of null
-    return data || [];
+    const profiles = data || [];
+    
+    // Cache the results before returning
+    await setCachedHitRateProfiles(profiles, filters);
+    console.log(`[REDIS] Cached ${profiles.length} profiles with key: ${cacheKey}`);
+    
+    return profiles;
   } catch (err) {
-    console.error("Error in fetchHitRateProfiles:", err);
-    throw err; // Re-throw to allow component to handle
+    console.error("[ERROR] Error in fetchHitRateProfiles:", err);
+    throw err;
   }
 }
 

@@ -1,18 +1,94 @@
 import { Redis } from "@upstash/redis";
-
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+import { PlayerHitRateProfile, HitRateFilters } from "@/types/hit-rates";
 
 // Cache TTL in seconds (20 minutes)
 export const CACHE_TTL = 1200;
+
+// Cache TTL for hit rate data (2 hours in seconds)
+export const HIT_RATE_CACHE_TTL = 7200;
 
 // Type for cached odds data
 export interface CachedOddsData {
   lastUpdated: string;
   data: any; // Replace with your odds data type
+}
+
+let redis: Redis | null = null;
+
+// Initialize Redis client (server-side only)
+export function getRedisClient() {
+  if (typeof window !== 'undefined') {
+    console.warn('[REDIS] Attempted to access Redis client from browser');
+    return null;
+  }
+
+  if (!redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!url || !token) {
+      console.error("[REDIS] Configuration missing");
+      return null;
+    }
+
+    try {
+      redis = new Redis({
+        url,
+        token,
+        retry: {
+          retries: 3,
+          backoff: (retryCount) => Math.min(retryCount * 500, 3000),
+        },
+      });
+    } catch (error) {
+      console.error("[REDIS] Initialization error:", error);
+      return null;
+    }
+  }
+
+  return redis;
+}
+
+// Helper functions that check for client availability
+export async function getCachedData<T>(key: string): Promise<T | null> {
+  const client = getRedisClient();
+  if (!client) return null;
+
+  try {
+    const response = await client.get<T>(key);
+    if (typeof response === 'string' && response.trim().startsWith('<!DOCTYPE')) {
+      console.error("[REDIS] Received HTML instead of JSON");
+      return null;
+    }
+    return response;
+  } catch (error) {
+    console.error("[REDIS] Error getting cached data:", error);
+    return null;
+  }
+}
+
+export async function setCachedData<T>(
+  key: string,
+  data: T,
+  ttl: number = CACHE_TTL
+): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+
+  try {
+    JSON.stringify(data); // Validate data can be serialized
+    await client.set(key, data, { ex: ttl });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("[REDIS] Error setting cached data:", {
+        message: error.message,
+        key,
+        dataType: typeof data,
+      });
+    } else {
+      console.error("[REDIS] Unknown error setting cached data");
+    }
+  }
 }
 
 /**
@@ -173,33 +249,11 @@ export async function setCachedOdds(key: string, data: any): Promise<void> {
   }
 }
 
-export async function getCachedData<T>(key: string): Promise<T | null> {
-  try {
-    const data = await redis.get<T>(key);
-    return data;
-  } catch (error) {
-    console.error("Redis get error:", error);
-    return null;
-  }
-}
-
-export async function setCachedData<T>(
-  key: string,
-  data: T,
-  ttl: number = CACHE_TTL
-): Promise<void> {
-  try {
-    await redis.set(key, data, { ex: ttl });
-  } catch (error) {
-    console.error("Redis set error:", error);
-  }
-}
-
 export async function invalidateCache(key: string): Promise<void> {
   try {
     await redis.del(key);
   } catch (error) {
-    console.error("Redis delete error:", error);
+    console.error("[REDIS] Error deleting cached data:", error);
   }
 }
 
@@ -253,4 +307,52 @@ function filterSingleItemBookmakers<T extends { bookmakers?: any[] }>(
   return filteredItem;
 }
 
-export { redis };
+// Generate cache key for hit rate profiles
+export function generateHitRatesCacheKey(filters?: HitRateFilters): string {
+  let key = 'hit-rates';
+  
+  if (filters) {
+    if (filters.team) key += `:team:${filters.team}`;
+    if (filters.market) key += `:market:${filters.market}`;
+    if (filters.minHitRate) key += `:min-rate:${filters.minHitRate}`;
+    if (filters.timeWindow) key += `:window:${filters.timeWindow}`;
+  }
+  
+  return key;
+}
+
+// Get cached hit rate profiles
+export async function getCachedHitRateProfiles(
+  filters?: HitRateFilters
+): Promise<PlayerHitRateProfile[] | null> {
+  try {
+    const key = generateHitRatesCacheKey(filters);
+    return await getCachedData<PlayerHitRateProfile[]>(key);
+  } catch (error) {
+    console.error("[REDIS] Error getting cached hit rate profiles:", error);
+    return null;
+  }
+}
+
+// Set hit rate profiles in cache
+export async function setCachedHitRateProfiles(
+  profiles: PlayerHitRateProfile[],
+  filters?: HitRateFilters
+): Promise<void> {
+  try {
+    const key = generateHitRatesCacheKey(filters);
+    await setCachedData(key, profiles, HIT_RATE_CACHE_TTL);
+  } catch (error) {
+    console.error("[REDIS] Error setting cached hit rate profiles:", error);
+  }
+}
+
+// Invalidate hit rate cache
+export async function invalidateHitRateCache(filters?: HitRateFilters): Promise<void> {
+  try {
+    const key = generateHitRatesCacheKey(filters);
+    await invalidateCache(key);
+  } catch (error) {
+    console.error("[REDIS] Error invalidating hit rate cache:", error);
+  }
+}

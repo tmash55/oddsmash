@@ -78,15 +78,7 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
 
   // Get all available odds for the current line
   const getAvailableOdds = () => {
-    console.log('OddsComparison - Input data:', {
-      market,
-      line,
-      customTier,
-      allOdds
-    })
-
     if (!allOdds) {
-      console.log('OddsComparison - No odds data provided')
       return []
     }
 
@@ -94,11 +86,6 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
     const isFlat = Object.values(allOdds).every(value => 
       typeof value === 'object' && 'odds' in value
     )
-
-    console.log('OddsComparison - Data structure:', {
-      isFlat,
-      firstValue: Object.values(allOdds)[0]
-    })
 
     if (isFlat) {
       // Handle flat structure
@@ -117,7 +104,6 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
           return b.odds - a.odds
         })
 
-      console.log('OddsComparison - Processed flat odds:', odds)
       return odds
     }
 
@@ -126,13 +112,7 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
       ? (customTier - 0.5).toString()
       : line?.toString()
 
-    console.log('OddsComparison - Target line:', {
-      targetLine,
-      availableLines: Object.keys(allOdds)
-    })
-
     if (!targetLine || !allOdds[targetLine]) {
-      console.log('OddsComparison - No odds found for target line:', targetLine)
       return []
     }
 
@@ -151,18 +131,10 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
         return b.odds - a.odds
       })
 
-    console.log('OddsComparison - Processed nested odds:', odds)
     return odds
   }
 
   const availableOdds = getAvailableOdds()
-
-  // Log the final state before rendering
-  console.log('OddsComparison - Final render state:', {
-    lineDisplay: getLineDisplay(),
-    availableOddsCount: availableOdds.length,
-    availableOdds
-  })
 
   // Only show comparison if we have multiple odds
   if (!allOdds || Object.keys(allOdds).length <= 1) return null
@@ -201,13 +173,6 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
                       const bookId = sportsbooks.find(
                         (sb) => sb.name.toLowerCase() === book.toLowerCase()
                       )?.id || "unknown"
-                      
-                      console.log('OddsComparison - Rendering sportsbook:', {
-                        book,
-                        bookId,
-                        odds,
-                        hasLink: !!link
-                      })
                       
                       const sbData = sportsbooks.find((sb) => sb.id === bookId)
                       const hasLink = !!link

@@ -1,11 +1,21 @@
 import { createClient } from "@/libs/supabase/server"
 import { NextResponse } from "next/server"
+import { getCachedHitConsistency, setCachedHitConsistency } from "@/lib/redis/hit-sheets"
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const hitRate = searchParams.get("hit_rate") || "0.9"
     const sampleSpan = searchParams.get("sample_span") || "last_10"
+
+    // Try to get cached data first
+    const cachedData = await getCachedHitConsistency(hitRate, sampleSpan)
+    if (cachedData) {
+      console.log('[Redis] Cache HIT - Found hit consistency data')
+      return NextResponse.json(cachedData)
+    }
+
+    console.log('[Redis] Cache MISS - Fetching hit consistency from database')
 
     // Create the Supabase client
     const supabase = createClient()
@@ -24,6 +34,10 @@ export async function GET(request: Request) {
         { status: 500 }
       )
     }
+
+    // Cache the results before returning
+    await setCachedHitConsistency(data, hitRate, sampleSpan)
+    console.log(`[Redis] Cached hit consistency data for hitRate=${hitRate}, sampleSpan=${sampleSpan}`)
 
     // Return the data if successful
     return NextResponse.json(data)
