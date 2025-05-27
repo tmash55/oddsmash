@@ -83,9 +83,15 @@ export default function HitStreaks({ data }: HitStreaksProps) {
     return 0
   })
 
-  const handleSort = (field: string, direction: "asc" | "desc") => {
-    setSortField(field)
-    setSortDirection(direction)
+  const handleSort = (field: string) => {
+    // If clicking the same field, toggle direction
+    if (field === sortField) {
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+    } else {
+      // For new field, set to desc by default
+      setSortField(field)
+      setSortDirection("desc")
+    }
   }
 
   const columns = [

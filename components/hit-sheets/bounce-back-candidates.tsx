@@ -28,9 +28,43 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  const handleSort = (field: string, direction: "asc" | "desc") => {
-    setSortField(field)
-    setSortDirection(direction)
+  const handleSort = (field: string) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+    } else {
+      setSortField(field)
+      setSortDirection("desc")
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) return null
+    return sortDirection === "desc" ? "↓" : "↑"
+  }
+
+  const sortData = (data: BounceBackCandidate[]) => {
+    return [...data].sort((a, b) => {
+      let result = 0
+      switch (sortField) {
+        case "out_hit_rate":
+          result = b.out_hit_rate - a.out_hit_rate
+          break
+        case "out_line":
+          result = b.out_line - a.out_line
+          break
+        case "out_player":
+          result = a.out_full_name.localeCompare(b.out_full_name)
+          break
+        case "pre_slump_performance":
+          const aRate = a.out_pre_slump_hits / a.out_pre_slump_total
+          const bRate = b.out_pre_slump_hits / b.out_pre_slump_total
+          result = bRate - aRate
+          break
+        default:
+          result = b.out_hit_rate - a.out_hit_rate
+      }
+      return sortDirection === "asc" ? -result : result
+    })
   }
 
   const handleHitRateChange = (value: string) => {
@@ -46,6 +80,7 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
       key: "out_player",
       title: "Player",
       width: isMobile ? "50%" : "20%",
+      sortable: true,
       render: (value: any, row: BounceBackCandidate) => {
         const playerHeadshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${row.out_player_id}/headshot/67/current`
         const teamAbbr = row.out_team_abbreviation
@@ -145,6 +180,7 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
       key: "pre_slump_performance",
       title: "Pre-Slump",
       width: isMobile ? "50%" : "20%",
+      sortable: true,
       render: (value: any, row: BounceBackCandidate) => {
         const hitRate = row.out_pre_slump_hits / row.out_pre_slump_total
         return (
@@ -306,7 +342,7 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
       </div>
 
       <QuickHitTable
-        data={data}
+        data={sortData(data)}
         columns={columns}
         title="Bounce Back Candidates"
         subtitle="Players likely to return to their previous form"

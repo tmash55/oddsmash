@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Share2, Star, ArrowUpDown, ArrowLeftRight } from "lucide-react"
+import { Share2, Star, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -175,7 +175,7 @@ export interface QuickHitTableProps<T> {
   columns: QuickHitColumn[]
   title: string
   subtitle?: string
-  onSort?: (field: string, direction: "asc" | "desc") => void
+  onSort?: (field: string) => void
   sortField?: string
   sortDirection?: "asc" | "desc"
   onShare?: (item: T) => void
@@ -187,8 +187,8 @@ export default function QuickHitTable<T extends Record<string, any>>({
   title,
   subtitle,
   onSort,
-  sortField = "",
-  sortDirection = "desc",
+  sortField,
+  sortDirection,
   onShare,
 }: QuickHitTableProps<T>) {
   const [favorites, setFavorites] = useState<Record<number, boolean>>({})
@@ -214,8 +214,7 @@ export default function QuickHitTable<T extends Record<string, any>>({
   // Modified handle sort to call the parent's onSort function if provided
   const handleSort = (field: string) => {
     if (onSort) {
-      const newDirection = sortField === field && sortDirection === "desc" ? "asc" : "desc"
-      onSort(field, newDirection)
+      onSort(field)
     }
   }
 
@@ -237,6 +236,11 @@ export default function QuickHitTable<T extends Record<string, any>>({
     }
   }
 
+  const getSortIcon = (field: string) => {
+    if (!onSort || field !== sortField) return null
+    return sortDirection === "desc" ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />
+  }
+
   return (
     <div className="w-full overflow-auto rounded-xl border shadow-sm">
       <div className="bg-slate-50 dark:bg-slate-900 p-3 border-b border-slate-200 dark:border-slate-700">
@@ -256,9 +260,17 @@ export default function QuickHitTable<T extends Record<string, any>>({
                 )}
               >
                 {column.sortable ? (
-                  <Button variant="ghost" className="p-0 font-semibold text-sm -ml-2" onClick={() => handleSort(column.key)}>
-                    {column.title}
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
+                  <Button
+                    variant="ghost"
+                    className="p-0 font-semibold text-sm hover:bg-transparent"
+                    onClick={() => handleSort(column.key)}
+                  >
+                    <span className={cn(
+                      sortField === column.key ? "text-indigo-500 dark:text-indigo-400" : ""
+                    )}>
+                      {column.title}
+                    </span>
+                    {getSortIcon(column.key)}
                   </Button>
                 ) : (
                   <span className="font-semibold text-sm">{column.title}</span>

@@ -28,9 +28,38 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  const handleSort = (field: string, direction: "asc" | "desc") => {
-    setSortField(field)
-    setSortDirection(direction)
+  const handleSort = (field: string) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+    } else {
+      setSortField(field)
+      setSortDirection("desc")
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) return null
+    return sortDirection === "desc" ? "↓" : "↑"
+  }
+
+  const sortData = (data: HitConsistencyCandidate[]) => {
+    return [...data].sort((a, b) => {
+      let result = 0
+      switch (sortField) {
+        case "out_hit_rate":
+          result = b.out_hit_rate - a.out_hit_rate
+          break
+        case "out_line":
+          result = b.out_line - a.out_line
+          break
+        case "out_player":
+          result = a.out_full_name.localeCompare(b.out_full_name)
+          break
+        default:
+          result = b.out_hit_rate - a.out_hit_rate
+      }
+      return sortDirection === "asc" ? -result : result
+    })
   }
 
   const handleHitRateChange = (value: string) => {
@@ -48,6 +77,7 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
       width: isMobile ? "100%" : "30%",
       className: isMobile ? "pb-2" : "pr-0",
       order: 1,
+      sortable: true,
       render: (value: any, row: HitConsistencyCandidate) => {
         const playerHeadshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${row.out_player_id}/headshot/67/current`
         const teamAbbr = row.out_team_abbreviation
@@ -277,7 +307,7 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
       </div>
 
       <QuickHitTable
-        data={data}
+        data={sortData(data)}
         columns={columns}
         title="Hit Consistency"
         subtitle="Players with consistent hitting performance"

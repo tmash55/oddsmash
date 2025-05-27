@@ -37,9 +37,46 @@ export default function StrikeoutOvers({ data, onParamsChange, params }: Strikeo
   // Add debug logging
   console.log("Initial data:", data)
 
-  const handleSort = (field: string, direction: "asc" | "desc") => {
-    setSortField(field)
-    setSortDirection(direction)
+  const handleSort = (field: string) => {
+    // If clicking the same field, toggle direction
+    if (field === sortField) {
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+    } else {
+      // For new field, set to desc by default
+      setSortField(field)
+      setSortDirection("desc")
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) return null
+    return sortDirection === "desc" ? "↓" : "↑"
+  }
+
+  const sortData = (data: StrikeoutOverCandidate[]) => {
+    return [...data].sort((a, b) => {
+      let result = 0
+      switch (sortField) {
+        case "out_hit_rate":
+          const hitRateA = typeof a.out_hit_rate === 'number' ? a.out_hit_rate : 0
+          const hitRateB = typeof b.out_hit_rate === 'number' ? b.out_hit_rate : 0
+          result = hitRateB - hitRateA
+          break
+        case "out_line":
+          const lineA = typeof a.out_line_used === 'string' ? parseFloat(a.out_line_used) : (typeof a.out_line_used === 'number' ? a.out_line_used : 0)
+          const lineB = typeof b.out_line_used === 'string' ? parseFloat(b.out_line_used) : (typeof b.out_line_used === 'number' ? b.out_line_used : 0)
+          result = lineB - lineA
+          break
+        case "out_player":
+          result = a.out_full_name.localeCompare(b.out_full_name)
+          break
+        default:
+          const defaultHitRateA = typeof a.out_hit_rate === 'number' ? a.out_hit_rate : 0
+          const defaultHitRateB = typeof b.out_hit_rate === 'number' ? b.out_hit_rate : 0
+          result = defaultHitRateB - defaultHitRateA
+      }
+      return sortDirection === "asc" ? -result : result
+    })
   }
 
   const handleHitRateChange = (value: string) => {
@@ -51,6 +88,7 @@ export default function StrikeoutOvers({ data, onParamsChange, params }: Strikeo
       key: "out_player",
       title: "Player",
       width: isMobile ? "50%" : "25%",
+      sortable: true,
       render: (value: any, row: StrikeoutOverCandidate) => {
         // Debug logging for player column
         console.log("Player row data:", {
@@ -313,7 +351,7 @@ export default function StrikeoutOvers({ data, onParamsChange, params }: Strikeo
       </div>
 
       <QuickHitTable
-        data={data}
+        data={sortData(data)}
         columns={columns}
         title="Strikeout Over Candidates"
         subtitle="Players with high hit rates against their strikeout over line"
