@@ -1008,11 +1008,12 @@ export default function HitRateTableV2({
                     >
                       <Star className={`h-3 w-3 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
                     </Button>
-                    <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm">
-                      <div data-image-id={profile.player_id}>
+                    <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm overflow-hidden">
+                      <div data-image-id={profile.player_id} className="w-full h-full">
                         <AvatarImage
                           src={playerHeadshotUrl || "/placeholder.svg"}
                           alt={profile.player_name}
+                          className="object-cover w-full h-full"
                           onError={() => {
                             const fallback = document.createElement("div")
                             fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"

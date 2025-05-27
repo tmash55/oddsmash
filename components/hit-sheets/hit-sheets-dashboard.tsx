@@ -253,7 +253,7 @@ export default function HitSheetsDashboard({ className }: QuickHitsProps) {
             <p className="text-base text-muted-foreground/90 leading-relaxed max-w-[85ch]">
               Fast access to popular hit rate functions and data sets. For detailed hit rate analysis, visit our{" "}
               <a href="/hit-rates" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
-                High Rate
+                Hit Rate
               </a>
               {" "}page.
             </p>

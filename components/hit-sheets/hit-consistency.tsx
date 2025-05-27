@@ -54,10 +54,11 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
 
         return (
           <div className="flex items-center gap-2">
-            <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm">
+            <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm overflow-hidden">
               <AvatarImage
                 src={playerHeadshotUrl}
                 alt={row.out_full_name}
+                className="object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none"
                 }}

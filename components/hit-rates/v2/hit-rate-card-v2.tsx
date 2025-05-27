@@ -931,7 +931,7 @@ export default function HitRateCardV3({
               alt={profile.player_name}
               width={40}
               height={40}
-              className="object-contain"
+              className="object-cover w-full h-full"
               onError={(e) => {
                 // Fallback to placeholder if image fails to load
                 (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"

@@ -289,10 +289,11 @@ export default function QuickHitTable<T extends Record<string, any>>({
                     return (
                       <TableCell key={column.key} className="font-medium py-3 pl-4">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm">
+                          <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm overflow-hidden">
                             <AvatarImage
                               src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${row.player_id}/headshot/67/current`}
                               alt={row.full_name}
+                              className="object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = "none"
                               }}
