@@ -1,13 +1,55 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Mail, Twitter, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 import config from "@/config";
+import { createClient } from "@/libs/supabase/client";
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const currentYear = new Date().getFullYear();
+  const supabase = createClient();
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .insert([
+          { 
+            email,
+            type: 'newsletter',
+            source: 'footer'
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Successfully subscribed!",
+        description: "Thank you for subscribing to our newsletter.",
+      });
+      setEmail("");
+    } catch (error) {
+      console.error('Error subscribing:', error);
+      toast({
+        variant: "destructive",
+        title: "Subscription failed",
+        description: "There was an error subscribing to the newsletter. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <footer className="w-full bg-background border-t border-border/40">
@@ -27,23 +69,32 @@ export function Footer() {
             </div>
 
             {/* Newsletter signup */}
-            <div className="space-y-3">
+            <form onSubmit={handleSubscribe} className="space-y-3">
               <p className="text-sm font-medium">Subscribe to our newsletter</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="email"
                   placeholder="Enter your email"
                   className="max-w-xs"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
-                <Button size="sm" className="w-full sm:w-auto">
-                  Subscribe
+                <Button 
+                  type="submit" 
+                  size="sm" 
+                  className="w-full sm:w-auto"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Subscribing..." : "Subscribe"}
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 We&apos;ll never share your email. Unsubscribe anytime.
               </p>
-            </div>
+            </form>
           </div>
 
           {/* Quick Links - Full width on mobile, 3 cols on desktop */}

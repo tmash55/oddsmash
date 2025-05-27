@@ -8,6 +8,7 @@ import { Footer } from "@/components/landing-page/footer";
 import { Header } from "@/components/Header";
 import { SportsbookProvider } from "@/contexts/sportsbook-context";
 import { Toaster } from "@/components/ui/toaster";
+import AnnouncementBanner from "@/components/shared/AnnouncementBanner";
 
 export function LayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -17,6 +18,9 @@ export function LayoutContent({ children }: { children: ReactNode }) {
     '/sign-up',
   ].some((path) => pathname.startsWith(path));
 
+  // Show banner only on main pages, not on auth pages
+  const showBanner = !hideHeaderFooter;
+
   return (
     <ThemeProvider
       attribute="class"
@@ -25,6 +29,7 @@ export function LayoutContent({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <SportsbookProvider>
+        {showBanner && <AnnouncementBanner />}
         {!hideHeaderFooter && <Header />}
 
         {/* Apply full width on mobile, container with padding on larger screens */}
