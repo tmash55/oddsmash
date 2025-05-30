@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { nanoid } from 'nanoid';
-import { getCachedData, setCachedData, getRedisClient } from './redis';
+import { redis } from './redis';
 
 // Define the structure of a shareable prop payload
 export interface ShareablePropPayload {
@@ -89,7 +89,7 @@ export async function storeSharedProp(payload: ShareablePropPayload): Promise<st
     // Stringify the data before storing to ensure consistency
     const dataToStore = JSON.stringify(validatedPayload);
     
-    await setCachedData(redisKey, dataToStore, THIRTY_DAYS_IN_SECONDS);
+    await redis.set(redisKey, dataToStore, { ex: THIRTY_DAYS_IN_SECONDS });
     
     return id;
   } catch (error) {
@@ -106,15 +106,20 @@ export async function storeSharedProp(payload: ShareablePropPayload): Promise<st
 export async function getSharedProp(id: string): Promise<ShareablePropPayload | null> {
   try {
     const redisKey = `share:${id}`;
-    const data = await getCachedData<string>(redisKey);
+    const data = await redis.get(redisKey);
     
     if (!data) {
       return null;
     }
     
-    // Parse the string data
+    // Handle case where data is already an object
+    if (typeof data === 'object' && data !== null) {
+      return data as ShareablePropPayload;
+    }
+    
+    // Handle string data by parsing it
     try {
-      return JSON.parse(data) as ShareablePropPayload;
+      return JSON.parse(data as string) as ShareablePropPayload;
     } catch (parseError) {
       console.error(`Error parsing share data for ID ${id}:`, parseError);
       return null;
