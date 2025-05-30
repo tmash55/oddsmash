@@ -203,22 +203,48 @@ export default function KOTDDashboard({ players, games, allGamesFinal, lastUpdat
     ? Math.max(...players.map(player => player.teamRuns))
     : 0;
 
-  // Track which teams have the highest runs
+  // Helper function to check if a game is eligible for KOTD promotion (6 PM ET or later)
+  const isGameEligible = (gameId: number) => {
+    const game = games.find(g => g.gamePk === gameId);
+    if (!game) return false;
+    
+    const gameTime = new Date(game.startTime);
+    // Convert game time to ET
+    const etTime = new Date(gameTime.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    return etTime.getHours() >= 18; // 6 PM or later
+  };
+
+  // Track which teams have the highest runs (only counting eligible games)
   const teamsWithMostRuns = players.length > 0
     ? players
-        .filter(p => p.teamRuns === maxTeamRuns)
-        .map(p => p.team)
-        .filter((team, index, self) => self.indexOf(team) === index)
+        .filter(p => isGameEligible(p.gameId)) // Only consider eligible games
+        .reduce((acc, player) => {
+          // If this is the first eligible game or has more runs than current max
+          if (acc.maxRuns === 0 || player.teamRuns > acc.maxRuns) {
+            return {
+              maxRuns: player.teamRuns,
+              teams: [player.team]
+            };
+          }
+          // If this team has the same number of runs as current max
+          if (player.teamRuns === acc.maxRuns && !acc.teams.includes(player.team)) {
+            acc.teams.push(player.team);
+          }
+          return acc;
+        }, { maxRuns: 0, teams: [] as string[] })
+        .teams
     : [];
 
   const isPlayerKOTD = (player: Player) => {
-    // KOTD = hit a home run AND on the team with the most runs across all games
-    return player.homeRun && player.teamRuns === maxTeamRuns && maxTeamRuns > 0;
-  }
+    // KOTD = hit a home run AND on the team with the most runs across eligible games
+    const isEligibleGame = isGameEligible(player.gameId);
+    const hasHighestRuns = teamsWithMostRuns.includes(player.team);
+    return player.homeRun && hasHighestRuns && isEligibleGame;
+  };
 
   const isTeamLeading = (teamName: string) => {
-    return teamsWithMostRuns.some(team => team === teamName) && maxTeamRuns > 0;
-  }
+    return teamsWithMostRuns.includes(teamName);
+  };
 
   // Format team name with trophy if they have the most runs
   const formatTeamNameWithStatus = (teamName: string, includeIcon = true) => {
@@ -571,7 +597,7 @@ export default function KOTDDashboard({ players, games, allGamesFinal, lastUpdat
     <div className="space-y-6">
       {/* Header with icons showing what's happening */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <h2 className="text-xl sm:text-2xl font-bold truncate">
             {dateLabel || "Home Run Tracker"}{" "}
             {allGamesFinal && (
@@ -586,12 +612,30 @@ export default function KOTDDashboard({ players, games, allGamesFinal, lastUpdat
               How It Works
             </Button>
           </Link>
+          <Link href="https://x.com/OddSmashApp" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+              <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              Follow for Updates
+            </Button>
+          </Link>
         </div>
 
         <div className="text-xs sm:text-sm text-muted-foreground">
           Updated: {lastUpdated}
         </div>
       </div>
+
+      {/* Add promotion rules alert */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>KOTD Promotion Rules</AlertTitle>
+        <AlertDescription>
+          Only games starting at or after 6:00 PM ET are eligible for the King of the Day promotion. 
+          All games are tracked, but only players in eligible games can win KOTD honors.
+        </AlertDescription>
+      </Alert>
 
       <div className="rounded-lg border bg-card text-card-foreground shadow">
         <div className="p-3 sm:p-6">
