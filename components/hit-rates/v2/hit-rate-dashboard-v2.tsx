@@ -51,7 +51,18 @@ interface GameInfo {
 
 type ViewMode = "table" | "grid"
 
-export default function HitRateDashboardV2() {
+interface HitRateDashboardV2Props {
+  sport: string
+}
+
+interface BestOdds {
+  american: number;
+  decimal: number;
+  sportsbook: string;
+  link: string | null;
+}
+
+export default function HitRateDashboardV2({ sport }: HitRateDashboardV2Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [profiles, setProfiles] = useState<PlayerHitRateProfile[]>([])
@@ -99,27 +110,32 @@ export default function HitRateDashboardV2() {
   const [tableSortField, setTableSortField] = useState<string>("L10")
   const [tableSortDirection, setTableSortDirection] = useState<"asc" | "desc">("desc")
 
-  // Extract unique games from profiles
+  // Extract unique games from profiles - update to filter out past games
   const availableGames = useMemo<GameInfo[]>(() => {
     if (!profiles.length) return [];
     
     const gamesMap = new Map<string, GameInfo>();
+    const now = new Date();
     
     profiles.forEach((profile) => {
-      // Skip if missing required fields
+      // Skip if missing required fields or game has already started
       if (!profile.odds_event_id || !profile.home_team || !profile.away_team || !profile.commence_time) {
         return;
       }
       
+      const gameTime = new Date(profile.commence_time);
+      if (gameTime <= now) {
+        return; // Skip games that have already started
+      }
+      
       if (!gamesMap.has(profile.odds_event_id)) {
-        const gameDate = new Date(profile.commence_time);
-        const formattedTime = gameDate.toLocaleTimeString('en-US', { 
+        const formattedTime = gameTime.toLocaleTimeString('en-US', { 
           hour: 'numeric', 
           minute: '2-digit',
           hour12: true
         });
         
-        const formattedDate = gameDate.toLocaleDateString('en-US', { 
+        const formattedDate = gameTime.toLocaleDateString('en-US', { 
           month: 'short', 
           day: 'numeric'
         });
@@ -153,39 +169,41 @@ export default function HitRateDashboardV2() {
       setLoading(true);
       
       try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        if (activeFilters.market) params.append("market", activeFilters.market);
-        if (activeFilters.team) params.append("team", activeFilters.team);
-        if (activeFilters.minHitRate) params.append("minHitRate", activeFilters.minHitRate.toString());
-        if (activeFilters.timeWindow) params.append("timeWindow", activeFilters.timeWindow);
-
-        // Fetch profiles from API
-        const response = await fetch(`/api/hit-rates?${params.toString()}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch hit rate profiles: ${response.statusText}`);
+        // First load hit rate profiles with sport parameter
+        const filters: HitRateFiltersType = {
+          sport: sport,
+          market: activeFilters.market,
+          timeWindow: activeTimeWindow,
+          minHitRate: activeFilters.minHitRate
         }
-
-        const profilesData = await response.json();
+        const profilesData = await fetchHitRateProfiles(filters);
         setProfiles(profilesData);
-        console.log(`[DASHBOARD] Loaded ${profilesData.length} hit rate profiles`);
+        console.log(`[DASHBOARD] Loaded ${profilesData.length} hit rate profiles for ${sport}`);
         
-        // Apply default filtering and sorting
-        const filtered = profilesData.filter((profile: PlayerHitRateProfile) => {
+        // Default filtering and sorting
+        const filtered = profilesData.filter(profile => {
+          // Apply market filter if set
           if (activeFilters.market && profile.market !== activeFilters.market) return false;
+          
+          // Apply team filter if set
           if (activeFilters.team && profile.team_name !== activeFilters.team) return false;
+          
+          // Apply min hit rate filter if set
           if (activeFilters.minHitRate) {
             const hitRate = calculateHitRate(profile, activeFilters.timeWindow || "10_games");
             if (hitRate < activeFilters.minHitRate) return false;
           }
+          
           return true;
         });
         
         const sorted = sortProfiles(filtered);
         setFilteredProfiles(sorted);
         
-        // Check and fetch odds data if needed
+        // Check if profiles already have all_odds data
         const hasAllOddsData = profilesData.length > 0 && profilesData[0].all_odds;
+        
+        // Only fetch odds data if profiles don't already have it
         if (!hasAllOddsData) {
           console.log("[DASHBOARD] Profiles don't have all_odds data, fetching separate odds data");
           await fetchOddsDataForProfiles(profilesData);
@@ -193,25 +211,23 @@ export default function HitRateDashboardV2() {
           console.log("[DASHBOARD] Profiles already have all_odds data, skipping odds fetch");
         }
         
-        // Fetch player metadata
-        const playerIds = profilesData.map((profile: PlayerHitRateProfile) => profile.player_id);
-        console.log(`[DASHBOARD] Fetching team data for ${playerIds.length} players`);
+        // Fetch player metadata (team, position, etc)
+        const playerIds = profilesData.map(profile => profile.player_id);
+        console.log(`[DASHBOARD] Fetching team data for ${playerIds.length} players in initial load`);
         
         const teamData = await fetchPlayerTeamData(playerIds);
-        console.log(`[DASHBOARD] Received team data for ${Object.keys(teamData).length} players`);
         setPlayerTeamData(teamData);
         
-      } catch (error) {
-        console.error("[DASHBOARD] Error loading data:", error);
-        setError("Failed to load hit rate profiles");
-        setErrorDetails(error instanceof Error ? error.message : "Unknown error");
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+        setError("Failed to load hit rate data");
       } finally {
         setLoading(false);
       }
     };
     
     loadData();
-  }, [activeFilters]);
+  }, [sport, activeFilters, activeTimeWindow]);
 
   // Handle game filter change
   const handleGameFilterChange = (gameIds: string[] | null) => {
@@ -225,6 +241,14 @@ export default function HitRateDashboardV2() {
     let results = [...profiles]
     console.log("Filtering with custom tier:", customTier, "and market:", activeFilters.market)
     
+    // Filter out games that have already started
+    const now = new Date()
+    results = results.filter((profile) => {
+      if (!profile.commence_time) return false
+      const gameTime = new Date(profile.commence_time)
+      return gameTime > now
+    })
+
     // Apply active filters
     if (activeFilters.team) {
       results = results.filter((profile) => profile.team_name === activeFilters.team)
@@ -508,80 +532,38 @@ export default function HitRateDashboardV2() {
   }
 
   const refreshData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      
-      // Create a modified filter without market constraint to load all markets
-      const baseFilter = { ...defaultFilters }
-      delete baseFilter.market // Remove market filter to get all markets
-      
-      const data = await fetchHitRateProfiles(baseFilter)
-      console.log(`Fetched ${data.length} profiles with all markets`)
-      
-      // Log the unique markets found in the data
-      const markets = data.reduce((acc: Market[], profile) => {
-        if (!acc.includes(profile.market)) {
-          acc.push(profile.market)
+      let normalizedData
+      if (useMockData) {
+        normalizedData = await fetchMockHitRateProfiles(activeFilters.market || "Hits")
+      } else {
+        // Create filters object for backward compatibility
+        const filters: HitRateFiltersType = {
+          sport: sport,
+          market: activeFilters.market,
+          timeWindow: activeTimeWindow,
+          minHitRate: activeFilters.minHitRate
         }
-        return acc
-      }, [])
-      console.log("Available markets in data:", markets)
-      
-      // Before setting profiles, let's try to fix any whitespace or case issues in market names
-      const normalizedData = data.map(profile => ({
-        ...profile,
-        market: profile.market.trim() as Market // Trim any whitespace
-      }));
-      
-      // Regenerate the market list with normalized markets
-      const normalizedMarkets = normalizedData.reduce((acc: Market[], profile) => {
-        if (!acc.includes(profile.market)) {
-          acc.push(profile.market)
-        }
-        return acc
-      }, []);
-      console.log("Normalized markets in data:", normalizedMarkets);
-      
+        normalizedData = await fetchHitRateProfiles(filters)
+      }
+
+      // Set profiles and apply filters
       setProfiles(normalizedData)
       
       // Filter for the currently selected market
       if (activeFilters.market) {
         const marketProfiles = normalizedData.filter(profile => profile.market === activeFilters.market)
-        console.log(`Filtered to ${marketProfiles.length} profiles for market "${activeFilters.market}"`)
-        
-        if (marketProfiles.length === 0) {
-          // Try case-insensitive matching if exact match fails
-          const caseInsensitiveMarketProfiles = normalizedData.filter(
-            profile => profile.market.toLowerCase() === activeFilters.market.toLowerCase()
-          );
-          
-          if (caseInsensitiveMarketProfiles.length > 0) {
-            // Use the actual market string from the first profile
-            const actualMarket = caseInsensitiveMarketProfiles[0].market;
-            console.log(`Using case-corrected market: "${actualMarket}" instead of "${activeFilters.market}"`);
-            
-            setActiveFilters({...activeFilters, market: actualMarket});
-            setFilteredProfiles(caseInsensitiveMarketProfiles);
-          } else {
-            // If still no match, default to "Hits"
-            console.log(`No profiles found for market "${activeFilters.market}", defaulting to "Hits"`);
-            const defaultMarketProfiles = normalizedData.filter(profile => profile.market === "Hits");
-            setActiveFilters({...activeFilters, market: "Hits"});
-            setFilteredProfiles(defaultMarketProfiles);
-          }
-        } else {
-          setFilteredProfiles(marketProfiles);
-        }
+        setFilteredProfiles(marketProfiles)
       } else {
         // Default to "Hits" if no market is selected
         const defaultMarketProfiles = normalizedData.filter(profile => profile.market === "Hits")
         setFilteredProfiles(defaultMarketProfiles)
-        console.log(`Filtered to ${defaultMarketProfiles.length} profiles for default market "Hits"`)
       }
-      
-      // Fetch team and odds data for these profiles
-      await fetchTeamDataForPlayers(normalizedData);
-      await fetchOddsDataForProfiles(normalizedData);
+
+      // Fetch team and odds data
+      await fetchTeamDataForPlayers(normalizedData)
+      await fetchOddsDataForProfiles(normalizedData)
       
       setUseMockData(false)
       setError(null)
@@ -852,76 +834,67 @@ export default function HitRateDashboardV2() {
     return books[Math.floor(Math.random() * books.length)]
   }
 
-  // Get the best odds for a player profile
-  const getBestOddsForProfile = (profile: PlayerHitRateProfile) => {
-    // First check if all_odds field is available and has data for this line
-    if (profile.all_odds && profile.line && profile.all_odds[profile.line.toString()]) {
-      // Use all_odds data
-      const lineOdds = profile.all_odds[profile.line.toString()];
-      const bookmakers = Object.keys(lineOdds);
-      
-      if (bookmakers.length > 0) {
-        // Find the best odds (highest value)
-        let bestSportsbook = bookmakers[0];
-        let bestOddsValue = Number(lineOdds[bestSportsbook].odds);
-        
-        bookmakers.forEach(book => {
-          const currentOdds = Number(lineOdds[book].odds);
-          if (currentOdds > bestOddsValue) {
-            bestOddsValue = currentOdds;
-            bestSportsbook = book;
-          }
-        });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[DASHBOARD] Using all_odds data for ${profile.player_name} (${profile.market} ${profile.line}): ${bestSportsbook} ${bestOddsValue}`);
+  // Function to get best odds for a profile
+  const getBestOddsForProfile = (profile: PlayerHitRateProfile): BestOdds | null => {
+    // First try to get odds from props data
+    if (profile.propsOdds) {
+      let bestOdds = -Infinity;
+      let bestSportsbook = '';
+      let bestLink: string | null = null;
+
+      Object.entries(profile.propsOdds).forEach(([sportsbook, data]) => {
+        if (data.odds > bestOdds) {
+          bestOdds = data.odds;
+          bestSportsbook = sportsbook;
+          bestLink = data.link;
         }
-        
+      });
+
+      if (bestOdds !== -Infinity) {
         return {
-          american: bestOddsValue,
-          decimal: americanToDecimal(bestOddsValue),
+          american: bestOdds,
+          decimal: americanToDecimal(bestOdds),
           sportsbook: bestSportsbook,
-          link: lineOdds[bestSportsbook].over_link || null
+          link: bestLink
         };
       }
     }
-    
-    // Fall back to previous odds data if all_odds not available
-    // Create the key to look up in the odds data
-    const profileKey = `${profile.id}:${profile.market}:${profile.line}`;
-    const oddsData = playerOddsData[profileKey];
-    
-    if (process.env.NODE_ENV === 'development') {
-      // Only log in development to avoid console spam in production
-      const exists = !!oddsData;
-      console.log(`[DASHBOARD] Looking up odds for ${profileKey}: ${exists ? "FOUND" : "NOT FOUND"}`);
-      
-      if (exists && oddsData?.over_odds !== null) {
-        console.log(`[DASHBOARD] Odds for ${profile.player_name} (${profile.market} ${profile.line}): ${oddsData.sportsbook} ${oddsData.over_odds}`);
+
+    // Fallback to all_odds if no props data
+    if (profile.all_odds) {
+      let bestOdds = -Infinity;
+      let bestSportsbook = '';
+      let bestLink: string | null = null;
+
+      Object.entries(profile.all_odds).forEach(([sportsbook, data]) => {
+        Object.values(data).forEach(odds => {
+          if (odds.odds > bestOdds) {
+            bestOdds = odds.odds;
+            bestSportsbook = sportsbook;
+            bestLink = odds.over_link || null;
+          }
+        });
+      });
+
+      if (bestOdds !== -Infinity) {
+        return {
+          american: bestOdds,
+          decimal: americanToDecimal(bestOdds),
+          sportsbook: bestSportsbook,
+          link: bestLink
+        };
       }
     }
-    
-    if (oddsData && oddsData.over_odds !== null) {
-      return {
-        american: oddsData.over_odds,
-        decimal: americanToDecimal(oddsData.over_odds),
-        sportsbook: oddsData.sportsbook,
-        link: oddsData.over_link
-      }
-    }
-    
-    // Return null if no odds data found
+
     return null;
   }
   
   // Helper function to convert American odds to decimal
-  const americanToDecimal = (american: number | null): number => {
-    if (american === null) return 1.0;
-    
+  const americanToDecimal = (american: number): number => {
     if (american > 0) {
-      return Number(((american / 100) + 1).toFixed(2));
+      return +(american / 100 + 1).toFixed(2);
     } else {
-      return Number((100 / Math.abs(american) + 1).toFixed(2));
+      return +(-100 / american + 1).toFixed(2);
     }
   }
 
@@ -1060,10 +1033,10 @@ export default function HitRateDashboardV2() {
     <main className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Player Hit Rates</h1>
+          <h1 className="text-3xl font-bold mb-2">{sport} Player Hit Rates</h1>
           <p className="text-base text-muted-foreground/90 leading-relaxed max-w-[85ch]">
             Detailed hit rate analysis and trends. For quick research and daily props, check out our{" "}
-            <a href="/hit-sheets" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
+            <a href={`/${sport.toLowerCase()}/hit-sheets`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500 underline">
               Hit Sheets
             </a>
             .
@@ -1125,11 +1098,18 @@ export default function HitRateDashboardV2() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                setProfiles(fetchMockHitRateProfiles(defaultFilters))
-                setFilteredProfiles(fetchMockHitRateProfiles(defaultFilters))
-                setUseMockData(true)
-                setError(null)
+              onClick={async () => {
+                try {
+                  const market = activeFilters.market || "Hits"
+                  const mockData = await fetchMockHitRateProfiles(market)
+                  setProfiles(mockData)
+                  setFilteredProfiles(mockData)
+                  setUseMockData(true)
+                  setError(null)
+                } catch (err) {
+                  console.error("Error loading mock data:", err)
+                  setError("Failed to load mock data")
+                }
               }}
             >
               Use Mock Data

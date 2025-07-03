@@ -14,7 +14,6 @@ import {
   ChevronUp,
   Menu,
 } from "lucide-react";
-import { StateSelector } from "@/components/state-selector";
 import { SportsbookSelector } from "@/components/sportsbook-selector";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +21,8 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMarketsForSport } from "@/lib/constants/markets";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useBetslip } from "@/contexts/betslip-context";
 
 interface PlayerPropsPageProps {
   params: {
@@ -53,6 +54,8 @@ export default function PlayerPropsClientPage({
   const isMobile = useMediaQuery("(max-width: 768px)");
   const router = useRouter();
   const pathname = usePathname();
+  const { setShowAuthModal } = useAuth();
+  const { createBetslip } = useBetslip();
 
   // Map route param to API sport key
   const sportMap: { [key: string]: string } = {
@@ -78,6 +81,16 @@ export default function PlayerPropsClientPage({
   };
 
   const sportDisplayName = getSportDisplayName(sport);
+
+  // Test function to trigger auth modal
+  const handleTestAuth = () => {
+    setShowAuthModal(true);
+  };
+
+  // Test function to create a betslip
+  const handleTestBetslip = async () => {
+    await createBetslip("Test Betslip");
+  };
 
   // Get available prop types for this sport
   const propTypes = getMarketsForSport(sport).map((market) => {
@@ -154,6 +167,12 @@ export default function PlayerPropsClientPage({
         <main className="min-h-screen bg-gradient-to-b from-background to-muted/30">
           <div className="container mx-auto px-4 py-4 md:py-8">
             <div className="space-y-4">
+              {/* Add test buttons */}
+              <div className="flex gap-4 mb-4">
+                <Button onClick={handleTestAuth}>Test Auth Modal</Button>
+                <Button onClick={handleTestBetslip}>Test Betslip</Button>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -180,7 +199,6 @@ export default function PlayerPropsClientPage({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <StateSelector />
                   <SportsbookSelector />
                 </div>
               </div>

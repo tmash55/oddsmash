@@ -1,3 +1,160 @@
+# OddsMash - Sports Betting Analytics Platform
+
+## Project Overview
+OddsMash is a modern sports betting analytics platform that helps users make informed betting decisions through advanced statistics, odds comparison, and community features.
+
+## 🔥 Core Features Roadmap
+
+### Phase 1: Core Betting Experience
+1. **Universal Betslip System**
+   - Persistent betslip overlay accessible across all pages
+   - Context-based state management
+   - Multi-leg parlay support
+   - Best odds comparison for each selection
+   - Direct sportsbook links
+   
+2. **User Bets Management**
+   - Supabase Integration
+     ```sql
+     Table: user_bets
+     - user_id: string (foreign key)
+     - bet_id: string (primary key)
+     - selections: jsonb
+     - created_at: timestamp
+     - shared_id: string (nullable)
+     - settings: jsonb
+     - notes: text
+     ```
+   - Shareable betslip URLs (/share/betslip/[id])
+   - Toggle-able analytics display
+   - Authentication-gated features
+
+### Phase 2: Personalization
+3. **User Preferences System**
+   - Supabase Integration
+     ```sql
+     Table: user_preferences
+     - user_id: string (primary key)
+     - preferred_sportsbooks: string[]
+     - theme: string
+     - default_view: string
+     - created_at: timestamp
+     - updated_at: timestamp
+     ```
+   - Onboarding flow for new users
+   - Sportsbook preference management
+   - Customizable odds display
+   - Filtered odds comparison based on preferences
+
+### Phase 3: Social & Community
+4. **Enhanced Sharing Features**
+   - Social share card generation
+   - Multi-platform sharing support
+     - Twitter/X
+     - Discord
+     - Threads
+     - SMS
+     - Direct links
+   - Analytics integration in shares
+   - Trending plays section
+
+5. **Community Odds Comparison**
+   - Screenshot upload support
+   - Shared link parsing
+   - Cross-book odds comparison
+   - Future: Social media integration
+     - Twitter/Discord scraping
+     - OCR for bet parsing
+     - Automated odds comparison
+
+## 🏗 Technical Architecture
+
+### Frontend
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+- Context API for state management
+- Redis for caching
+
+### Backend
+- Supabase
+  - PostgreSQL database
+  - Authentication
+  - Real-time subscriptions
+- Edge Functions for API routes
+- Upstash Redis for caching
+
+### Data Flow
+1. Odds data cached in Redis (6-hour TTL)
+2. User preferences stored in Supabase
+3. Betslip state managed in Context
+4. Shared betslips stored in Supabase
+
+## 🔒 Authentication & Security
+- Supabase authentication
+- Protected API routes
+- Rate limiting on share generation
+- Secure sportsbook deep linking
+
+## 📱 Responsive Design
+- Mobile-first approach
+- Persistent betslip overlay
+- Touch-friendly interface
+- Adaptive layouts
+
+## 🚀 Performance Optimization
+- Static page generation where possible
+- Dynamic imports for heavy components
+- Redis caching for odds data
+- Image optimization
+- Lazy loading for off-screen content
+
+## 🧪 Testing Strategy
+- Jest for unit tests
+- Cypress for E2E testing
+- API route testing
+- Component testing with React Testing Library
+
+## 📈 Analytics & Monitoring
+- User engagement tracking
+- Performance monitoring
+- Error tracking
+- Conversion analytics
+
+## 🔄 Development Workflow
+1. Feature branches
+2. PR reviews
+3. Staging deployment
+4. Production deployment
+
+## 📦 Dependencies
+```json
+{
+  "dependencies": {
+    "@supabase/supabase-js": "latest",
+    "@upstash/redis": "latest",
+    "next": "14.x",
+    "react": "18.x",
+    "tailwindcss": "latest",
+    "@radix-ui/react-*": "latest",
+    "framer-motion": "latest"
+  }
+}
+```
+
+## 🎯 Getting Started
+1. Clone the repository
+2. Install dependencies
+3. Set up environment variables
+4. Run development server
+
+## 🤝 Contributing
+Guidelines for contributing to the project...
+
+## 📄 License
+MIT License
+
 # Redis Caching Configuration for Vercel
 
 This project uses Upstash Redis for caching NBA API data to resolve timeout issues on Vercel Edge Functions.

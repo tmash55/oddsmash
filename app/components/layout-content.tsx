@@ -16,6 +16,10 @@ export function LayoutContent({ children }: { children: ReactNode }) {
     '/join-us',
     '/sign-in',
     '/sign-up',
+    '/dashboard',
+    '/dashboard/[sport]',
+    '/dashboard/[sport]/hit-rates',
+    '/dashboard/[sport]/hit-sheets',
   ].some((path) => pathname.startsWith(path));
 
   // Show banner only on main pages, not on auth pages

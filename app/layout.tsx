@@ -1,36 +1,40 @@
-import type { ReactNode } from "react";
-import { Plus_Jakarta_Sans } from "next/font/google";
-import type { Viewport } from "next";
-import { getSEOTags } from "@/libs/seo";
-import { LayoutContent } from "./components/layout-content";
-import { AuthProvider } from "@/components/auth/auth-provider";
-import { ThemeProvider } from "@/components/theme-provider";
-import { cn } from "@/lib/utils";
+"use client";
 
-import "./globals.css";
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import Providers from "./providers"
+import { LayoutContent } from "@/components/layout-content"
 
-const font = Plus_Jakarta_Sans({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] })
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
-
-export const metadata = getSEOTags();
-
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6979411075342172" crossOrigin="anonymous"></script>
-      </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased", font.className)}>
-        <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <LayoutContent>{children}</LayoutContent>
+    <html lang="en">
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            <LayoutContent>
+              {children}
+            </LayoutContent>
+            <Toaster />
+            <Analytics />
+            <SpeedInsights />
+          </Providers>
           </ThemeProvider>
-        </AuthProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -61,6 +61,16 @@ export const sportsbooks: Sportsbook[] = [
     requiresState: true,
   },
   {
+    id: "ballybet",
+    name: "Bally Bet",
+    logo: "/images/sports-books/ballybet.png",
+    logo_long: "/images/sports-books/ballybet_long.png",
+    regions: ["us"],
+    isActive: true,
+    url: "https://play.ballybet.com/",
+    requiresState: false,
+  },
+  {
     id: "espnbet",
     name: "ESPN BET",
     logo: "/images/sports-books/espnbet.png",
@@ -89,6 +99,16 @@ export const sportsbooks: Sportsbook[] = [
     isActive: true,
     url: "https://www.hardrock.bet/",
     requiresState: true,
+  },
+  {
+    id: "novig",
+    name: "Novig",
+    logo: "/images/sports-books/novig.png",
+    logo_long: "/images/sports-books/novig_long.png",
+    regions: ["us"],
+    isActive: true,
+    url: "https://apps.apple.com/us/app/novig/id6443958997?mt=8",
+    requiresState: false,
   },
   {
     id: "pinnacle",

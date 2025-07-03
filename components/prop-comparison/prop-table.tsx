@@ -8,7 +8,7 @@ import { FilterControls } from "./filter-controls";
 import { getDefaultMarket, getMarketApiKey, getMarketsForSport } from "@/lib/constants/markets";
 import { findBestOdds, formatAmericanOdds } from "@/lib/odds-api";
 import { cn } from "@/lib/utils";
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import {
   ChevronDown,
   ChevronUp,
@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ShareButton } from "@/components/prop-table/share-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BetActions } from "@/components/betting/bet-actions"
 
 // Define Event interface to fix type errors
 interface Event {
@@ -377,7 +378,7 @@ export function PropComparisonTable({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   const { selectedSportsbooks, userState, formatSportsbookUrl } =
-    useSportsbookPreferences();
+    useUserPreferences();
   const [mobileView, setMobileView] = useState<"all" | "best">("best");
 
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -940,40 +941,95 @@ export function PropComparisonTable({
     };
   };
 
-  // Render a clickable odds button
+  // Helper function to create betslip selection
+  const createBetslipSelection = (
+    prop: PlayerProp,
+    line: number,
+    betType: "Over" | "Under",
+    outcome: Outcome
+  ) => {
+    if (!gameData) return null;
+
+    // Create odds_data object with all available sportsbooks
+    const odds_data: Record<string, {
+      odds: number,
+      line?: number,
+      link?: string,
+      sid?: string,
+      last_update: string
+    }> = {};
+
+    // Get the market key
+    const marketKey = getMarketApiKey(sport, statType);
+
+    // Loop through all bookmakers to collect odds data
+    prop.bookmakers.forEach(bookmaker => {
+      const market = bookmaker.markets.find(m => m.key === marketKey);
+      if (!market) return;
+
+      const matchingOutcome = market.outcomes.find(o => 
+        o.name === betType && 
+        o.point === line
+      );
+
+      if (matchingOutcome) {
+        odds_data[bookmaker.key] = {
+          odds: matchingOutcome.price,
+          line: line,
+          sid: matchingOutcome.sid,
+          link: matchingOutcome.link,
+          last_update: new Date().toISOString()
+        };
+      }
+    });
+
+    return {
+      event_id: gameData.id,
+      sport_key: gameData.sport_key,
+      commence_time: gameData.commence_time,
+      home_team: gameData.home_team,
+      away_team: gameData.away_team,
+      bet_type: "player_prop" as const,
+      market_type: "player_prop" as const,
+      market_key: marketKey,
+      selection: `${betType} ${line}`,
+      player_name: prop.player,
+      player_team: prop.team,
+      line: line,
+      odds_data: odds_data
+    }
+  }
+
+  // Render the odds button with BetActions
   const renderOddsButton = (
     outcome: Outcome | null | undefined,
     isBest: boolean,
-    bookmakerKey: string
+    bookmakerKey: string,
+    prop: PlayerProp,
+    line: number,
+    betType: "Over" | "Under"
   ) => {
-    const hasLink = outcome && outcome.link;
-
     return (
       <div
         className={cn(
-          "flex items-center justify-center p-1.5 rounded-md border text-sm",
+          "flex items-center justify-between p-1.5 rounded-md border text-sm",
           isBest ? "bg-primary/10 border-primary" : "border-border",
-          !outcome && "opacity-40",
-          hasLink && "hover:bg-accent/80 cursor-pointer transition-colors"
+          !outcome && "opacity-40"
         )}
-        onClick={() => hasLink && handleBetClick(outcome, bookmakerKey)}
-        role={hasLink ? "button" : undefined}
-        tabIndex={hasLink ? 0 : undefined}
       >
-        <span
-          className={cn(
-            "font-medium",
-            isBest ? "text-primary" : "text-foreground" // Use consistent text color
-          )}
-        >
+        <span className={cn("font-medium", isBest ? "text-primary" : "text-foreground")}>
           {outcome ? formatAmericanOdds(outcome.price) : "-"}
         </span>
-        {hasLink && (
-          <ExternalLink className="h-3 w-3 text-muted-foreground ml-1" />
+        {outcome && (
+          <BetActions
+            selection={createBetslipSelection(prop, line, betType, outcome)}
+            directBetLink={outcome.link}
+            className="ml-2"
+          />
         )}
       </div>
-    );
-  };
+    )
+  }
 
   // Track expanded lines in mobile view
   const [expandedLines, setExpandedLines] = useState<Record<string, boolean>>(
@@ -993,7 +1049,7 @@ export function PropComparisonTable({
     const marketKey = getMarketApiKey(sport, statType);
 
     // First, get all sportsbooks that have odds for this line
-    const availableSportsbooks = selectedSportsbooks.filter((bookmaker) => {
+    const availableSportsbooks = selectedSportsbooks.filter((bookmaker: string) => {
       const bookmakerData = player.bookmakers.find((b) => b.key === bookmaker);
       if (!bookmakerData) return false;
 
@@ -1001,10 +1057,10 @@ export function PropComparisonTable({
       if (!market) return false;
 
       const hasOver = market.outcomes.some(
-        (o) => o.name === "Over" && o.point === line
+        (o: Outcome) => o.name === "Over" && o.point === line
       );
       const hasUnder = market.outcomes.some(
-        (o) => o.name === "Under" && o.point === line
+        (o: Outcome) => o.name === "Under" && o.point === line
       );
 
       return hasOver || hasUnder;
@@ -1019,7 +1075,7 @@ export function PropComparisonTable({
     const overOdds = new Map<string, number>();
     const underOdds = new Map<string, number>();
 
-    availableSportsbooks.forEach((bookmaker) => {
+    availableSportsbooks.forEach((bookmaker: string) => {
       const bookmakerData = player.bookmakers.find((b) => b.key === bookmaker);
       if (!bookmakerData) return;
 
@@ -1027,10 +1083,10 @@ export function PropComparisonTable({
       if (!market) return;
 
       const overOutcome = market.outcomes.find(
-        (o) => o.name === "Over" && o.point === line
+        (o: Outcome) => o.name === "Over" && o.point === line
       );
       const underOutcome = market.outcomes.find(
-        (o) => o.name === "Under" && o.point === line
+        (o: Outcome) => o.name === "Under" && o.point === line
       );
 
       if (overOutcome) {
@@ -1345,7 +1401,7 @@ export function PropComparisonTable({
 
                 {expandedLines[line] && (
                   <div className="p-3 grid grid-cols-2 gap-3">
-                    {displaySportsbooks.map((bookmaker) => {
+                    {displaySportsbooks.map((bookmaker: string) => {
                       const bookmakerData = currentPlayer.bookmakers.find(
                         (b) => b.key === bookmaker
                       );
@@ -1414,7 +1470,7 @@ export function PropComparisonTable({
                                 </div>
                                 <div
                                   className={cn(
-                                    "flex items-center justify-center p-1.5 rounded-md border text-sm",
+                                    "flex items-center justify-between p-1.5 rounded-md border text-sm",
                                     isOverBest
                                       ? "bg-primary/10 border-primary"
                                       : "border-border",
@@ -1451,7 +1507,7 @@ export function PropComparisonTable({
                                 </div>
                                 <div
                                   className={cn(
-                                    "flex items-center justify-center p-1.5 rounded-md border text-sm",
+                                    "flex items-center justify-between p-1.5 rounded-md border text-sm",
                                     isUnderBest
                                       ? "bg-primary/10 border-primary"
                                       : "border-border",
@@ -1579,7 +1635,7 @@ export function PropComparisonTable({
                   Avg Odds
                 </th>
                 {!isTablet &&
-                  selectedSportsbooks.map((bookmaker) => {
+                  selectedSportsbooks.map((bookmaker: string) => {
                     const book = sportsbooks.find((sb) => sb.id === bookmaker);
                     return (
                       <th
@@ -1832,7 +1888,7 @@ export function PropComparisonTable({
                       </td>
                       {/* Individual sportsbook columns (only on desktop) */}
                       {!isTablet &&
-                        selectedSportsbooks.map((bookmaker) => {
+                        selectedSportsbooks.map((bookmaker: string) => {
                           const bookmakerData = prop.bookmakers.find(
                             (b) => b.key === bookmaker
                           );
@@ -2036,7 +2092,7 @@ export function PropComparisonTable({
                                 </td>
                                 {/* Individual sportsbook columns (only on desktop) */}
                                 {!isTablet &&
-                                  selectedSportsbooks.map((bookmaker) => {
+                                  selectedSportsbooks.map((bookmaker: string) => {
                                     const bookmakerData = prop.bookmakers.find(
                                       (b) => b.key === bookmaker
                                     );
@@ -2060,7 +2116,10 @@ export function PropComparisonTable({
                                         {renderOddsButton(
                                           outcome,
                                           isBest,
-                                          bookmaker
+                                          bookmaker,
+                                          prop,
+                                          line,
+                                          "Over"
                                         )}
                                       </td>
                                     );
@@ -2143,7 +2202,7 @@ export function PropComparisonTable({
                                 </td>
                                 {/* Individual sportsbook columns (only on desktop) */}
                                 {!isTablet &&
-                                  selectedSportsbooks.map((bookmaker) => {
+                                  selectedSportsbooks.map((bookmaker: string) => {
                                     const bookmakerData = prop.bookmakers.find(
                                       (b) => b.key === bookmaker
                                     );
@@ -2168,7 +2227,10 @@ export function PropComparisonTable({
                                         {renderOddsButton(
                                           outcome,
                                           isBest,
-                                          bookmaker
+                                          bookmaker,
+                                          prop,
+                                          line,
+                                          "Under"
                                         )}
                                       </td>
                                     );
@@ -2189,20 +2251,20 @@ export function PropComparisonTable({
   };
 
   // Function to extract SIDs from bookmakers
-  const extractSids = (bookmakers: any[], line: number) => {
+  const extractSids = (bookmakers: Bookmaker[], line: number): Record<string, string> => {
     const sids: Record<string, string> = {};
     
     bookmakers.forEach(bookmaker => {
       if (bookmaker.markets) {
-        const market = bookmaker.markets.find((m: any) => m.key === getMarketApiKey(sport, statType));
+        const market = bookmaker.markets.find((m: Market) => m.key === getMarketApiKey(sport, statType));
         if (market && market.outcomes) {
-          const overOutcome = market.outcomes.find((o: any) => o.name === "Over" && o.point === line);
-          const underOutcome = market.outcomes.find((o: any) => o.name === "Under" && o.point === line);
+          const overOutcome = market.outcomes.find((o: Outcome) => o.name === "Over" && o.point === line);
+          const underOutcome = market.outcomes.find((o: Outcome) => o.name === "Under" && o.point === line);
           
-          if (overOutcome && overOutcome.sid) {
+          if (overOutcome?.sid) {
             sids[`${bookmaker.key}_over`] = overOutcome.sid;
           }
-          if (underOutcome && underOutcome.sid) {
+          if (underOutcome?.sid) {
             sids[`${bookmaker.key}_under`] = underOutcome.sid;
           }
         }
@@ -2213,20 +2275,20 @@ export function PropComparisonTable({
   };
 
   // Function to extract links from bookmakers
-  const extractLinks = (bookmakers: any[], line: number) => {
+  const extractLinks = (bookmakers: Bookmaker[], line: number): Record<string, string> => {
     const links: Record<string, string> = {};
     
     bookmakers.forEach(bookmaker => {
       if (bookmaker.markets) {
-        const market = bookmaker.markets.find((m: any) => m.key === getMarketApiKey(sport, statType));
+        const market = bookmaker.markets.find((m: Market) => m.key === getMarketApiKey(sport, statType));
         if (market && market.outcomes) {
-          const overOutcome = market.outcomes.find((o: any) => o.name === "Over" && o.point === line);
-          const underOutcome = market.outcomes.find((o: any) => o.name === "Under" && o.point === line);
+          const overOutcome = market.outcomes.find((o: Outcome) => o.name === "Over" && o.point === line);
+          const underOutcome = market.outcomes.find((o: Outcome) => o.name === "Under" && o.point === line);
           
-          if (overOutcome && overOutcome.link) {
+          if (overOutcome?.link) {
             links[`${bookmaker.key}_over`] = overOutcome.link;
           }
-          if (underOutcome && underOutcome.link) {
+          if (underOutcome?.link) {
             links[`${bookmaker.key}_under`] = underOutcome.link;
           }
         }

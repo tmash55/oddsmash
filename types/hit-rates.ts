@@ -1,6 +1,8 @@
-export type Market = 'Hits' | 'Total Bases' | 'Home Runs' | 'Strikeouts' | 'RBIs' | 'Singles' | 'Hits + Runs + RBIs' | 'Doubles' | 'Triples' | 'Earned Runs' | 'Record Win' | 'Batting Strikeouts' | 'Batting Walks' | 'Outs' | 'Walks';
+import { SupportedSport, SportMarket } from "./sports"
 
-export type TimeWindow = '5_games' | '10_games' | '20_games';
+export type Market = SportMarket
+
+export type TimeWindow = "5_games" | "10_games" | "20_games"
 
 export interface PointsHistogram {
   last_5: Record<string, number>;
@@ -13,47 +15,76 @@ export interface LineStreaks {
 }
 
 export interface RecentGame {
-  game_id: number;
-  date: string;
   opponent_abbr: string;
   is_home: boolean;
   value: number;
+  date: string;
+}
+
+export interface PlayerPropOdds {
+  odds: number
+  line: number
+  over_link?: string | null
+  under_link?: string | null
+  sid?: string
 }
 
 export interface PlayerHitRateProfile {
-  id: number;
-  league_id: number;
   player_id: number;
   player_name: string;
-  team_name: string | null;
-  market: Market;
+  id: string;
+  market: SportMarket;
   line: number;
   last_5_hit_rate: number;
   last_10_hit_rate: number;
   last_20_hit_rate: number;
+  season_hit_rate: number;
+  season_games_count: number;
   avg_stat_per_game: number;
   points_histogram: PointsHistogram;
-  line_streaks: LineStreaks;
+  recent_games: RecentGame[];
   updated_at: string;
-  recent_games?: RecentGame[];
-  season_hit_rate?: number;
-  season_games_count?: number;
-  all_odds?: Record<string, Record<string, {
-    odds: number;
-    over_link?: string;
-  }>>;
-  home_team?: string;
-  away_team?: string;
-  commence_time?: string;
-  odds_event_id?: string;
+  team_abbreviation: string;
+  team_name?: string;
+  position_abbreviation: string;
+  odds_event_id: string;
+  commence_time: string;
+  away_team: string;
+  home_team: string;
+  
+  all_odds?: Record<string, Record<string, any>>;
+  propsOdds?: Record<string, PlayerPropOdds>;
 }
 
 export interface HitRateFilters {
-  team?: string;
-  market?: Market;
-  minHitRate?: number;
-  sportsbook?: string;
-  timeWindow?: TimeWindow;
+  sport?: SupportedSport
+  market?: SportMarket
+  timeWindow?: TimeWindow
+  minHitRate?: number
+  maxHitRate?: number
+  minGames?: number
+  maxGames?: number
+  playerIds?: number[]
+  teamIds?: number[]
+  positionIds?: number[]
+  gameIds?: string[]
+  includeInactive?: boolean
+}
+
+export interface HitRateStats {
+  total_games: number
+  hit_rate: number
+  points_histogram: number[]
+  line_streaks: {
+    line: number
+    streak: number
+  }[]
+  recent_games: {
+    date: string
+    points: number
+    line: number
+    result: "over" | "under" | "push"
+  }[]
 }
 
 export interface HitRateTableRow extends PlayerHitRateProfile {

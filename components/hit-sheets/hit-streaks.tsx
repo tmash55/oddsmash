@@ -14,6 +14,8 @@ import { Copy, Loader2 } from "lucide-react"
 import { ReactNode } from "react"
 import OddsCell from "@/components/shared/odds-cell"
 import { cn } from "@/lib/utils"
+import DualOddsCell from "../shared/dual-odds-cell"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface HitStreaksProps {
   data: HitStreakPlayer[]
@@ -135,22 +137,16 @@ export default function HitStreaks({ data }: HitStreaksProps) {
     },
     {
       key: "odds",
-      title: "Best Odds",
+      title: "Over / Under",
       width: "15%",
       render: (value: any, row: HitStreakPlayer) => {
         if (row.hit_odds_json && Object.keys(row.hit_odds_json).length > 0) {
-          const sortedOdds = Object.entries(row.hit_odds_json).sort(([, a], [, b]) => b.odds - a.odds)
-          const [bestBook, bestOddsData] = sortedOdds[0]
-          
           return (
-            <OddsCell
-              odds={bestOddsData.odds}
-              sportsbook={bestBook}
+            <DualOddsCell
               market={row.market}
               line={row.line}
               customTier={null}
-              allOdds={row.hit_odds_json}
-              directLink={bestOddsData.link}
+              fallback_odds={row.hit_odds_json}
               compact={true}
             />
           )

@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "oddsmash-462701",
+  "private_key_id": "15bfbf31c543b04ea1b2f10738fc04b10ccaa6c8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQClnhO9Dh9BUg1J\n1/Dt+Ini6k9L/R8fyXtZ8DddnnVPXRBm42ELt8YRR5CaOMltmEj7k6ogZinKqi17\nXo/TgRg4VCTLsu+IntWoOHrfIUY9D5T7CMlXOfgsOWX8MDTXIQohCBP5ESJCQGUf\nEltp5fPHepvs9CYd5Zrg61GhsQJxHxwuxRhHV0LLmFBkgPjRd9bHqJvtrAjdRzTm\n6Jrs3noUx0iZcnteAa4jz71Yt394XH3fnzMdGWTPeRJg7V8pqq/jrRvPJC1euDKp\nsoa6lKHENl8vesWM6JmqO6zPBKBsQr2w9Omp0D7zNTbbkuMR+wzjf6Y3iRM6QDAd\nxoOlJ9YtAgMBAAECggEADD9c6VG2iP+W4PuZoxeKpt+5/n4ZA6JEP3nutjsmJLjW\noi01e4bbHGME9Aq4BqVI3GXmol+7vnOISoPLMhJtZpj+YZv5b8qDNV375C1TQue4\nljnnnc45JpgWDSjJd5FHbPrqczRLqseVUs9qODIbrYhJKKRDf1l/8xsj3ce3zQKn\n7x3hnUQgZR5Qunxa6tVcTNtFRKjdNF1Li2BMobAFX7tS5M/DqUSbr1P6RKHVQ7bl\nYhdQ1Gr7Lh6tO/qZzz8GTpHw1jU26Vr/7JlvamNI54zX+WdE7X9m8nEthqdeSfEC\n8c0of7dUWXmQSOUMxQ1Q9YqCOWlgmJIqHUZ3tGYVAQKBgQDb7b9+d0YAKxNfV9vx\nRAtz9pQmnnkCac2mxFLpHqFTBmWCBII6/U7hk6lqxOguqXmtAAMl/ZseMpZ1xQ6z\nWLl0vvo+TLx2ghNeXppKAC2nHq9/nEkoDewQg/EtWwXKO1hQhD+Q4BSWLRztdTgu\nU9G8dFnIt9zvQeklI6C8xO8+rQKBgQDAx/AknsWp/Gr2IXp13EV5zx8sqCucZku8\nvbroL6kJmEMosNirBduAKPQ+Gmuey/jqpq8LeSQ8dzsfQUNVfMDeuhdxS+P4irji\n/7nD1CsraN/gYXMLMUS4K0arg+Z9K5de1+yb2gme2oqa/CpJTFpHfQqsq1m9BgHO\nLsDqPztlgQKBgAD5/kaueuYXSt+6gSSCG9bo+mFthLYJCDu8VW3pj+fReHPqVzWx\n2D7SLAdoVmuWnw6wmFL73Et3CAn/1P/g3fnxuyS5rICONU3O97pqY8mBLmBPrld6\nMFkmbNS5ub3bI5o/7BRVmmHMU3uOcLBr+NtwXNGyV03Mqh9bGCSebz2FAoGADN6M\nCnXK7kEahtnPSgTtYmdQRnPnjWZK0gu8aXmdCDXw7ct4e1pFv/V78JVk79HgCRId\nh1+L6rlu6fQ6YX+VhIjZvcd6LYJdO1Ik/YyxYRF8OIdo3atpUf4ZlqOUhHCfh0ZU\n1kak88TVEemZjREaycDwMHyz3emDv1bhrAGSnoECgYEAuvwS2KFoEI7CCAGaGUnN\nsvt/J3IW653YPqMUrzjhg4HwUz6kNxuwGpdqUW47J8il+JOGabOhI0S804gOZ5qW\nEWBpcDGSQDrDwVC2w1pRlF1yMjv10G0gOyUU0kDVwPHPOyDpiGgu5fXEsdtH8Mth\nKlokWFS5XK2Si0wmSSxmAME=\n-----END PRIVATE KEY-----\n",
+  "client_email": "oddsmash-vision-api@oddsmash-462701.iam.gserviceaccount.com",
+  "client_id": "110141279116673730836",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/oddsmash-vision-api%40oddsmash-462701.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

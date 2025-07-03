@@ -103,149 +103,125 @@ export async function getPlayerIdMappings(): Promise<Record<number, number>> {
 }
 
 /**
- * Get the best odds for a list of players, reusing a single API call
+ * Get the best odds for a list of players using the Redis-based API
+ * This ensures we get fresh odds from the Pipedream workflow
  */
 export async function fetchBestOddsForHitRateProfiles(
   profiles: any[]
 ): Promise<Record<string, PlayerPropOdds | null>> {
-  // Limit the number of profiles to process to avoid exceeding body size limits
-  // Process in batches of 50 to avoid the 1MB limit
+  // Limit the number of profiles to process
   const MAX_PROFILES_PER_BATCH = 50;
-
-  // Process only a subset if there are too many profiles
   const profilesToProcess = profiles.length > MAX_PROFILES_PER_BATCH 
     ? profiles.slice(0, MAX_PROFILES_PER_BATCH) 
     : profiles;
   
-  console.log(`[ODDS] Processing ${profilesToProcess.length} out of ${profiles.length} profiles to avoid body size limits`);
+  console.log(`[ODDS] Fetching fresh odds from Redis API for ${profilesToProcess.length} profiles`);
   
-  // Get mapping between profile IDs and player IDs
-  const playerIdMappings = await getPlayerIdMappings();
+  const result: Record<string, PlayerPropOdds | null> = {};
   
-  // Step 1: Extract unique player IDs from the profiles
-  const playerIds = Array.from(
-    new Set(profilesToProcess.map(profile => playerIdMappings[profile.id] || profile.player_id))
-  );
-  console.log(`[ODDS] Fetching odds for ${playerIds.length} unique players:`, playerIds.slice(0, 5), "...");
-  
-  // Step 2: Fetch all odds for these players in a single API call
-  const allOdds = await fetchPlayerPropOddsForPlayers(playerIds);
-  console.log(`[ODDS] Fetched odds for ${Object.keys(allOdds).length} player-market-line combinations`);
-  
-  // Log a few sample keys to verify format
-  const sampleKeys = Object.keys(allOdds).slice(0, 3);
-  if (sampleKeys.length > 0) {
-    console.log(`[ODDS] Sample keys in allOdds:`, sampleKeys);
+  // Process profiles in smaller batches to avoid overwhelming the API
+  const BATCH_SIZE = 25;
+  const batches = [];
+  for (let i = 0; i < profilesToProcess.length; i += BATCH_SIZE) {
+    batches.push(profilesToProcess.slice(i, i + BATCH_SIZE));
   }
   
-  // If we didn't find any odds using player IDs, we may have a mismatch in player_id values
-  // Try a more targeted fetch approach from the database
-  if (Object.keys(allOdds).length === 0) {
-    console.log(`[ODDS] No odds found using player IDs. Attempting targeted lookup instead.`);
+  for (const batch of batches) {
     try {
-      // Get direct odds data from database more efficiently
-      const supabase = createClient();
+      // Extract unique player IDs and markets from this batch
+      const playerIds = Array.from(new Set(batch.map(profile => profile.player_id)));
+      const markets = Array.from(new Set(batch.map(profile => profile.market)));
       
-      const markets = Array.from(new Set(profilesToProcess.map(profile => profile.market)));
-      const lines = Array.from(new Set(profilesToProcess.map(profile => profile.line)));
+      console.log(`[ODDS] Processing batch: ${playerIds.length} players, markets: ${markets.join(', ')}`);
       
-      console.log(`[ODDS] Targeted search for markets:`, markets, "and lines:", lines);
-      
-      // Query more efficiently with market and line filters
-      const { data, error } = await supabase
-        .from("player_prop_odds")
-        .select("id, player_id, player_name, market, line, over_odds, sportsbook, fetched_at")
-        .in("market", markets)
-        .in("line", lines)
-        .order("fetched_at", { ascending: false })
-        .limit(500); // Limit to avoid large responses
-      
-      if (error) {
-        console.error("Error fetching direct player prop odds:", error);
-      } else if (data && data.length > 0) {
-        console.log(`[ODDS] Targeted fetch found ${data.length} odds records`);
-        
-        // Keep only the most recent odds for each player+market+line+sportsbook combination
-        const uniqueOdds: Record<string, PlayerPropOdds> = {};
-        
-        data.forEach((odds: any) => {
-          if (!odds.player_id) return;
+      // Fetch odds for each market separately to match the API format
+      for (const market of markets) {
+        try {
+          const params = new URLSearchParams({
+            playerIds: playerIds.join(','),
+            market: market,
+            sport: 'mlb'
+          });
           
-          // Create a unique key for deduplication
-          const dedupeKey = `${odds.player_id}:${odds.market}:${odds.line}:${odds.sportsbook}`;
+          // Use absolute URL for server-side fetch
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+          const response = await fetch(`${baseUrl}/api/player-odds?${params}`);
           
-          // Only keep the most recent odds for each key
-          if (!uniqueOdds[dedupeKey] || new Date(odds.fetched_at) > new Date(uniqueOdds[dedupeKey].fetched_at)) {
-            uniqueOdds[dedupeKey] = odds as PlayerPropOdds;
+          if (response.ok) {
+            const oddsData = await response.json();
+            console.log(`[ODDS] Got ${Object.keys(oddsData).length} odds entries for market: ${market}`);
+            
+            // Process each profile in this batch for this market
+            batch
+              .filter(profile => profile.market === market)
+              .forEach(profile => {
+                const profileKey = `${profile.player_id}:${profile.market}:${profile.line}`;
+                
+                console.log(`[ODDS] Processing profile: player_id=${profile.player_id}, market=${profile.market}, line=${profile.line}`);
+                console.log(`[ODDS] Available odds keys:`, Object.keys(oddsData));
+                
+                // Look for odds matching this player, market, and line
+                const oddsKey = Object.keys(oddsData).find(key => {
+                  const [playerId, oddsMarket, line] = key.split(':');
+                  const playerIdMatch = parseInt(playerId) === profile.player_id;
+                  const marketMatch = oddsMarket === profile.market;
+                  const lineMatch = Math.abs(parseFloat(line) - profile.line) < 0.01; // Allow for small floating point differences
+                  
+                  console.log(`[ODDS] Checking key ${key}: playerIdMatch=${playerIdMatch}, marketMatch=${marketMatch}, lineMatch=${lineMatch}`);
+                  
+                  return playerIdMatch && marketMatch && lineMatch;
+                });
+                
+                if (oddsKey && oddsData[oddsKey]) {
+                  result[profileKey] = oddsData[oddsKey];
+                  console.log(`[ODDS] ✅ Found fresh odds for ${profile.player_name} ${profile.market} ${profile.line}: ${oddsData[oddsKey].sportsbook} (${oddsData[oddsKey].over_odds})`);
+                } else {
+                  result[profileKey] = null;
+                  console.log(`[ODDS] ❌ No odds found for ${profile.player_name} ${profile.market} ${profile.line}`);
+                }
+              });
+          } else {
+            console.warn(`[ODDS] API request failed for market ${market}: ${response.status}`);
+            
+            // Mark all profiles in this market as having no odds
+            batch
+              .filter(profile => profile.market === market)
+              .forEach(profile => {
+                const profileKey = `${profile.player_id}:${profile.market}:${profile.line}`;
+                result[profileKey] = null;
+              });
           }
-        });
-        
-        // Convert back to array and group by player+market+line
-        const dedupedOdds = Object.values(uniqueOdds);
-        console.log(`[ODDS] After deduplication, have ${dedupedOdds.length} unique odds entries`);
-        
-        // Group odds by player_id + market + line for easier lookup
-        dedupedOdds.forEach((odds) => {
-          if (!odds.player_id) return;
+        } catch (err) {
+          console.error(`[ODDS] Error fetching odds for market ${market}:`, err);
           
-          // Create a unique key for this player's market and line
-          const key = `${odds.player_id}:${odds.market}:${odds.line}`;
-          
-          if (!allOdds[key]) {
-            allOdds[key] = [];
-          }
-          
-          allOdds[key].push(odds);
-        });
-        
-        console.log(`[ODDS] After grouping, allOdds now has ${Object.keys(allOdds).length} keys`);
+          // Mark all profiles in this market as having no odds
+          batch
+            .filter(profile => profile.market === market)
+            .forEach(profile => {
+              const profileKey = `${profile.player_id}:${profile.market}:${profile.line}`;
+              result[profileKey] = null;
+            });
+        }
+      }
+      
+      // Add small delay between batches
+      if (batches.indexOf(batch) < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (err) {
-      console.error("Error in targeted odds fetch:", err);
+      console.error(`[ODDS] Error processing batch:`, err);
+      
+      // Mark all profiles in this batch as having no odds
+      batch.forEach(profile => {
+        const profileKey = `${profile.player_id}:${profile.market}:${profile.line}`;
+        result[profileKey] = null;
+      });
     }
   }
   
-  // Step 3: Find the best odds for each profile
-  const result: Record<string, PlayerPropOdds | null> = {};
-  
-  // Use Promise.all to handle async operations in parallel
-  await Promise.all(profilesToProcess.map(async (profile) => {
-    // Create a key for this profile
-    const profileKey = `${profile.id}:${profile.market}:${profile.line}`;
-    
-    // Use the mapped player ID if available, otherwise fall back to profile's player_id
-    const lookupPlayerId = playerIdMappings[profile.id] || profile.player_id;
-    
-    // Find the best odds for this player, market, and line
-    const bestOdds = await findBestOdds(
-      allOdds,
-      lookupPlayerId,
-      profile.market,
-      profile.line
-    );
-    
-    result[profileKey] = bestOdds;
-  }));
-  
-  console.log(`[ODDS] Generated best odds for ${Object.keys(result).length} profiles`);
-  
-  // Log samples of found and not found odds
-  const foundOdds = Object.entries(result).filter(([_, v]) => v !== null).slice(0, 3);
-  const missingOdds = Object.entries(result).filter(([_, v]) => v === null).slice(0, 3);
-  
-  if (foundOdds.length > 0) {
-    console.log(`[ODDS] Sample found odds (${foundOdds.length} of ${Object.entries(result).filter(([_, v]) => v !== null).length}):`);
-    foundOdds.forEach(([key, value]) => {
-      console.log(`  ${key} => ${value?.sportsbook} (${value?.over_odds})`);
-    });
-  }
-  
-  if (missingOdds.length > 0) {
-    console.log(`[ODDS] Sample missing odds (${missingOdds.length} of ${Object.entries(result).filter(([_, v]) => v === null).length}):`);
-    missingOdds.forEach(([key]) => {
-      console.log(`  ${key}`);
-    });
-  }
+  const foundOdds = Object.values(result).filter(v => v !== null).length;
+  const totalProfiles = Object.keys(result).length;
+  console.log(`[ODDS] Fresh odds fetch complete: ${foundOdds}/${totalProfiles} profiles have odds`);
   
   return result;
 }

@@ -34,7 +34,7 @@ import { sportsbooks } from "@/data/sportsbooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSportsbooks } from "@/contexts/sportsbook-context";
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import {
   Tooltip,
   TooltipContent,
@@ -108,7 +108,7 @@ export function Betslip({
   );
   const { userSportsbooks } = useSportsbooks();
   const { selectedSportsbooks, userState, formatSportsbookUrl } =
-    useSportsbookPreferences();
+    useUserPreferences();
   const [animatePayouts, setAnimatePayouts] = useState(false);
   const [expandedGames, setExpandedGames] = useState<Record<string, boolean>>(
     {}
@@ -1249,12 +1249,17 @@ export function Betslip({
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-primary/10 text-primary text-xs cursor-help"
+                                      <Button
+                                        variant="ghost"
+                                        className="h-auto p-0 hover:bg-transparent"
                                       >
-                                        Same Game Parlay
-                                      </Badge>
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-primary/10 text-primary text-xs cursor-help"
+                                        >
+                                          Same Game Parlay
+                                        </Badge>
+                                      </Button>
                                     </TooltipTrigger>
                                     <TooltipContent
                                       side="top"

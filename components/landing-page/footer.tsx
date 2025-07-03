@@ -187,7 +187,7 @@ export function Footer() {
             </a>
 
             <a
-              href="mailto:info@betterodds.com"
+              href="mailto:info@OddSmash.com"
               aria-label="Email"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >

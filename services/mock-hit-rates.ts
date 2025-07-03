@@ -144,32 +144,30 @@ function getDefaultLine(market: Market): number {
 /**
  * Mock function to fetch hit rate profiles with optional filtering
  */
-export function fetchMockHitRateProfiles(filters?: HitRateFilters): PlayerHitRateProfile[] {
-  let profiles = generateMockHitRateProfiles();
+export async function fetchMockHitRateProfiles(market: Market): Promise<PlayerHitRateProfile[]> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500))
 
-  // Apply filters if provided
-  if (filters) {
-    if (filters.team) {
-      profiles = profiles.filter(profile => profile.team_name === filters.team);
-    }
-    
-    if (filters.market) {
-      profiles = profiles.filter(profile => profile.market === filters.market);
-    }
-    
-    if (filters.minHitRate && filters.timeWindow) {
-      const hitRateField = filters.timeWindow === "5_games" 
-        ? "last_5_hit_rate" 
-        : filters.timeWindow === "10_games" 
-          ? "last_10_hit_rate" 
-          : "last_20_hit_rate";
-          
-      profiles = profiles.filter(profile => {
-        const hitRate = profile[hitRateField as keyof PlayerHitRateProfile] as number;
-        return hitRate >= filters.minHitRate! * 100; // Convert from decimal to percentage
-      });
-    }
-  }
-  
-  return profiles;
+  // Return mock data
+  return [
+    {
+      id: 1,
+      player_id: 123,
+      player_name: "Mock Player 1",
+      team_name: "Mock Team",
+      market: market,
+      line: 1.5,
+      last_5_hit_rate: 80,
+      last_10_hit_rate: 75,
+      last_20_hit_rate: 70,
+      season_hit_rate: 65,
+      avg_stat_per_game: 1.8,
+      points_histogram: {
+        last_5: { "0": 1, "1": 2, "2": 2 },
+        last_10: { "0": 2, "1": 5, "2": 3 },
+        last_20: { "0": 5, "1": 10, "2": 5 }
+      }
+    },
+    // Add more mock players as needed
+  ]
 } 

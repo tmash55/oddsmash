@@ -5,26 +5,35 @@ import { createClient } from "@/libs/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import config from "@/config";
-import React from "react";
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  showAuthModal: boolean;
+  setShowAuthModal: (show: boolean) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  requireAuth: (callback?: () => void) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  showAuthModal: false,
+  setShowAuthModal: () => {},
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
+  signInWithGoogle: async () => {},
+  requireAuth: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -41,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      // Hide auth modal on successful auth
+      if (session?.user) {
+        setShowAuthModal(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -71,14 +84,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push(config.auth.loginUrl);
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback`,
+      }
+    });
+    if (error) throw error;
+  };
+
+  // Helper function to require auth, optionally showing modal and executing callback
+  const requireAuth = async (callback?: () => void): Promise<boolean> => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+    
+    if (callback) {
+      callback();
+    }
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
+        showAuthModal,
+        setShowAuthModal,
         signIn,
         signUp,
         signOut,
+        signInWithGoogle,
+        requireAuth,
       }}
     >
       {children}

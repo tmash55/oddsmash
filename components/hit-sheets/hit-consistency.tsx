@@ -7,6 +7,7 @@ import QuickHitTable from "./quick-hit-table"
 import { HitConsistencyCandidate } from "./types"
 import { formatOdds } from "@/lib/utils"
 import OddsCell from "@/components/shared/odds-cell"
+import DualOddsCell from "@/components/shared/dual-odds-cell"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { getTeamAbbreviation, getTeamLogoFilename, getStandardAbbreviation } from "@/lib/team-utils"
@@ -214,26 +215,22 @@ export default function HitConsistency({ data, onParamsChange, params }: HitCons
     },
     {
       key: "out_odds",
-      title: "Best Odds",
+      title: "Over / Under",
       width: isMobile ? "33%" : "20%",
       className: "text-center",
       order: 4,
       render: (value: any, row: HitConsistencyCandidate) => {
-        if (row.out_odds_json && Object.keys(row.out_odds_json).length > 0) {
-          const sortedOdds = Object.entries(row.out_odds_json).sort(([, a], [, b]) => b.odds - a.odds)
-          const [bestBook, bestOddsData] = sortedOdds[0]
-          
+        if (row.out_odds_json && Object.keys(row.out_odds_json).length > 0) {          
           return (
-            <div className="flex justify-center"><OddsCell
-              odds={bestOddsData.odds}
-              sportsbook={bestBook}
-              market="Hit"
-              line={0.5}
-              customTier={null}
-              allOdds={row.out_odds_json}
-              directLink={bestOddsData.over_link}
-              compact={true}
-            /></div>
+            <div className="flex justify-center">
+              <DualOddsCell
+                market="Hit"
+                line={0.5}
+                customTier={null}
+                fallback_odds={row.out_odds_json}
+                compact={true}
+              />
+            </div>
           )
         }
         return null

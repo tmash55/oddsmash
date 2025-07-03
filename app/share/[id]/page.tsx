@@ -571,9 +571,7 @@ export default async function SharePage({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>
-                          <RefreshButton id={id} isStale={isStale} />
-                        </div>
+                        <RefreshButton id={id} isStale={isStale} />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="text-xs">Refresh odds data</p>
@@ -584,12 +582,10 @@ export default async function SharePage({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>
-                          <ComparePropsButton
-                            sportId={sharedProp.sportId}
-                            statType={formattedStatType}
-                          />
-                        </div>
+                        <ComparePropsButton
+                          sportId={sharedProp.sportId}
+                          statType={formattedStatType}
+                        />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="text-xs">Compare with other props</p>
@@ -600,17 +596,15 @@ export default async function SharePage({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>
-                          <ShareModalButton
-                            url={shareUrl}
-                            title={shareText}
-                            twitterUrl={twitterShareUrl}
-                            facebookUrl={facebookShareUrl}
-                            emailUrl={emailShareUrl}
-                            whatsappUrl={whatsappShareUrl}
-                            redditUrl={redditShareUrl}
-                          />
-                        </div>
+                        <ShareModalButton
+                          url={shareUrl}
+                          title={shareText}
+                          twitterUrl={twitterShareUrl}
+                          facebookUrl={facebookShareUrl}
+                          emailUrl={emailShareUrl}
+                          whatsappUrl={whatsappShareUrl}
+                          redditUrl={redditShareUrl}
+                        />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="text-xs">Share this prop</p>

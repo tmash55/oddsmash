@@ -13,7 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { sportsbooks } from "@/data/sportsbooks"
 import Image from "next/image"
 import { HitOdds, HitOddsJson, HitStreakPlayer } from "./types"
-import OddsCell from "@/components/shared/odds-cell"
+import OddsCell from "../shared/odds-cell"
+import DualOddsCell from "../shared/dual-odds-cell"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import {
   DropdownMenu,
@@ -196,10 +197,12 @@ export default function QuickHitTable<T extends Record<string, any>>({
 
   // Helper function to split name
   const splitName = (fullName: string) => {
+    if (!fullName) return { firstName: '', lastName: '' }
+    
     const parts = fullName.split(' ')
     return {
-      firstName: parts[0],
-      lastName: parts.slice(1).join(' ')
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || ''
     }
   }
 
@@ -297,21 +300,21 @@ export default function QuickHitTable<T extends Record<string, any>>({
               >
                 {visibleColumns.map((column) => {
                   if (column.key === "player") {
-                    const { firstName, lastName } = splitName(row.full_name)
+                    const { firstName, lastName } = row.full_name ? splitName(row.full_name) : { firstName: 'N/A', lastName: '' }
                     return (
                       <TableCell key={column.key} className="font-medium py-3 pl-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm overflow-hidden">
                             <AvatarImage
                               src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${row.player_id}/headshot/67/current`}
-                              alt={row.full_name}
+                              alt={row.full_name || "Player"}
                               className="object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = "none"
                               }}
                             />
                             <AvatarFallback className="bg-slate-200 text-slate-800">
-                              {row.full_name.substring(0, 2)}
+                              {row.full_name ? row.full_name.substring(0, 2) : "NA"}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col min-w-0">
@@ -321,7 +324,7 @@ export default function QuickHitTable<T extends Record<string, any>>({
                                 <div className="font-bold text-sm leading-tight text-muted-foreground">{lastName}</div>
                               </>
                             ) : (
-                              <div className="font-bold text-sm truncate">{row.full_name}</div>
+                              <div className="font-bold text-sm truncate">{row.full_name || "N/A"}</div>
                             )}
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <div className="w-4 h-4 relative flex-shrink-0">
@@ -430,19 +433,15 @@ export default function QuickHitTable<T extends Record<string, any>>({
 
                   // Special handling for odds column
                   if (column.key === "odds") {
-                    const { odds, sportsbook, link } = getBestOdds(row.hit_odds_json || {})
-                    
                     return (
                       <TableCell key={column.key} className="p-1">
                         {row.hit_odds_json && Object.keys(row.hit_odds_json).length > 0 ? (
-                          <OddsCell
-                            odds={odds}
-                            sportsbook={sportsbook}
+                          <DualOddsCell
                             market={row.market || ""}
                             line={typeof row.line === 'number' ? row.line : undefined}
                             customTier={null}
-                            allOdds={row.hit_odds_json}
-                            directLink={link}
+                            fallback_odds={row.hit_odds_json}
+                            compact={true}
                           />
                         ) : null}
                       </TableCell>

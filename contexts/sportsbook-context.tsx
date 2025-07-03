@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { createContext, useContext, useState, useEffect } from "react";
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 type SportsbookContextType = {
   userSportsbooks: string[];
@@ -23,8 +23,8 @@ export function SportsbookProvider({
 }: {
   children: React.ReactNode;
 }) {
-  // Use the hook for sportsbook preferences
-  const { selectedSportsbooks, toggleSportsbook } = useSportsbookPreferences();
+  // Use the new database-backed user preferences hook
+  const { selectedSportsbooks, setSportsbooks } = useUserPreferences();
 
   // Keep the additional state from the original context
   const [isFirstVisit, setIsFirstVisit] = useState(true);
@@ -32,8 +32,8 @@ export function SportsbookProvider({
 
   // Create a setter function that works with the hook
   const setUserSportsbooks = (sportsbooks: string[]) => {
-    // Use the toggleSportsbook function from the hook to update the preferences
-    toggleSportsbook(sportsbooks);
+    // Use the setSportsbooks function from the hook to update the preferences
+    setSportsbooks(sportsbooks);
   };
 
   // Load first visit status from localStorage on initial render

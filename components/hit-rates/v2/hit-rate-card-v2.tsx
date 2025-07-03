@@ -12,6 +12,8 @@ import type { PlayerHitRateProfile, TimeWindow } from "@/types/hit-rates"
 import { BarChart, Bar, YAxis, ResponsiveContainer, Cell, ReferenceLine, LabelList } from "recharts"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { sportsbooks } from "@/data/sportsbooks"
+import OddsCell from "@/components/shared/odds-cell"
+import DualOddsCell from "@/components/shared/dual-odds-cell"
 
 // Map team abbreviations to handle special cases and variations
 const teamAbbreviationMap: Record<string, string> = {
@@ -535,9 +537,8 @@ export default function HitRateCardV3({
         // If switching to custom tier, add _custom suffix
         if (customTier !== null) {
           onSort(`${baseField}_custom`, sortDirection || "desc");
-        } 
-        // If switching back to default tier, remove _custom suffix
-        else {
+        } else {
+          // If switching back to default tier, remove _custom suffix
           onSort(baseField, sortDirection || "desc");
         }
       }
@@ -1044,32 +1045,20 @@ export default function HitRateCardV3({
 
           <div className="flex items-center">
             {/* Odds with sportsbook logo to the right */}
-            <div className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-md font-bold inline-block text-xs">
-              {formatOdds(odds)}
-            </div>
-            {(() => {
-              // Find the sportsbook in our data
-              const bookId = sportsbooks.find((book) => book.name.toLowerCase() === displaySportsbook.toLowerCase())?.id || "unknown";
-              const bookData = sportsbooks.find((book) => book.id === bookId);
-
-              return bookData ? (
-                <div
-                  className={`w-5 h-5 flex items-center justify-center bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-0.5 ${hasDirectLink ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" : ""}`}
-                      onClick={hasDirectLink ? handleSportsbookClick : undefined}
-                      title={hasDirectLink ? `Bet now at ${bookData.name}` : `${bookData.name}`}
-                    >
-                      <Image
-                        src={bookData.logo || "/placeholder.svg"}
-                        alt={bookData.name}
-                        width={16}
-                        height={16}
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                      <span className="text-xs text-gray-500">{displaySportsbook}</span>
-              );
-            })()}
+            <DualOddsCell
+              market={profile.market}
+              line={profile.line}
+              customTier={customTier}
+              fallback_odds={profile.all_odds || {}}
+              compact={true}
+              playerName={profile.player_name}
+              playerId={profile.player_id}
+              teamName={teamAbbreviation}
+              gameId={profile.odds_event_id}
+              eventTime={profile.commence_time}
+              awayTeam={profile.away_team}
+              homeTeam={profile.home_team}
+            />
           </div>
         </div>
 

@@ -17,7 +17,7 @@ export function Footer() {
           <div className="md:col-span-5 space-y-6">
             <div className="flex flex-col space-y-4">
               <Link href="/" className="flex items-center space-x-2">
-                <span className="font-bold text-2xl">BetterOdds</span>
+                <span className="font-bold text-2xl">OddSmash</span>
               </Link>
               <p className="text-muted-foreground text-sm">
                 Compare odds across sportsbooks to maximize your potential

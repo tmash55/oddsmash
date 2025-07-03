@@ -459,6 +459,45 @@ export function PlayerPropsModal({
     const market = availableMarkets.find((m) => m.value === activeMarket);
     if (!market) return;
 
+    // Create odds_data object with all available sportsbooks
+    const odds_data: Record<string, {
+      odds: number,
+      line?: number,
+      link?: string,
+      sid?: string,
+      last_update: string
+    }> = {};
+
+    // Get all bookmakers from the propData that have this exact prop
+    if (propData && propData.bookmakers) {
+      propData.bookmakers.forEach((bookmaker: any) => {
+        const market = bookmaker.markets.find((m: any) => 
+          m.key === prop.market && 
+          m.outcomes.some((o: any) => 
+            o.point === prop.line && 
+            o.name === (isOver ? "Over" : "Under")
+          )
+        );
+
+        if (market) {
+          const outcome = market.outcomes.find((o: any) => 
+            o.point === prop.line && 
+            o.name === (isOver ? "Over" : "Under")
+          );
+
+          if (outcome) {
+            odds_data[bookmaker.key] = {
+              odds: outcome.price,
+              line: prop.line,
+              link: outcome.link,
+              sid: outcome.sid,
+              last_update: new Date().toISOString()
+            };
+          }
+        }
+      });
+    }
+
     // Get the outcome to extract SID if available
     const outcome = isOver ? prop.overOutcome : prop.underOutcome;
     const sid = outcome?.sid || null;
@@ -467,19 +506,15 @@ export function PlayerPropsModal({
     const normalizedMarketKey = prop.market.replace("_alternate", "");
 
     // Check if this player already has a selection for this market type
-    // We need to check this with the game's parent component that tracks all selections
     const hasExistingSelection = checkForExistingPlayerSelection(
       prop.player,
       normalizedMarketKey
     );
 
     if (hasExistingSelection) {
-      // Show a toast or alert that this selection is not allowed
       toast({
         title: "Selection not allowed",
-        description: `You already have a ${getCurrentMarketName()} selection for ${
-          prop.player
-        }`,
+        description: `You already have a ${getCurrentMarketName()} selection for ${prop.player}`,
         variant: "destructive",
       });
       return;
@@ -490,29 +525,28 @@ export function PlayerPropsModal({
       id: prop.id,
       player: prop.player,
       selection: `${prop.player} ${isOver ? "Over" : "Under"} ${prop.line}`,
-      odds: isOver ? prop.overOdds : prop.underOdds,
       type: "player-prop",
-      marketKey: prop.market, // Use the actual market key from the prop
-      normalizedMarketKey, // Add the normalized key for easier comparison
+      marketKey: prop.market,
+      normalizedMarketKey,
       line: prop.line,
       betType: isOver ? "Over" : "Under",
-      sid: sid, // Add SID if available
+      sid: sid,
+      odds_data, // Add all sportsbook odds here
+      sportsbookId: activeSportsbook, // Keep this for the initially selected book
       // Include the full game data and prop data for odds comparison
       fullGameData: game,
       fullPropData: propData,
       // Add specific identifiers for finding this prop in other sportsbooks
       propIdentifiers: {
         player: prop.player,
-        market: prop.market, // Use the actual market key from the prop
-        normalizedMarket: normalizedMarketKey, // Add normalized market key
+        market: prop.market,
+        normalizedMarket: normalizedMarketKey,
         line: prop.line,
         betType: isOver ? "Over" : "Under",
-        sid: sid, // Add SID to identifiers too
+        sid: sid,
       },
       // Add a flag to indicate this prop already has data loaded
       dataLoaded: true,
-      // Add the sportsbook ID
-      sportsbookId: activeSportsbook,
     };
 
     onSelectProp(selectedProp);

@@ -2,8 +2,10 @@ import { ArrowLeftRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { sportsbooks } from "@/data/sportsbooks"
+import { getSportsbookDisplayName } from "@/lib/sportsbook-utils"
 import { cn } from "@/lib/utils"
 
 interface OddsData {
@@ -29,31 +31,7 @@ interface OddsComparisonProps {
   allOdds?: OddsData;
   className?: string;
   compact?: boolean;
-}
-
-// Helper to sort odds from best to worst (highest positive, then least negative)
-function sortOddsEntries(entries: [string, any][]) {
-  return entries.sort((a, b) => {
-    const getOdds = (oddsObj: any) => {
-      if (oddsObj && oddsObj.odds !== undefined) return Number(oddsObj.odds)
-      if (!isNaN(Number(oddsObj))) return Number(oddsObj)
-      return Number.NEGATIVE_INFINITY
-    }
-    return getOdds(b[1]) - getOdds(a[1])
-  })
-}
-
-// Add a helper to safely get link from bookData
-const getLinkFromBookData = (bookData: any): string | undefined => {
-  if (bookData && bookData.over_link) {
-    return bookData.over_link
-  }
-
-  if (bookData && bookData.link) {
-    return bookData.link
-  }
-
-  return undefined
+  betType?: 'over' | 'under';
 }
 
 // Format American odds for display
@@ -64,7 +42,15 @@ const formatOdds = (odds: number): string => {
   return odds > 0 ? `+${odds}` : odds.toString()
 }
 
-export default function OddsComparison({ market = "", line, customTier, allOdds, className, compact = false }: OddsComparisonProps) {
+export default function OddsComparison({ 
+  market = "", 
+  line, 
+  customTier, 
+  allOdds, 
+  className, 
+  compact = false, 
+  betType = 'over' 
+}: OddsComparisonProps) {
   // Format the line display
   const getLineDisplay = () => {
     if (customTier !== null) {
@@ -78,9 +64,7 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
 
   // Get all available odds for the current line
   const getAvailableOdds = () => {
-    if (!allOdds) {
-      return []
-    }
+    if (!allOdds) return []
 
     // Check if we have a flat structure (direct sportsbook odds)
     const isFlat = Object.values(allOdds).every(value => 
@@ -89,22 +73,13 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
 
     if (isFlat) {
       // Handle flat structure
-      const odds = Object.entries(allOdds)
+      return Object.entries(allOdds)
         .map(([book, data]: [string, any]) => ({
           book,
           odds: data.odds,
           link: data.over_link || data.link
         }))
-        .sort((a, b) => {
-          // For negative odds, closer to 0 is better
-          if (a.odds < 0 && b.odds < 0) {
-            return b.odds - a.odds
-          }
-          // For positive odds, higher is better
-          return b.odds - a.odds
-        })
-
-      return odds
+        .sort((a, b) => b.odds - a.odds) // Higher odds are always better
     }
 
     // Handle nested structure
@@ -116,22 +91,13 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
       return []
     }
 
-    const odds = Object.entries(allOdds[targetLine])
+    return Object.entries(allOdds[targetLine])
       .map(([book, data]) => ({
         book,
         odds: data.odds,
         link: data.over_link || data.link
       }))
-      .sort((a, b) => {
-        // For negative odds, closer to 0 is better
-        if (a.odds < 0 && b.odds < 0) {
-          return b.odds - a.odds
-        }
-        // For positive odds, higher is better
-        return b.odds - a.odds
-      })
-
-    return odds
+      .sort((a, b) => b.odds - a.odds) // Higher odds are always better
   }
 
   const availableOdds = getAvailableOdds()
@@ -149,7 +115,7 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "flex-shrink-0 text-muted-foreground hover:text-foreground",
+                  "flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors",
                   compact ? "h-5 w-5" : "h-7 w-7"
                 )}
               >
@@ -161,24 +127,28 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
             <TooltipContent side="top" className="text-xs">
               Compare odds across sportsbooks
             </TooltipContent>
-            <PopoverContent className="w-72 p-3">
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm">Odds Comparison</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Available odds{market ? ` for ${market}` : ''} {getLineDisplay()}
+            <PopoverContent className="w-64 p-0" align="end">
+              <div className="p-3 border-b">
+                <h4 className="font-medium text-sm">
+                  {betType === 'over' ? 'Over' : 'Under'} {getLineDisplay()}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {availableOdds.length} sportsbook{availableOdds.length !== 1 ? 's' : ''}
                 </p>
-                <div className="space-y-1 mt-2">
-                  {availableOdds.length > 0 ? (
-                    availableOdds.map(({ book, odds, link }) => {
-                      const bookId = sportsbooks.find(
-                        (sb) => sb.name.toLowerCase() === book.toLowerCase()
-                      )?.id || "unknown"
-                      
-                      const sbData = sportsbooks.find((sb) => sb.id === bookId)
+              </div>
+              
+              <div className="max-h-60 overflow-y-auto">
+                {availableOdds.length > 0 ? (
+                  <div className="p-1">
+                    {availableOdds.map(({ book, odds, link }, index) => {
+                      const sbData = sportsbooks.find(
+                        (sb) => sb.name.toLowerCase() === book.toLowerCase() || sb.id === book
+                      )
                       const hasLink = !!link
+                      const isBest = index === 0
 
                       const handleClick = () => {
-                        if (hasLink) {
+                        if (hasLink && link) {
                           window.open(link, "_blank")
                         }
                       }
@@ -187,43 +157,62 @@ export default function OddsComparison({ market = "", line, customTier, allOdds,
                         <div
                           key={book}
                           className={cn(
-                            "flex justify-between items-center p-1.5 odd:bg-gray-50 dark:odd:bg-gray-800 rounded",
-                            hasLink && "cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/10"
+                            "flex items-center justify-between p-2 rounded border-b border-border/30 last:border-b-0",
+                            "hover:bg-muted/50 transition-colors",
+                            isBest && "bg-primary/5",
+                            hasLink ? "cursor-pointer" : "cursor-default opacity-75"
                           )}
                           onClick={hasLink ? handleClick : undefined}
                         >
-                          <div className="flex items-center gap-2">
-                            {sbData ? (
-                              <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-1">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {/* Sportsbook Logo */}
+                            <div className="relative w-5 h-5 flex-shrink-0">
+                              {sbData ? (
                                 <Image
-                                  src={sbData.logo || `/images/sports-books/${bookId}.png`}
+                                  src={sbData.logo}
                                   alt={sbData.name}
                                   width={20}
                                   height={20}
-                                  className="object-contain w-full h-full max-h-[16px]"
+                                  className="object-contain w-full h-full"
                                 />
-                              </div>
-                            ) : null}
-                            <span className="font-medium text-sm">{book}</span>
-                            {hasLink && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">Quick Bet</span>
-                            )}
+                              ) : (
+                                <div className="w-full h-full bg-muted rounded-sm flex items-center justify-center">
+                                  <span className="text-[8px] font-bold text-muted-foreground">
+                                    {book.slice(0, 2).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Sportsbook Name */}
+                            <span className="text-xs font-medium truncate">
+                              {sbData?.name || getSportsbookDisplayName(book)}
+                            </span>
                           </div>
-                          <span
-                            className={cn(
-                              "text-sm font-bold",
-                              odds > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+
+                          {/* Odds */}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {isBest && (
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
                             )}
-                          >
-                            {formatOdds(odds)}
-                          </span>
+                            <span
+                              className={cn(
+                                "text-sm font-bold tabular-nums",
+                                odds > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {formatOdds(odds)}
+                            </span>
+                          </div>
                         </div>
                       )
-                    })
-                  ) : (
-                    <div className="text-center text-sm text-gray-500 py-2">No odds available</div>
-                  )}
-                </div>
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground">No odds available</p>
+                  </div>
+                )}
               </div>
             </PopoverContent>
           </Popover>

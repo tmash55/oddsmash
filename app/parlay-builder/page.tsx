@@ -13,7 +13,6 @@ import {
   ChevronUp,
   Menu,
 } from "lucide-react";
-import { StateSelector } from "@/components/state-selector";
 import { SportsbookSelector } from "@/components/sportsbook-selector";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,7 +64,6 @@ export default function ParlayBuilderPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <StateSelector />
               <SportsbookSelector />
             </div>
           </div>

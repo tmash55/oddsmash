@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { PlayerHitRateProfile } from "@/types/hit-rates";
 
 // Initialize Redis client
 export const redis = new Redis({
@@ -13,6 +14,17 @@ export const CACHE_TTL = 1200;
 export interface CachedOddsData {
   lastUpdated: string;
   data: any; // Replace with your odds data type
+}
+
+interface CachedHitRateData {
+  hitRateProfile: any;
+  propsOdds?: Record<string, any>;
+  fallback_odds?: Record<string, Record<string, {
+    price: number;
+    link?: string;
+    sid?: string;
+  }>>;
+  lastUpdated: string;
 }
 
 /**
@@ -251,4 +263,190 @@ function filterSingleItemBookmakers<T extends { bookmakers?: any[] }>(
   );
 
   return filteredItem;
+}
+
+// Hit Rate specific caching functions
+export async function getCachedHitRateProfiles(key: string): Promise<CachedHitRateData | null> {
+  console.log(`[REDIS] Attempting to get cached data for key: ${key}`);
+  try {
+    const data = await getCachedData<any>(key);
+    if (!data) {
+      console.log(`[REDIS] Cache miss for key: ${key}`);
+      return null;
+    }
+
+    console.log(`[REDIS] Cache hit for key: ${key}`);
+    
+    // If data is already in CachedHitRateData format
+    if (data.hitRateProfile) {
+      return {
+        hitRateProfile: data.hitRateProfile,
+        fallback_odds: data.fallback_odds || data.hitRateProfile.fallback_odds || {},
+        lastUpdated: data.lastUpdated || new Date().toISOString()
+      };
+    }
+    
+    // If data is a raw profile, wrap it
+    return {
+      hitRateProfile: data,
+      fallback_odds: data.fallback_odds || {},
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error(`[REDIS] Error getting cached data for key: ${key}`, error);
+    return null;
+  }
+}
+
+export async function setCachedHitRateProfiles(key: string, data: any, ttl: number = 60 * 60) {
+  console.log(`[REDIS] Setting cache for key: ${key}`);
+  try {
+    // Ensure data is in the correct format
+    const cacheData: CachedHitRateData = {
+      hitRateProfile: data,
+      lastUpdated: new Date().toISOString()
+    };
+    await setCachedData(key, cacheData, ttl);
+    console.log(`[REDIS] Successfully set cache for key: ${key}`);
+    return cacheData;
+  } catch (error) {
+    console.error(`[REDIS] Error setting cache for key: ${key}`, error);
+    throw error;
+  }
+}
+
+export function generateHitRatesCacheKey(playerId: number, market: string, sport: string = 'mlb') {
+  const normalizedMarket = market.toLowerCase();
+  return `hit_rate:${sport}:${playerId}:${normalizedMarket}`;
+}
+
+// Function to get multiple hit rate profiles by market
+export async function getHitRateProfilesByMarket(market: string, sport: string = 'mlb'): Promise<PlayerHitRateProfile[]> {
+  try {
+    console.log('[REDIS] Searching for hit rate profiles with market:', market, 'sport:', sport);
+    
+    // Use SCAN instead of KEYS for better performance
+    let cursor = '0';  // Start with '0' as string
+    const pattern = `hit_rate:${sport}:*:${market.toLowerCase()}`;
+    const profiles: PlayerHitRateProfile[] = [];
+    
+    console.log('[REDIS] Using pattern:', pattern);
+    
+    do {
+      // Get a batch of keys using SCAN
+      const [nextCursor, keys] = await redis.scan(cursor, {
+        match: pattern,
+        count: 50 // Process in smaller batches
+      });
+      
+      cursor = nextCursor;
+      
+      if (keys.length > 0) {
+        console.log(`[REDIS] Found ${keys.length} keys matching pattern`);
+        // Fetch profiles in batches
+        const batchData = await redis.mget<any[]>(...keys);
+        
+        // Process each item, handling both raw profiles and wrapped data
+        const validProfiles = batchData
+          .filter(Boolean)
+          .map(item => {
+            try {
+              // Parse if string
+              const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+              
+              // Extract profile from either format
+              if (parsed.hitRateProfile) {
+                return parsed.hitRateProfile;
+              }
+              
+              // If it's a raw profile
+              if (parsed.player_id && parsed.market) {
+                return parsed;
+              }
+              
+              console.log('[REDIS] Invalid profile format:', parsed);
+              return null;
+            } catch (e) {
+              console.error('[REDIS] Error parsing profile:', e);
+              return null;
+            }
+          })
+          .filter(Boolean);
+        
+        profiles.push(...validProfiles);
+      }
+      
+    } while (cursor !== '0');
+    
+    console.log(`[REDIS] Retrieved ${profiles.length} valid profiles`);
+    return profiles;
+    
+  } catch (error) {
+    console.error('[REDIS] Error getting hit rate profiles:', error);
+    return [];
+  }
+}
+
+// Function to update odds data for a hit rate profile
+export async function updateHitRateOdds(
+  playerId: number,
+  market: string,
+  sport: string = 'mlb',
+  propsOdds?: Record<string, any>,
+  fallback_odds?: Record<string, Record<string, { price: number; link?: string; sid?: string; }>>
+) {
+  try {
+    const key = generateHitRatesCacheKey(playerId, market, sport);
+    const existingData = await getCachedHitRateProfiles(key);
+    
+    if (existingData) {
+      const updatedData = {
+        ...existingData,
+        propsOdds,
+        fallback_odds,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      await setCachedHitRateProfiles(key, updatedData);
+      console.log(`[REDIS] Updated odds for ${key}`);
+    }
+  } catch (error) {
+    console.error('[REDIS] Error updating hit rate odds:', error);
+  }
+}
+
+// Function to get player ID from name
+export async function getPlayerIdByName(name: string, sport: string = 'mlb'): Promise<number | null> {
+  try {
+    console.log(`[REDIS] Looking up player ID for: ${name} in ${sport}`)
+    const key = `player:${sport}:name_to_id`
+    
+    // Get all player data
+    const playerData = await redis.get<Record<string, { full_name: string; player_id: number }>>(key)
+    
+    if (!playerData) {
+      console.log(`[REDIS] No player data found for key: ${key}`)
+      return null
+    }
+    
+    // Normalize the search name
+    const searchName = name.toLowerCase().trim()
+    
+    // Find matching player
+    const match = Object.values(playerData).find(player => 
+      player.full_name.toLowerCase() === searchName
+    )
+    
+    if (match) {
+      console.log(`[REDIS] Found player ID ${match.player_id} for ${name}`)
+      return match.player_id
+    }
+    
+    console.log(`[REDIS] No player ID found for ${name}`)
+    return null
+    
+  } catch (error) {
+    console.error(`[REDIS] Error looking up player ID for ${name}:`, error)
+    return null
+  }
 }

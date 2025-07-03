@@ -1,0 +1,118 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/components/auth/auth-provider';
+import OnboardingFlow from '@/components/auth/OnboardingFlow';
+import { motion } from 'framer-motion';
+import { createClient } from '@/libs/supabase/client';
+
+export default function OnboardingPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!loading) {
+        if (!user) {
+          router.push('/sign-in');
+          return;
+        }
+
+        console.log('Onboarding page - User:', user.id);
+
+        // Check for userData in URL params (from OAuth callback)
+        const userDataParam = searchParams.get('userData');
+        if (userDataParam) {
+          try {
+            const userData = JSON.parse(userDataParam);
+            console.log('Found userData in URL:', userData);
+            sessionStorage.setItem('pendingUserData', JSON.stringify(userData));
+            setShouldShowOnboarding(true);
+            
+            // Clean up URL by removing the userData param
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('userData');
+            window.history.replaceState({}, '', newUrl.toString());
+          } catch (error) {
+            console.error('Error parsing userData from URL:', error);
+          }
+        } else {
+          // Check database for onboarding completion status
+          const { data: preferences, error } = await supabase
+            .from('user_preferences')
+            .select('onboarding_completed')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          console.log('Database preferences check:', preferences, error);
+
+          if (error) {
+            console.error('Error checking preferences:', error);
+            // If there's an error, assume they need onboarding
+            setShouldShowOnboarding(true);
+          } else if (!preferences?.onboarding_completed) {
+            console.log('User needs onboarding - no preferences or not completed');
+            // Store user data for onboarding
+            sessionStorage.setItem('pendingUserData', JSON.stringify({
+              email: user.email,
+              firstName: user.user_metadata?.first_name || 
+                        user.user_metadata?.full_name?.split(' ')[0] || '',
+              needsOnboarding: true
+            }));
+            setShouldShowOnboarding(true);
+          } else {
+            console.log('User completed onboarding, redirecting to hit-rates');
+            router.push('/hit-rates');
+          }
+        }
+        
+        setIsCheckingOnboarding(false);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user, loading, router, searchParams, supabase]);
+
+  const handleOnboardingComplete = () => {
+    console.log('Onboarding completed');
+    setShouldShowOnboarding(false);
+  };
+
+  if (loading || isCheckingOnboarding) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-white/60">Checking your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!shouldShowOnboarding) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-white/60">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div 
+      className="min-h-screen"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <OnboardingFlow onComplete={handleOnboardingComplete} />
+    </motion.div>
+  );
+}

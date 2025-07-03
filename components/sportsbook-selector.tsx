@@ -23,10 +23,10 @@ import {
 } from "lucide-react";
 import { sportsbooks } from "@/data/sportsbooks";
 import {
-  useSportsbookPreferences,
+  useUserPreferences,
   STATE_CODES,
   LEGAL_BETTING_STATES,
-} from "@/hooks/use-sportsbook-preferences";
+} from "@/hooks/use-user-preferences";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -49,59 +49,60 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 export function SportsbookSelector() {
-  const {
-    selectedSportsbooks,
-    toggleSportsbook,
-    selectAll,
-    clearAll,
-    maxSelections,
-    userState,
-    setUserState,
-  } = useSportsbookPreferences();
+  const [open, setOpen] = useState(false);
+  const [tempSelections, setTempSelections] = useState<string[]>([]);
+  const [tempState, setTempState] = useState<string>("");
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [isChanging, setIsChanging] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const { toast } = useToast();
 
-  const [tempSelections, setTempSelections] =
-    useState<string[]>(selectedSportsbooks);
-  const [tempState, setTempState] = useState<string>(userState);
-  const [open, setOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [activeTab, setActiveTab] = useState<"sportsbooks" | "location">(
-    "sportsbooks"
-  );
+  const {
+    selectedSportsbooks,
+    userState,
+    setSportsbooks,
+    setUserState,
+    isLoading,
+  } = useUserPreferences();
 
-  // Improved media queries for better responsiveness
-  const isMobile = useMediaQuery("(max-width: 640px)");
-  const isSmallMobile = useMediaQuery("(max-width: 380px)");
-
-  // Reset temp selections when dialog opens
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setTempSelections(selectedSportsbooks);
-      setTempState(userState);
-      setActiveTab("sportsbooks");
+  // Initialize temp state when dialog opens
+  useEffect(() => {
+    if (open && !isLoading) {
+      setTempSelections([...selectedSportsbooks]);
+      setTempState(userState || "NJ");
     }
-    setOpen(open);
-  };
+  }, [open, selectedSportsbooks, userState, isLoading]);
 
-  const handleToggle = (id: string) => {
+  // Group states by legal status
+  const legalStates = Object.entries(STATE_CODES)
+    .filter(([_, code]) => LEGAL_BETTING_STATES.includes(code))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  const otherStates = Object.entries(STATE_CODES)
+    .filter(([_, code]) => !LEGAL_BETTING_STATES.includes(code))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  const allStates = [...legalStates, ...otherStates];
+
+  const toggleSportsbook = (sportsbookId: string) => {
     setTempSelections((prev) => {
-      if (prev.includes(id)) {
+      if (prev.includes(sportsbookId)) {
         // Don't allow deselecting if it's the last one
         if (prev.length === 1) return prev;
-        return prev.filter((sbId) => sbId !== id);
+        return prev.filter((id) => id !== sportsbookId);
       }
-      // No max selection limit
-      return [...prev, id];
+      return [...prev, sportsbookId];
     });
   };
 
-  const handleSelectAll = () => {
+  const selectAll = () => {
     setTempSelections(sportsbooks.map((sb) => sb.id));
   };
 
-  const handleClearAll = () => {
-    setTempSelections([tempSelections[0]]);
+  const clearAll = () => {
+    // Set to first sportsbook when clearing
+    setTempSelections([sportsbooks[0]?.id || "draftkings"]);
   };
 
   const handleSave = async () => {
@@ -141,11 +142,13 @@ export function SportsbookSelector() {
         }
 
         // Update the stored preferences
-        toggleSportsbook(tempSelections);
+        if (sportsbooksChanged) {
+          await setSportsbooks(tempSelections);
+        }
 
         // Update the state if changed
         if (stateChanged) {
-          setUserState(tempState);
+          await setUserState(tempState);
         }
 
         // Add a small delay before refreshing to allow the toast to be seen
@@ -174,36 +177,27 @@ export function SportsbookSelector() {
   // Calculate selection percentage for progress bar (now based on total sportsbooks)
   const selectionPercentage = (tempSelections.length / sportsbooks.length) * 100;
 
-  // Group states by legal status
-  const legalStates = Object.entries(STATE_CODES)
-    .filter(([_, code]) => LEGAL_BETTING_STATES.includes(code))
-    .sort((a, b) => a[0].localeCompare(b[0]));
-
-  const otherStates = Object.entries(STATE_CODES)
-    .filter(([_, code]) => !LEGAL_BETTING_STATES.includes(code))
-    .sort((a, b) => a[0].localeCompare(b[0]));
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             variant="outline"
-            size={isSmallMobile ? "sm" : "default"}
+            size={isMobile ? "sm" : "default"}
             className="gap-1.5 border-border/60 bg-background/80 hover:bg-background/90 hover:border-primary/30 transition-all duration-200"
           >
             <Settings2
               className={cn(
                 "text-primary/70",
-                isSmallMobile ? "h-3.5 w-3.5" : "h-4 w-4"
+                isMobile ? "h-3.5 w-3.5" : "h-4 w-4"
               )}
             />
-            <span className={isSmallMobile ? "text-sm" : ""}>Sportsbooks</span>
+            <span className={isMobile ? "text-sm" : ""}>Sportsbooks</span>
             <Badge
               variant="outline"
               className={cn(
                 "ml-1 bg-primary/10 text-primary text-xs",
-                isSmallMobile && "text-[10px] px-1.5 py-0",
+                isMobile && "text-[10px] px-1.5 py-0",
                 tempSelections.length === sportsbooks.length &&
                   "bg-green-500/10 text-green-500"
               )}
@@ -222,17 +216,24 @@ export function SportsbookSelector() {
         )}
       >
         <DialogHeader className={cn("px-4 sm:px-6 pt-4 sm:pt-6 pb-2")}>
-          <DialogTitle className={cn("text-xl", isSmallMobile && "text-lg")}>
+          <DialogTitle className={cn("text-xl", isMobile && "text-lg")}>
             Sportsbook Settings
           </DialogTitle>
           <DialogDescription className="flex items-center gap-1.5 flex-wrap">
-            <span className={isSmallMobile ? "text-xs" : ""}>
+            <span className={isMobile ? "text-xs" : ""}>
               Customize your sportsbook preferences
             </span>
             <TooltipProvider>
               <Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
-                <TooltipTrigger asChild onClick={(e) => e.preventDefault()}>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-3.5 w-3.5 p-0"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent
                   side={isMobile ? "bottom" : "right"}
@@ -249,10 +250,7 @@ export function SportsbookSelector() {
         </DialogHeader>
 
         <Tabs
-          value={activeTab}
-          onValueChange={(value: "sportsbooks" | "location") =>
-            setActiveTab(value)
-          }
+          value="sportsbooks"
           className="px-4 sm:px-6 py-2"
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -261,29 +259,29 @@ export function SportsbookSelector() {
               className="flex items-center gap-1.5"
             >
               <Settings2
-                className={cn("h-4 w-4", isSmallMobile && "h-3.5 w-3.5")}
+                className={cn("h-4 w-4", isMobile && "h-3.5 w-3.5")}
               />
-              <span className={isSmallMobile ? "text-xs" : ""}>
+              <span className={isMobile ? "text-xs" : ""}>
                 Sportsbooks
               </span>
             </TabsTrigger>
             <TabsTrigger value="location" className="flex items-center gap-1.5">
               <MapPin
-                className={cn("h-4 w-4", isSmallMobile && "h-3.5 w-3.5")}
+                className={cn("h-4 w-4", isMobile && "h-3.5 w-3.5")}
               />
-              <span className={isSmallMobile ? "text-xs" : ""}>Location</span>
+              <span className={isMobile ? "text-xs" : ""}>Location</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {activeTab === "sportsbooks" && (
+        {tempSelections.length > 0 && (
           <>
             <div className={cn("px-4 sm:px-6 py-2")}>
               <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
                 <div
                   className={cn(
                     "text-sm text-muted-foreground",
-                    isSmallMobile && "text-xs"
+                    isMobile && "text-xs"
                   )}
                 >
                   {tempSelections.length} of {sportsbooks.length} selected
@@ -292,13 +290,11 @@ export function SportsbookSelector() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleSelectAll}
+                    onClick={selectAll}
                     className={cn(
                       "h-8 font-medium",
-                      isSmallMobile
+                      isMobile
                         ? "text-[10px] px-1.5 h-7"
-                        : isMobile
-                        ? "text-[11px] px-2"
                         : "text-xs"
                     )}
                     disabled={tempSelections.length === sportsbooks.length}
@@ -308,13 +304,11 @@ export function SportsbookSelector() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleClearAll}
+                    onClick={clearAll}
                     className={cn(
                       "h-8 font-medium",
-                      isSmallMobile
+                      isMobile
                         ? "text-[10px] px-1.5 h-7"
-                        : isMobile
-                        ? "text-[11px] px-2"
                         : "text-xs"
                     )}
                     disabled={tempSelections.length <= 1}
@@ -358,21 +352,19 @@ export function SportsbookSelector() {
                               ? "opacity-50 cursor-not-allowed"
                               : "cursor-pointer",
                             isMobile && "p-3", // Adjusted padding
-                            isSmallMobile && "p-2.5" // Even smaller padding for very small screens
+                            isMobile && "p-2.5" // Even smaller padding for very small screens
                           )}
                           onClick={() =>
-                            !disabled && handleToggle(sportsbook.id)
+                            !disabled && toggleSportsbook(sportsbook.id)
                           }
                         >
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
                                 "relative flex-shrink-0",
-                                isSmallMobile
+                                isMobile
                                   ? "w-6 h-6"
-                                  : isMobile
-                                  ? "w-7 h-7"
-                                  : "w-6 h-6"
+                                  : "w-7 h-7"
                               )}
                             >
                               <img
@@ -384,9 +376,7 @@ export function SportsbookSelector() {
                             <span
                               className={cn(
                                 "font-medium",
-                                isSmallMobile
-                                  ? "text-sm"
-                                  : isMobile && "text-base"
+                                isMobile && "text-base"
                               )}
                             >
                               {sportsbook.name}
@@ -401,21 +391,17 @@ export function SportsbookSelector() {
                                 exit={{ scale: 0.5, opacity: 0 }}
                                 className={cn(
                                   "rounded-full bg-primary flex items-center justify-center",
-                                  isSmallMobile
+                                  isMobile
                                     ? "h-5 w-5"
-                                    : isMobile
-                                    ? "h-6 w-6"
-                                    : "h-5 w-5"
+                                    : "h-6 w-6"
                                 )}
                               >
                                 <Check
                                   className={cn(
                                     "text-white",
-                                    isSmallMobile
+                                    isMobile
                                       ? "h-3 w-3"
-                                      : isMobile
-                                      ? "h-4 w-4"
-                                      : "h-3 w-3"
+                                      : "h-4 w-4"
                                   )}
                                 />
                               </motion.div>
@@ -423,11 +409,9 @@ export function SportsbookSelector() {
                               <div
                                 className={cn(
                                   "rounded-full border-2 border-muted-foreground/30",
-                                  isSmallMobile
+                                  isMobile
                                     ? "h-5 w-5"
-                                    : isMobile
-                                    ? "h-6 w-6"
-                                    : "h-5 w-5"
+                                    : "h-6 w-6"
                                 )}
                               />
                             )}
@@ -451,13 +435,13 @@ export function SportsbookSelector() {
                 <AlertCircle
                   className={cn(
                     "h-4 w-4 text-green-500",
-                    isSmallMobile && "h-3.5 w-3.5"
+                    isMobile && "h-3.5 w-3.5"
                   )}
                 />
                 <span
                   className={cn(
                     "text-sm text-green-600 dark:text-green-400",
-                    isSmallMobile && "text-xs"
+                    isMobile && "text-xs"
                   )}
                 >
                   All sportsbooks selected
@@ -481,7 +465,7 @@ export function SportsbookSelector() {
                   disabled={isSaving}
                   className={cn(
                     "w-full relative overflow-hidden transition-all",
-                    isSmallMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
+                    isMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
                     isSaving ? "pl-10" : "",
                     "shadow-md bg-primary hover:bg-primary/90"
                   )}
@@ -490,7 +474,7 @@ export function SportsbookSelector() {
                     <Loader2
                       className={cn(
                         "absolute left-3 h-5 w-5 animate-spin",
-                        isSmallMobile && "h-4 w-4"
+                        isMobile && "h-4 w-4"
                       )}
                     />
                   )}
@@ -508,20 +492,20 @@ export function SportsbookSelector() {
           </>
         )}
 
-        {activeTab === "location" && (
+        {tempSelections.length === 0 && (
           <div className="px-4 sm:px-6 py-4 flex-1 overflow-y-auto max-h-[calc(80dvh-180px)]">
             <div className="space-y-4">
               <div>
                 <label
                   className={cn(
                     "text-sm font-medium mb-1.5 block",
-                    isSmallMobile && "text-xs"
+                    isMobile && "text-xs"
                   )}
                 >
                   Select Your State
                 </label>
                 <Select value={tempState} onValueChange={setTempState}>
-                  <SelectTrigger className={isSmallMobile ? "h-8 text-xs" : ""}>
+                  <SelectTrigger className={isMobile ? "h-8 text-xs" : ""}>
                     <SelectValue placeholder="Select a state" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[40vh]">
@@ -532,7 +516,7 @@ export function SportsbookSelector() {
                       <SelectItem
                         key={stateCode}
                         value={stateCode}
-                        className={isSmallMobile ? "text-xs" : ""}
+                        className={isMobile ? "text-xs" : ""}
                       >
                         <div className="flex items-center gap-2">
                           <span className="w-8 text-xs font-mono">
@@ -551,7 +535,7 @@ export function SportsbookSelector() {
                       <SelectItem
                         key={stateCode}
                         value={stateCode}
-                        className={isSmallMobile ? "text-xs" : ""}
+                        className={isMobile ? "text-xs" : ""}
                       >
                         <div className="flex items-center gap-2">
                           <span className="w-8 text-xs font-mono">
@@ -569,13 +553,13 @@ export function SportsbookSelector() {
                 <h3
                   className={cn(
                     "text-sm font-medium mb-2 flex items-center gap-1.5",
-                    isSmallMobile && "text-xs"
+                    isMobile && "text-xs"
                   )}
                 >
                   <Info
                     className={cn(
                       "h-4 w-4 text-primary",
-                      isSmallMobile && "h-3.5 w-3.5"
+                      isMobile && "h-3.5 w-3.5"
                     )}
                   />
                   Why set your state?
@@ -583,7 +567,7 @@ export function SportsbookSelector() {
                 <p
                   className={cn(
                     "text-sm text-muted-foreground",
-                    isSmallMobile && "text-xs"
+                    isMobile && "text-xs"
                   )}
                 >
                   Setting your state helps us provide you with the correct
@@ -595,13 +579,13 @@ export function SportsbookSelector() {
                   <div
                     className={cn(
                       "mt-3 bg-yellow-500/10 p-3 rounded-md border border-yellow-500/20 text-sm text-yellow-600 dark:text-yellow-400",
-                      isSmallMobile && "text-xs p-2.5"
+                      isMobile && "text-xs p-2.5"
                     )}
                   >
                     <AlertCircle
                       className={cn(
                         "h-4 w-4 inline-block mr-1.5",
-                        isSmallMobile && "h-3.5 w-3.5"
+                        isMobile && "h-3.5 w-3.5"
                       )}
                     />
                     Sports betting may not be legal in {tempState}. Some links
@@ -617,7 +601,7 @@ export function SportsbookSelector() {
           className={cn(
             "px-4 sm:px-6 py-4 border-t",
             isMobile && "flex-col gap-2",
-            activeTab === "sportsbooks" && "hidden" // Hide the footer on sportsbooks tab since we added a dedicated save button
+            tempSelections.length === sportsbooks.length && "hidden" // Hide the footer on sportsbooks tab since we added a dedicated save button
           )}
         >
           {isMobile ? (
@@ -632,7 +616,7 @@ export function SportsbookSelector() {
                   disabled={isSaving}
                   className={cn(
                     "w-full relative overflow-hidden transition-all shadow-md bg-primary hover:bg-primary/90",
-                    isSmallMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
+                    isMobile ? "h-10 text-sm" : "h-12 text-base font-medium",
                     isSaving ? "pl-10" : ""
                   )}
                 >
@@ -640,7 +624,7 @@ export function SportsbookSelector() {
                     <Loader2
                       className={cn(
                         "absolute left-3 h-5 w-5 animate-spin",
-                        isSmallMobile && "h-4 w-4"
+                        isMobile && "h-4 w-4"
                       )}
                     />
                   )}
@@ -658,7 +642,7 @@ export function SportsbookSelector() {
                 disabled={isSaving}
                 className={cn(
                   "w-full h-11 text-base border-border/60",
-                  isSmallMobile && "h-9 text-sm"
+                  isMobile && "h-9 text-sm"
                 )}
               >
                 Cancel
@@ -683,7 +667,7 @@ export function SportsbookSelector() {
                   disabled={isSaving}
                   className={cn(
                     "relative overflow-hidden transition-all shadow-md bg-primary hover:bg-primary/90",
-                    isSmallMobile ? "text-sm" : "text-base font-medium",
+                    isMobile ? "text-sm" : "text-base font-medium",
                     isSaving ? "pl-10" : ""
                   )}
                 >

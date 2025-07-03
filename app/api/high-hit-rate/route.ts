@@ -1,21 +1,11 @@
 import { createClient } from "@/libs/supabase/server"
 import { NextResponse } from "next/server"
-import { getCachedHighHitRate, setCachedHighHitRate } from "@/lib/redis/hit-sheets"
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const hitRate = searchParams.get("hit_rate") || "0.9"
     const sampleSpan = searchParams.get("sample_span") || "last_10"
-
-    // Try to get cached data first
-    const cachedData = await getCachedHighHitRate(hitRate, sampleSpan)
-    if (cachedData) {
-      console.log('[Redis] Cache HIT - Found high hit rate data')
-      return NextResponse.json(cachedData)
-    }
-
-    console.log('[Redis] Cache MISS - Fetching high hit rate data from database')
 
     // Create the Supabase client
     const supabase = createClient()
@@ -35,19 +25,11 @@ export async function GET(request: Request) {
       )
     }
 
-    // Cache the results before returning
-    await setCachedHighHitRate(data, hitRate, sampleSpan)
-    console.log(`[Redis] Cached high hit rate data for hitRate=${hitRate}, sampleSpan=${sampleSpan}`)
-
-    // Return the data if successful
     return NextResponse.json(data)
-  } catch (error) {
-    // Log the full error for debugging
-    console.error("Error in high hit rate API route:", error)
-    
-    // Return a generic error message to the client
+  } catch (err) {
+    console.error("Server error:", err)
     return NextResponse.json(
-      { error: "Failed to fetch high hit rate data" },
+      { error: "Internal server error" },
       { status: 500 }
     )
   }

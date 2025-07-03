@@ -14,6 +14,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { sportsbooks } from "@/data/sportsbooks"
 import Image from "next/image"
 import OddsCell from "@/components/shared/odds-cell"
+import DualOddsCell from "@/components/shared/dual-odds-cell"
+import { useBulkPrefetchPlayerOdds } from "@/hooks/use-player-odds"
+import { getMarketApiKey } from "@/lib/constants/markets"
 
 // Map team abbreviations to handle special cases and variations
 const teamAbbreviationMap: Record<string, string> = {
@@ -327,6 +330,71 @@ export default function HitRateTableV2({
 }: HitRateTableV2Props) {
   const [favorites, setFavorites] = useState<Record<number, boolean>>({})
   const previousCustomTierRef = useRef<number | null>(customTier);
+  const bulkPrefetch = useBulkPrefetchPlayerOdds()
+
+  // Aggressive prefetching - start loading odds immediately when profiles change
+  useEffect(() => {
+    if (profiles?.length > 0) {
+      // Priority 1: First 10 visible players (above the fold)
+      const priorityProfiles = profiles.slice(0, 10);
+      const remainingProfiles = profiles.slice(10);
+      
+      const priorityRequests = priorityProfiles.map(profile => ({
+        playerId: profile.player_id,
+        market: getMarketApiKey('baseball_mlb', profile.market),
+        eventId: profile.odds_event_id,
+      })).filter(req => req.playerId && req.market && req.eventId)
+
+      const remainingRequests = remainingProfiles.map(profile => ({
+        playerId: profile.player_id,
+        market: getMarketApiKey('baseball_mlb', profile.market),
+        eventId: profile.odds_event_id,
+      })).filter(req => req.playerId && req.market && req.eventId)
+
+      // Start priority prefetching immediately
+      if (priorityRequests.length > 0) {
+        console.log(`[PREFETCH] Priority loading ${priorityRequests.length} visible players`)
+        bulkPrefetch(priorityRequests)
+      }
+
+      // Load remaining players after a short delay
+      if (remainingRequests.length > 0) {
+        const delayedTimer = setTimeout(() => {
+          console.log(`[PREFETCH] Background loading ${remainingRequests.length} additional players`)
+          bulkPrefetch(remainingRequests)
+        }, 500) // 500ms delay for off-screen players
+
+        return () => clearTimeout(delayedTimer)
+      }
+    }
+  }, [profiles, bulkPrefetch])
+
+  // Additional prefetching on first mount with longer cache
+  useEffect(() => {
+    if (profiles?.length > 0) {
+      // Pre-warm cache for better perceived performance
+      const timer = setTimeout(() => {
+        const allRequests = profiles.flatMap(profile => [
+          // Prefetch current market
+          {
+            playerId: profile.player_id,
+            market: getMarketApiKey('baseball_mlb', profile.market),
+            eventId: profile.odds_event_id,
+          },
+          // Prefetch related markets for this player (common patterns)
+          ...(profile.market === 'Hits' ? [{
+            playerId: profile.player_id,
+            market: 'batter_total_bases',
+            eventId: profile.odds_event_id,
+          }] : [])
+        ]).filter(req => req.playerId && req.market && req.eventId)
+
+        bulkPrefetch(allRequests)
+      }, 100) // Small delay to not block initial render
+
+      return () => clearTimeout(timer)
+    }
+  }, [profiles, bulkPrefetch])
 
   // Toggle favorite status for a player
   const toggleFavorite = (playerId: number) => {
@@ -756,9 +824,13 @@ export default function HitRateTableV2({
             <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
               <span className="text-base font-semibold">Matchup</span>
             </TableHead>
-            {/* Group Line and Avg columns */}
+            {/* Group Line and Odds columns together */}
             <TableHead colSpan={2} className="text-center border-b border-slate-200 dark:border-slate-700">
-              <span className="text-base font-semibold">Props</span>
+              <span className="text-base font-semibold">Props & Odds</span>
+            </TableHead>
+            {/* Avg column */}
+            <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
+              <span className="text-base font-semibold">Average</span>
             </TableHead>
             {/* Group Hit Rate columns - now including Recent Games */}
             <TableHead
@@ -770,10 +842,6 @@ export default function HitRateTableV2({
             {/* Recent Games - separate column */}
             <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
               <span className="text-base font-semibold">Recent Games</span>
-            </TableHead>
-            {/* Group Odds and Actions */}
-            <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
-              <span className="text-base font-semibold">Betting</span>
             </TableHead>
             {/* Share - simplified */}
             <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
@@ -807,6 +875,10 @@ export default function HitRateTableV2({
                 <span className={getDisplaySortField(sortField) === "line" ? "text-indigo-500 dark:text-indigo-400" : ""}>Line</span>
                 {getSortIcon("line", getDisplaySortField(sortField), sortDirection)}
               </Button>
+            </TableHead>
+            {/* Odds - moved right after Line */}
+            <TableHead className="text-center w-[10%] py-2">
+              <span className="font-semibold text-sm">Over / Under</span>
             </TableHead>
             {/* Avg - fixed width */}
             <TableHead className="text-center w-[5%] py-2 border-r-0">
@@ -878,10 +950,6 @@ export default function HitRateTableV2({
             {/* Recent Games - flexible to fill remaining space */}
             <TableHead className="text-center w-[20%] py-2 border-r-0">
               <span className="font-semibold text-sm">Performance</span>
-            </TableHead>
-            {/* Odds - Combined column for odds, sportsbook, and compare - fixed width */}
-            <TableHead className="text-center w-[10%] py-2">
-              <span className="font-semibold text-sm">Best Odds</span>
             </TableHead>
             {/* Share in second row - empty for cleaner look */}
             <TableHead className="text-center w-[3%] py-2">{/* No label needed here */}</TableHead>
@@ -1135,6 +1203,32 @@ export default function HitRateTableV2({
                     )}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{profile.market}</div>
+                </TableCell>
+
+                {/* Odds - moved right after Line */}
+                <TableCell className="p-1">
+                  {(() => {
+                    // Get the correct line key based on custom tier or default line
+                    const lineKey = customTier !== null ? customTier.toString() : profile.line?.toString();
+                    const relevantOdds = profile.all_odds && lineKey ? profile.all_odds[lineKey] : null;
+
+                    return (
+                      <DualOddsCell
+                        market={profile.market}
+                        line={profile.line}
+                        customTier={customTier}
+                        fallback_odds={relevantOdds}
+                        compact={true}
+                        playerName={profile.player_name}
+                        playerId={profile.player_id}
+                        teamName={teamAbbreviation}
+                        gameId={profile.odds_event_id}
+                        eventTime={profile.commence_time}
+                        awayTeam={profile.away_team}
+                        homeTeam={profile.home_team}
+                      />
+                    )
+                  })()}
                 </TableCell>
 
                 {/* Average - Significantly reduced size */}
@@ -1444,23 +1538,6 @@ export default function HitRateTableV2({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                </TableCell>
-
-                {/* Combined Odds, Sportsbook and Compare button in a single cell */}
-                <TableCell className="p-1">
-                  {(() => {
-                    return (
-                      <OddsCell
-                        odds={bestOddsValue}
-                        sportsbook={bestBook}
-                        market={profile.market}
-                        line={profile.line}
-                        customTier={customTier}
-                        allOdds={availableOddsForLine}
-                        directLink={directLink}
-                      />
-                    )
-                  })()}
                 </TableCell>
 
                 {/* Share button in its own column */}

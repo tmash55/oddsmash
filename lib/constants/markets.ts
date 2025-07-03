@@ -13,6 +13,12 @@ export interface SportMarkets {
 
 export const SPORT_MARKETS: SportMarkets = {
   basketball_nba: [
+    // Game-level markets
+    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+    { value: "Spread", label: "Point Spread", apiKey: "spreads" },
+    { value: "Total", label: "Total Points", apiKey: "totals" },
+    
+    // Player props
     {
       value: "Points",
       label: "Points",
@@ -145,6 +151,12 @@ export const SPORT_MARKETS: SportMarkets = {
     },
   ],
   basketball_ncaab: [
+    // Game-level markets
+    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+    { value: "Spread", label: "Point Spread", apiKey: "spreads" },
+    { value: "Total", label: "Total Points", apiKey: "totals" },
+    
+    // Player props
     {
       value: "Points",
       label: "Points",
@@ -277,6 +289,11 @@ export const SPORT_MARKETS: SportMarkets = {
     },
   ],
   baseball_mlb: [
+    // Game-level markets
+    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+    { value: "Spread", label: "Run Line", apiKey: "spreads" },
+    { value: "Total", label: "Total Runs", apiKey: "totals" },
+    
     // Batter Props
     {
       value: "Home_Runs",
@@ -316,6 +333,7 @@ export const SPORT_MARKETS: SportMarkets = {
     { value: "Singles", label: "Singles", apiKey: "batter_singles" },
     { value: "Doubles", label: "Doubles", apiKey: "batter_doubles" },
     { value: "Triples", label: "Triples", apiKey: "batter_triples" },
+    { value: "Stolen_Bases", label: "Stolen Bases", apiKey: "batter_stolen_bases" },
     {
       value: "Extra_Base_Hits",
       label: "Extra Base Hits",
@@ -370,6 +388,12 @@ export const SPORT_MARKETS: SportMarkets = {
     },
   ],
   icehockey_nhl: [
+    // Game-level markets
+    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+    { value: "Spread", label: "Puck Line", apiKey: "spreads" },
+    { value: "Total", label: "Total Goals", apiKey: "totals" },
+    
+    // Player props
     {
       value: "Points",
       label: "Points",

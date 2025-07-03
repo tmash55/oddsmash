@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { useSportsbookPreferences } from "@/hooks/use-sportsbook-preferences";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { formatOdds } from "@/lib/utils";
 // First, add the import for the GameFilters component at the top of the file
 import { GameFilters } from "./game-filters";
@@ -102,7 +102,7 @@ export function ParlayBuilder() {
   );
 
   // Get user's selected sportsbooks from hook
-  const { selectedSportsbooks } = useSportsbookPreferences();
+  const { selectedSportsbooks } = useUserPreferences();
 
   // Set initial active sportsbook from preferences if available
   useEffect(() => {
