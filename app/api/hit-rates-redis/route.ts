@@ -214,52 +214,13 @@ export async function GET(request: Request) {
     
     console.log(`[/api/hit-rates-redis] After deduplication: ${uniqueProfiles.length} unique profiles (removed ${allProfiles.length - uniqueProfiles.length} duplicates)`)
 
-    // Apply hit rate filter based on time window
-    const hitRateField = timeWindow === "5_games" 
-      ? "last_5_hit_rate" 
-      : timeWindow === "10_games" 
-        ? "last_10_hit_rate" 
-        : "last_20_hit_rate"
-
-    console.log(`[/api/hit-rates-redis] Filtering by ${hitRateField} >= ${minHitRate * 100}%`)
-    
-    let filteredProfiles = uniqueProfiles.filter(profile => {
-      const hitRate = profile[hitRateField as keyof PlayerHitRateProfile] as number
-      return hitRate >= minHitRate * 100
-    })
-
-    // Apply game filtering if specified
-    if (selectedGames && selectedGames.length > 0) {
-      console.log(`[/api/hit-rates-redis] Filtering by ${selectedGames.length} selected games`)
-      filteredProfiles = filteredProfiles.filter(profile => 
-        profile.odds_event_id && selectedGames.includes(profile.odds_event_id)
-      )
-    }
-
-    // Filter out players whose games have already started
-    const now = new Date()
-    const upcomingProfiles = filteredProfiles.filter(profile => {
-      if (!profile.commence_time) return true // Keep if no commence_time
-      const gameTime = new Date(profile.commence_time)
-      return gameTime > now // Only include future games
-    })
-
-    console.log(`[/api/hit-rates-redis] After filtering: ${upcomingProfiles.length} profiles with upcoming games`)
-
     // Apply server-side sorting
-    const sortedProfiles = sortProfiles(upcomingProfiles, sortField, sortDirection)
+    const sortedProfiles = sortProfiles(uniqueProfiles, sortField, sortDirection)
 
-    // Calculate pagination
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-    const paginatedProfiles = sortedProfiles.slice(startIndex, endIndex)
-    const totalPages = Math.ceil(sortedProfiles.length / limit)
-
-    console.log(`[/api/hit-rates-redis] Returning page ${page} of ${totalPages} (${paginatedProfiles.length} profiles)`)
-
+    // Return all profiles in a single response
     return NextResponse.json({
-      profiles: paginatedProfiles,
-      totalPages,
+      profiles: sortedProfiles,
+      totalPages: 1, // Since we're returning all profiles at once
       totalProfiles: sortedProfiles.length,
       source: 'redis'
     })

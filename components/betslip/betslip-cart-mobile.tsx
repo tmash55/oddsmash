@@ -242,7 +242,7 @@ function MobileBetslipCard({ betslip, index }: { betslip: any; index: number }) 
                     {selection.player_name || selection.description}
                   </h4>
                   <p className="text-muted-foreground font-medium mb-2">
-                    {selection.market} {selection.line ? `${selection.line}+` : ''}
+                    {selection.market_display || selection.market_key} {selection.line ? `${selection.line}+` : ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {selection.sportsbook} • {selection.game_info}

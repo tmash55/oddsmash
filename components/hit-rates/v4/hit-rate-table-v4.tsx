@@ -63,6 +63,7 @@ interface HitRateTableV4Props {
     positionAbbreviation: string
   }
   getBestOddsForProfile: (profile: PlayerHitRateProfile) => BestOdds | null
+  isLoading?: boolean
 }
 
 // Helper functions
@@ -268,21 +269,15 @@ const createBetslipSelection = (
   // Get the correct market API key
   const marketKey = getMarketApiKey("baseball_mlb", marketValue)
   
-  // Create odds_data object
-  const odds_data: Record<string, {
-    odds: number,
-    line?: number,
-    link?: string,
-    sid?: string,
-    last_update: string
-  }> = {}
+  // Create odds_data object with required fields
+  const odds_data: { [sportsbook: string]: { odds: number; line: number; link: string; last_update: string } } = {}
   
   // Add best odds if available
   if (bestOdds) {
     odds_data[bestOdds.sportsbook] = {
       odds: bestOdds.american,
       line: customTier !== null ? customTier : profile.line,
-      link: bestOdds.link || undefined,
+      link: bestOdds.link || "#", // Provide default link if not available
       last_update: new Date().toISOString()
     }
   }
@@ -299,6 +294,7 @@ const createBetslipSelection = (
     bet_type: "player_prop" as const,
     market_type: "player_prop" as const,
     market_key: marketKey,
+    market_display: profile.market,
     selection: betType === "over" ? `Over ${line}` : `Under ${line}`,
     player_name: profile.player_name,
     player_id: profile.player_id,
@@ -336,7 +332,7 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
     return (
       <div className="flex items-center justify-center">
         <div 
-          className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded text-xs font-semibold cursor-pointer hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors flex items-center gap-1.5"
+          className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs font-semibold cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
           onClick={() => link && window.open(link, "_blank")}
         >
           <span>{odds > 0 ? `+${odds}` : odds}</span>
@@ -474,6 +470,7 @@ export default function HitRateTableV4({
   calculateHitRate,
   getPlayerData,
   getBestOddsForProfile,
+  isLoading,
 }: HitRateTableV4Props) {
   const [favorites, setFavorites] = useState<Record<number, boolean>>({})
 
@@ -585,19 +582,13 @@ export default function HitRateTableV4({
       .toUpperCase()
   }
 
-  const formatGameTime = (timeString?: string): string => {
-    if (!timeString) return "TBD"
-
-    try {
-      const date = new Date(timeString)
-      return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-    } catch (e) {
-      return "TBD"
-    }
+  function formatGameTime(date: string | undefined) {
+    if (!date) return "";
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   }
 
   const formatOdds = (odds: number): string => {
@@ -727,10 +718,10 @@ export default function HitRateTableV4({
               <Button 
                 variant="ghost" 
                 className="p-0 font-semibold text-sm" 
-                onClick={() => handleSort("seasonHitRate")}
+                onClick={() => handleSort("season")}
               >
-                <span className={sortField === "seasonHitRate" ? "text-indigo-500 dark:text-indigo-400" : ""}>Season</span>
-                {getSortIcon("seasonHitRate", sortField, sortDirection)}
+                <span className={sortField === "season" ? "text-indigo-500 dark:text-indigo-400" : ""}>Season</span>
+                {getSortIcon("season", sortField, sortDirection)}
               </Button>
             </TableHead>
             
@@ -780,56 +771,116 @@ export default function HitRateTableV4({
               >
                 {/* Player - Updated with headshot and team logo like V2 */}
                 <TableCell className="font-medium py-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-10 w-10 border-2 border-slate-200 shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                       <div data-image-id={profile.player_id} className="w-full h-full">
                         <AvatarImage
-                          src={playerHeadshotUrl || "/placeholder.svg"}
+                            src={playerHeadshotUrl}
                           alt={profile.player_name}
                           className="object-cover w-full h-full"
-                          onError={() => {
-                            const fallback = document.createElement("div")
-                            fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                            fallback.textContent = profile.player_name.substring(0, 2)
-                            
-                            const imgContainer = document.querySelector(`[data-image-id="${profile.player_id}"]`)
-                            if (imgContainer) {
-                              imgContainer.innerHTML = ""
-                              imgContainer.appendChild(fallback)
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold';
+                                fallback.textContent = profile.player_name.split(' ').map(n => n[0]).join('');
+                                parent.appendChild(fallback);
                             }
                           }}
                         />
                       </div>
-                      <AvatarFallback className="bg-slate-200 text-slate-800">
-                        {profile.player_name.substring(0, 2)}
-                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col">
-                      <div className="font-bold text-sm">{profile.player_name}</div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <div className="w-4 h-4 relative flex-shrink-0" data-team-logo={teamAbbreviation}>
+                      <div className="absolute -bottom-1 -right-1">
+                        <div className="relative w-5 h-5 rounded-full overflow-hidden border-2 border-white dark:border-slate-900 shadow-sm bg-white dark:bg-slate-900">
                           <Image
                             src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(teamAbbreviation))}.svg`}
-                            alt={teamAbbreviation || "Team"}
-                            width={16}
-                            height={16}
+                            alt={teamAbbreviation}
+                            width={20}
+                            height={20}
                             className="object-contain w-full h-full p-0.5"
-                            onError={() => {
-                              const fallback = document.createElement("div")
-                              fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                              fallback.textContent = getStandardAbbreviation(teamAbbreviation)?.substring(0, 2) || "?"
-                              
-                              const imgContainer = document.querySelector(`[data-team-logo="${teamAbbreviation}"]`)
-                              if (imgContainer) {
-                                imgContainer.innerHTML = ""
-                                imgContainer.appendChild(fallback)
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
+                                fallback.textContent = getStandardAbbreviation(teamAbbreviation)?.substring(0, 2) || '?';
+                                parent.appendChild(fallback);
                               }
                             }}
                           />
                         </div>
-                        <Badge variant="outline" className="px-1 py-0 text-xs">
-                          {positionAbbreviation || "N/A"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm truncate">{profile.player_name}</span>
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs font-medium">
+                          {positionAbbreviation}
                         </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {formatGameTime(profile.commence_time)}
+                        {profile.away_team && profile.home_team && (
+                          <div className="flex items-center gap-1">
+                            {teamAbbreviation === getStandardAbbreviation(getTeamAbbreviation(profile.home_team)) ? (
+                              <>
+                                <span>vs</span>
+                                <div className="w-4 h-4 relative flex-shrink-0">
+                                  <Image
+                                    src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(getTeamAbbreviation(profile.away_team)))}.svg`}
+                                    alt={getTeamAbbreviation(profile.away_team)}
+                            width={16}
+                            height={16}
+                            className="object-contain w-full h-full p-0.5"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
+                                        fallback.textContent = getStandardAbbreviation(getTeamAbbreviation(profile.away_team))?.substring(0, 2) || '?';
+                                        parent.appendChild(fallback);
+                              }
+                            }}
+                          />
+                        </div>
+                              </>
+                            ) : (
+                              <>
+                                <span>@</span>
+                                <div className="w-4 h-4 relative flex-shrink-0">
+                                  <Image
+                                    src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(getTeamAbbreviation(profile.home_team)))}.svg`}
+                                    alt={getTeamAbbreviation(profile.home_team)}
+                                    width={16}
+                                    height={16}
+                                    className="object-contain w-full h-full p-0.5"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
+                                        fallback.textContent = getStandardAbbreviation(getTeamAbbreviation(profile.home_team))?.substring(0, 2) || '?';
+                                        parent.appendChild(fallback);
+                                      }
+                                    }}
+                                  />
+                      </div>
+                              </>
+                            )}
+                        </div>
+                        )}
+                        {isFavorite && (
+                          <Heart className="w-3 h-3 fill-current text-red-500" />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -919,7 +970,7 @@ export default function HitRateTableV4({
                                 <LabelList 
                                   dataKey="value" 
                                   position="top" 
-                                  className="fill-slate-400 dark:fill-slate-500 text-[10px] font-medium"
+                                  className="fill-slate-500 dark:fill-slate-400 text-[10px] font-medium"
                                   offset={2}
                                   formatter={(value: number) => value === 0 ? '' : value}
                                 />
@@ -1179,8 +1230,10 @@ export default function HitRateTableV4({
 
                 {/* L10 Hit Rate - Updated with V2 background styling */}
                 <TableCell className="p-0.5 sm:p-1">
-                  <div className="flex items-center justify-center rounded-lg shadow-sm">
-                    <div className={`py-2 px-3 font-medium text-sm sm:text-base ${getPercentageColor(hitRateL10)}`}>
+                  <div
+                    className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(hitRateL10)}`}
+                  >
+                    <div className="py-2 px-3 font-medium text-sm sm:text-base">
                       {hitRateL10}%
                     </div>
                   </div>
@@ -1189,8 +1242,10 @@ export default function HitRateTableV4({
                 {/* L20 Hit Rate (only show if not custom tier) */}
                 {customTier === null && (
                   <TableCell className="p-0.5 sm:p-1">
-                    <div className="flex items-center justify-center rounded-lg shadow-sm">
-                      <div className={`py-2 px-3 font-medium text-sm sm:text-base ${getPercentageColor(hitRateL20)}`}>
+                    <div
+                      className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(hitRateL20)}`}
+                    >
+                      <div className="py-2 px-3 font-medium text-sm sm:text-base">
                         {hitRateL20}%
                       </div>
                     </div>
@@ -1199,14 +1254,16 @@ export default function HitRateTableV4({
 
                 {/* Season Hit Rate */}
                 <TableCell className="p-0.5 sm:p-1">
-                  <div className="flex items-center justify-center rounded-lg shadow-sm">
-                    <div className={`py-2 px-3 font-medium text-sm sm:text-base ${getPercentageColor(seasonHitRate)}`}>
-                      {seasonHitRate}%
+                  <div
+                    className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(seasonHitRate)}`}
+                  >
+                    <div className="py-2 px-3 font-medium text-sm sm:text-base">
+                      {Math.round(seasonHitRate)}%
                     </div>
                   </div>
                 </TableCell>
 
-                {/* Best Over Odds */}
+                {/* Best Odds */}
                 <TableCell className="text-center p-1">
                   <V4OddsCell
                     profile={profile}

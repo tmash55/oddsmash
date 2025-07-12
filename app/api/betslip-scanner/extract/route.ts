@@ -1281,7 +1281,9 @@ async function saveBetslipToDatabase(
 function normalizePlayerName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[.,\-]/g, '')
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+    .replace(/[.,\-]/g, '') // Remove dots, commas, hyphens
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -2027,7 +2029,7 @@ export async function POST(request: NextRequest) {
     const today = new Date().toISOString().split('T')[0]
 
     // Helper function to get cached games
-    async function getCachedGames(sportApiKey: string, date: string): Promise<Record<string, GameData>> {
+    const getCachedGames = async (sportApiKey: string, date: string): Promise<Record<string, GameData>> => {
       const cacheKey = `${sportApiKey}-${date}`
       if (!gamesCache.has(cacheKey)) {
         console.log(`🎮 Fetching games for ${sportApiKey} on ${date}`)

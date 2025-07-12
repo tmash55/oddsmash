@@ -1,7 +1,5 @@
 import { Metadata } from "next"
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { createClient } from "@/libs/supabase/server";
 import config from "@/config";
 
 export const metadata: Metadata = {
@@ -14,15 +12,5 @@ export default async function QuickHitsLayout({
 }: {
   children: ReactNode;
 }) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect(config.auth.loginUrl);
-  }
-
   return <>{children}</>;
 }

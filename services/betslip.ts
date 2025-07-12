@@ -116,7 +116,18 @@ export async function addSelectionToBetslip(
   selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">
 ): Promise<BetslipSelection | null> {
   try {
+    console.log("[BetslipService] Adding selection to betslip:", { betslipId, selection })
+    console.log("[BetslipService] Selection odds_data:", selection.odds_data)
+
     const supabase = createClient();
+    
+    // Determine bet_type and market_type based on selection
+    const bet_type = selection.player_name ? 'player_prop' : 'standard';
+    const market_type = selection.player_name ? 'player_prop' : 
+                       selection.market_key.includes('spread') ? 'spread' :
+                       selection.market_key.includes('moneyline') ? 'moneyline' : 'total';
+    
+    console.log("[BetslipService] Determined bet types:", { bet_type, market_type })
     
     const { data, error } = await supabase
       .rpc('add_selection_to_betslip', {
@@ -126,9 +137,10 @@ export async function addSelectionToBetslip(
         p_commence_time: selection.commence_time,
         p_home_team: selection.home_team,
         p_away_team: selection.away_team,
-        p_bet_type: selection.bet_type,
-        p_market_type: selection.market_type,
+        p_bet_type: bet_type,
+        p_market_type: market_type,
         p_market_key: selection.market_key,
+        p_market_display: selection.market_display || selection.market_key.split(',')[0],
         p_selection: selection.selection,
         p_player_name: selection.player_name,
         p_player_team: selection.player_team,
@@ -137,13 +149,14 @@ export async function addSelectionToBetslip(
       });
 
     if (error) {
-      console.error("Error adding selection to betslip:", error);
+      console.error("[BetslipService] Error adding selection to betslip:", error)
       return null;
     }
 
+    console.log("[BetslipService] Successfully added selection. Response data:", data)
     return data;
   } catch (err) {
-    console.error("Error in addSelectionToBetslip:", err);
+    console.error("[BetslipService] Error in addSelectionToBetslip:", err);
     return null;
   }
 }
@@ -169,24 +182,22 @@ export async function removeSelectionFromBetslip(selectionId: string): Promise<b
   }
 }
 
-export async function clearBetslip(betslipId: string): Promise<boolean> {
+export async function clearBetslip(betslipId: string): Promise<void> {
   try {
     const supabase = createClient();
     
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('clear_betslip', {
         p_betslip_id: betslipId
       });
 
     if (error) {
       console.error("Error clearing betslip:", error);
-      return false;
+      throw error;
     }
-
-    return data;
   } catch (err) {
     console.error("Error in clearBetslip:", err);
-    return false;
+    throw err;
   }
 }
 

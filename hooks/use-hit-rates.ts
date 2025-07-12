@@ -4,20 +4,29 @@ import { PlayerHitRateProfile } from '@/types/hit-rates';
 import { PlayerPropOdds } from '@/services/player-prop-odds';
 import React from 'react';
 
+export interface UseHitRatesParams {
+  sport: string;
+  market: string;
+  page: number;
+  limit: number;
+  sortField: string;
+  sortDirection: "asc" | "desc";
+  selectedGames: string[] | null;
+  searchQuery?: string;
+}
+
 export interface HitRatesResponse {
   profiles: PlayerHitRateProfile[];
   totalPages: number;
   totalProfiles: number;
+  games?: Game[];
 }
 
-interface UseHitRatesParams {
-  sport: SupportedSport;
-  market: SportMarket;
-  page: number;
-  limit?: number;
-  sortField?: string;
-  sortDirection?: "asc" | "desc";
-  selectedGames?: string[] | null;
+export interface Game {
+  odds_event_id: string;
+  home_team: string;
+  away_team: string;
+  commence_time: string;
 }
 
 // Function to fetch hit rates data - Redis-first for maximum speed
@@ -107,7 +116,15 @@ export function useHitRates({ sport, market, page, limit = 25, sortField, sortDi
       const nextPage = page + 1;
       queryClient.prefetchQuery({
         queryKey: ['hitRates', sport, market, nextPage, limit, sortField, sortDirection, selectedGames] as const,
-        queryFn: () => fetchHitRatesData({ sport, market, page: nextPage, limit, sortField, sortDirection, selectedGames }),
+        queryFn: () => fetchHitRatesData({ 
+          sport, 
+          market, 
+          page: nextPage,
+          limit, 
+          sortField, 
+          sortDirection, 
+          selectedGames 
+        }),
         staleTime: 30000,
       });
     }

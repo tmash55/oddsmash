@@ -30,7 +30,7 @@ export default function HitRatesPage({ params }: Props) {
   return (
     <div className="w-full min-h-screen bg-background">
       <div className="mt-2 sm:mt-4 md:mt-8">
-        <HitRateDashboardV4 sport={sport} market={market} />
+        <HitRateDashboardV4 sport={sport} />
       </div>
     </div>
   )

@@ -12,7 +12,8 @@ import {
   PaginationItem, 
   PaginationLink, 
   PaginationNext, 
-  PaginationPrevious 
+  PaginationPrevious,
+  PaginationEllipsis
 } from "@/components/ui/pagination"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import FeedbackButton from "@/components/shared/FeedbackButton"
@@ -23,8 +24,12 @@ import { fetchHitRatesData } from "@/hooks/use-hit-rates"
 import { PlayerHitRateProfile } from "@/types/hit-rates"
 import { PlayerPropOdds, fetchBestOddsForHitRateProfiles } from "@/services/player-prop-odds"
 import { fetchPlayerTeamData } from "@/services/teams"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { resolveOddsForProfiles } from "@/lib/redis-odds-resolver"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
+import HitRateCardV4 from "./hit-rate-card-v4"
 
 interface PlayerTeamData {
   player_id: number
@@ -44,163 +49,288 @@ interface BestOddsV4 {
 
 interface HitRateDashboardV4Props {
   sport: SupportedSport
-  market: SportMarket
 }
 
-export default function HitRateDashboardV4({ sport, market: initialMarket }: HitRateDashboardV4Props) {
+// Add loading skeleton component
+function HitRateTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-8 gap-4">
+        {Array(8).fill(0).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
+      </div>
+      {Array(10).fill(0).map((_, i) => (
+        <div key={i} className="grid grid-cols-8 gap-4">
+          {Array(8).fill(0).map((_, j) => (
+            <Skeleton key={j} className="h-12 w-full" />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  
+  // Get market from URL params
+  const urlMarket = pathname.split('/').pop()
+  const initialMarket = urlMarket ? decodeURIComponent(urlMarket) as SportMarket : 'Hits'
   
   // Memoize sportConfig to prevent unnecessary re-renders
   const sportConfig = useMemo(() => SPORT_CONFIGS[sport], [sport])
   
-  // UI State
+  // UI State - Proper view mode initialization
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentMarket, setCurrentMarket] = useState<SportMarket>(initialMarket)
-  const [currentViewMode, setCurrentViewMode] = useState<"table" | "grid">("table")
+  const [currentViewMode, setCurrentViewMode] = useState<"table" | "grid">(() => {
+    // Initialize view mode based on device, but allow user preference to override
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hit-rates-view-mode')
+      if (saved === 'table' || saved === 'grid') {
+        return saved as "table" | "grid"
+      }
+    }
+    return isMobile ? "grid" : "table"
+  })
   const [sortField, setSortField] = useState("L10")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [customTier, setCustomTier] = useState<number | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[] | null>(null)
+  const [selectedTimeWindow, setSelectedTimeWindow] = useState<"5_games" | "10_games" | "20_games">("10_games")
   
-  // Data State (V2 approach - load all data once)
-  const [allProfiles, setAllProfiles] = useState<PlayerHitRateProfile[]>([])
-  const [playerTeamData, setPlayerTeamData] = useState<Record<number, PlayerTeamData>>({})
-  const [freshOddsData, setFreshOddsData] = useState<Record<string, any>>({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
-  
-  const isMobile = useMediaQuery("(max-width: 768px)")
-  const itemsPerPage = 25
+  // Enhanced React Query implementation - now only fetches once per market
+  const {
+    data: hitRatesData,
+    isLoading: isHitRatesLoading,
+    isFetching: isHitRatesFetching,
+  } = useQuery({
+    queryKey: ['hitRates', sport, currentMarket],
+    queryFn: () => {
+      console.log(`🌐 [CACHE TEST] Making API call for ${sport} ${currentMarket}`)
+      return fetchHitRatesData({
+        sport,
+        market: currentMarket,
+        page: 1, // Always fetch page 1 since we're getting all data
+        limit: 1000, // Large limit to get all profiles
+        sortField,
+        sortDirection,
+        selectedGames: null,
+        searchQuery: '',
+      })
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes - increased from 30 seconds for better caching
+    gcTime: 10 * 60 * 1000, // 10 minutes - increased from 5 minutes
+  })
 
-  // Update currentMarket when initialMarket prop changes (URL navigation)
+  // Log cache status
   useEffect(() => {
-    setCurrentMarket(initialMarket)
-    setCustomTier(null) // Reset custom tier when market changes
+    if (hitRatesData) {
+      if (isHitRatesFetching) {
+        console.log(`🔄 [CACHE TEST] ${sport} ${currentMarket}: Data from cache, refetching in background`)
+      } else {
+        console.log(`✅ [CACHE TEST] ${sport} ${currentMarket}: Data loaded (from ${isHitRatesLoading ? 'API' : 'cache'})`)
+      }
+    }
+  }, [hitRatesData, isHitRatesLoading, isHitRatesFetching, sport, currentMarket])
+
+  const {
+    data: teamData,
+    isLoading: isTeamDataLoading,
+  } = useQuery({
+    queryKey: ['teamData', hitRatesData?.profiles?.map(p => p.player_id)],
+    queryFn: () => fetchPlayerTeamData(hitRatesData?.profiles?.map(p => p.player_id) || []),
+    enabled: !!hitRatesData?.profiles?.length,
+    staleTime: 10 * 60 * 1000, // 10 minutes - team data stays fresh longer
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  })
+
+  const {
+    data: oddsData,
+    isLoading: isOddsLoading,
+  } = useQuery({
+    queryKey: ['oddsData', hitRatesData?.profiles?.map(p => p.player_id)],
+    queryFn: () => resolveOddsForProfiles(
+      hitRatesData?.profiles?.map(profile => ({
+        player_id: profile.player_id,
+        market: profile.market,
+        line: profile.line,
+        all_odds: profile.all_odds
+      })) || [],
+      sport
+    ),
+    enabled: !!hitRatesData?.profiles?.length,
+    staleTime: 60 * 1000, // 1 minute - odds data becomes stale more quickly
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Client-side filtering and pagination
+  const filteredAndSortedProfiles = useMemo(() => {
+    if (!hitRatesData?.profiles) return []
+
+    let profiles = [...hitRatesData.profiles]
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      profiles = profiles.filter(profile => 
+        profile.player_name.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply game filter
+    if (selectedGames?.length) {
+      profiles = profiles.filter(profile => 
+        profile.odds_event_id && selectedGames.includes(profile.odds_event_id)
+      )
+    }
+
+    // Filter out past games
+    const now = new Date()
+    profiles = profiles.filter(profile => {
+      if (!profile.commence_time) return true
+      const gameTime = new Date(profile.commence_time)
+      return gameTime > now
+    })
+
+    // Apply sorting
+    profiles.sort((a, b) => {
+      let aValue: any, bValue: any
+      
+      switch (sortField) {
+        case "name":
+          aValue = a.player_name
+          bValue = b.player_name
+          break
+        case "line":
+          aValue = a.line
+          bValue = b.line
+          break
+        case "season":
+          aValue = a.season_hit_rate
+          bValue = b.season_hit_rate
+          break
+        case "L5":
+          aValue = a.last_5_hit_rate
+          bValue = b.last_5_hit_rate
+          break
+        case "L10":
+          aValue = a.last_10_hit_rate
+          bValue = b.last_10_hit_rate
+          break
+        case "L20":
+          aValue = a.last_20_hit_rate
+          bValue = b.last_20_hit_rate
+          break
+        default:
+          aValue = a.last_10_hit_rate
+          bValue = b.last_10_hit_rate
+      }
+
+      return sortDirection === "asc" 
+        ? aValue > bValue ? 1 : -1
+        : aValue < bValue ? 1 : -1
+    })
+
+    return profiles
+  }, [hitRatesData?.profiles, searchQuery, selectedGames, sortField, sortDirection])
+
+  // Update pagination calculation based on filtered results
+  const totalPages = Math.ceil(filteredAndSortedProfiles.length / 25);
+  const currentProfiles = useMemo(() => {
+    const startIndex = (currentPage - 1) * 25;
+    return filteredAndSortedProfiles.slice(startIndex, startIndex + 25);
+  }, [filteredAndSortedProfiles, currentPage]);
+
+  // Extract available games from profiles
+  const availableGames = useMemo(() => {
+    if (!hitRatesData?.profiles?.length) return []
     
-    // Reset data when market changes
+    const gamesMap = new Map()
+    const now = new Date()
+    
+    hitRatesData.profiles.forEach((profile: PlayerHitRateProfile) => {
+      if (profile.odds_event_id && profile.home_team && profile.away_team && profile.commence_time) {
+        const gameTime = new Date(profile.commence_time)
+        
+        if (gameTime > now) {
+          gamesMap.set(profile.odds_event_id, {
+            odds_event_id: profile.odds_event_id,
+            home_team: profile.home_team,
+            away_team: profile.away_team,
+            commence_time: profile.commence_time,
+          })
+        }
+      }
+    })
+    
+    return Array.from(gamesMap.values()).sort((a, b) => {
+      const timeA = new Date(a.commence_time).getTime()
+      const timeB = new Date(b.commence_time).getTime()
+      return timeA - timeB
+    })
+  }, [hitRatesData?.profiles])
+
+  // Update prefetch query to match
+  useEffect(() => {
+    if (!hitRatesData) return
+
+    const allMarkets: SportMarket[] = [
+      'Hits',
+      'Total Bases',
+      'Home Runs',
+      'RBIs',
+      'Singles',
+      'Doubles',
+      'Triples',
+      'Strikeouts',
+      'Earned Runs'
+    ]
+    
+    // Only prefetch other markets' data
+    allMarkets.forEach(market => {
+      if (market !== currentMarket) {
+        console.log(`[HIT RATES V4] 🔄 Prefetching data for ${market}`)
+        queryClient.prefetchQuery({
+          queryKey: ['hitRates', sport, market],
+          queryFn: () => fetchHitRatesData({
+            sport,
+            market,
+            page: 1,
+            limit: 1000,
+            sortField,
+            sortDirection,
+            selectedGames: null,
+            searchQuery: '',
+          }),
+          staleTime: 2 * 60 * 1000, // Match main query stale time
+          gcTime: 10 * 60 * 1000, // Match main query gc time
+        })
+      }
+    })
+  }, [hitRatesData, queryClient, sport, currentMarket])
+
+  // Sync currentMarket with URL changes without resetting data
+  useEffect(() => {
+    console.log(`🔄 [CACHE TEST] URL market: ${initialMarket}, Current market: ${currentMarket}`)
+    setCurrentMarket(initialMarket)
+    // Only reset custom tier when market changes, preserve everything else
     if (initialMarket !== currentMarket) {
-      setInitialLoadComplete(false)
-      setAllProfiles([])
-      setPlayerTeamData({})
-      setFreshOddsData({})
+      console.log(`📋 [CACHE TEST] Market changed from ${currentMarket} to ${initialMarket}, resetting custom tier only`)
+      setCustomTier(null)
     }
   }, [initialMarket, currentMarket])
 
-  // V4 Main Data Loading with Redis Odds Resolver
+  // Log view mode changes
   useEffect(() => {
-    const loadAllData = async () => {
-      if (initialLoadComplete) return
-
-      setLoading(true)
-      setError(null)
-      
-      try {
-        console.log(`[HIT RATES V4] 🚀 Loading all data for ${sport} ${currentMarket}`)
-        
-        // Load hit rates data (V2 approach with V3's Redis optimization built-in)
-        const hitRatesData = await fetchHitRatesData({
-          sport,
-          market: currentMarket,
-          page: 1,
-          limit: 1000, // Get all data at once (V2 approach)
-          sortField: "L10",
-          sortDirection: "desc",
-          selectedGames: null,
-        })
-        console.log(`[HIT RATES V4] 📊 API returned ${hitRatesData?.profiles?.length || 0} profiles`)
-
-        if (hitRatesData?.profiles) {
-          setAllProfiles(hitRatesData.profiles)
-          console.log(`[HIT RATES V4] 📋 Loaded ${hitRatesData.profiles.length} profiles`)
-          
-          // Load team data in parallel (V3 optimization)
-          const teamDataPromise = fetchPlayerTeamData(
-            hitRatesData.profiles.map((p: PlayerHitRateProfile) => p.player_id)
-          ).then((teamData: Record<number, PlayerTeamData>) => {
-            setPlayerTeamData(teamData)
-            console.log(`[HIT RATES V4] 👥 Loaded team data for ${Object.keys(teamData).length} players`)
-            return teamData
-          }).catch((err: any) => {
-            console.error("Failed to fetch team data:", err)
-            return {}
-          })
-
-          // NEW: Use Redis Odds Resolver for fresh odds
-          console.log(`[HIT RATES V4] 💰 Resolving fresh odds using Redis Odds Resolver`)
-          const freshOddsPromise = resolveOddsForProfiles(
-            hitRatesData.profiles.map((profile: PlayerHitRateProfile) => ({
-              player_id: profile.player_id,
-              market: profile.market,
-              line: profile.line,
-              all_odds: profile.all_odds
-            })),
-            sport
-          ).then((oddsData: Record<string, any>) => {
-            setFreshOddsData(oddsData)
-            console.log(`[HIT RATES V4] 💰 Resolved odds for ${Object.keys(oddsData).length} profiles`)
-            return oddsData
-          }).catch((err: any) => {
-            console.error("Failed to resolve fresh odds:", err)
-            return {}
-          })
-          
-          // Wait for both team data and fresh odds to complete
-          await Promise.all([teamDataPromise, freshOddsPromise])
-          
-          setInitialLoadComplete(true)
-          console.log(`[HIT RATES V4] ✅ All data loaded successfully`)
-        }
-      } catch (err) {
-        console.error("Error loading dashboard data:", err)
-        setError("Failed to load hit rate data")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadAllData()
-  }, [sport, currentMarket, initialLoadComplete])
-
-  // V3 Performance Optimizations - Background Prefetching
-  useEffect(() => {
-    if (!initialLoadComplete || !allProfiles.length) return
-
-    const prefetchOtherMarkets = async () => {
-      const commonMarkets: SportMarket[] = ['Hits', 'Home Runs', 'Total Bases', 'RBIs', 'Strikeouts']
-      
-      for (const market of commonMarkets) {
-        if (market !== currentMarket) {
-          try {
-            // Cache the query for instant switching
-            queryClient.prefetchQuery({
-              queryKey: ['hitRates', sport, market, 'all'],
-              queryFn: () => fetchHitRatesData({
-                sport,
-                market,
-                page: 1,
-                limit: 1000,
-                sortField: "L10",
-                sortDirection: "desc",
-                selectedGames: null,
-              }),
-              staleTime: 2 * 60 * 1000, // 2 minutes
-              gcTime: 10 * 60 * 1000, // 10 minutes
-            })
-          } catch (error) {
-            // Ignore prefetch errors
-          }
-        }
-      }
-    }
-
-    // Start prefetching after a short delay
-    const timer = setTimeout(prefetchOtherMarkets, 1000)
-    return () => clearTimeout(timer)
-  }, [initialLoadComplete, allProfiles.length, currentMarket, sport, queryClient])
+    console.log(`👁️ [CACHE TEST] View mode: ${currentViewMode}`)
+  }, [currentViewMode])
 
   // Reset page when filters change
   useEffect(() => {
@@ -308,178 +438,69 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
     })
   }
 
-  // V2 Approach - Client-side filtering with performance optimizations
-  const displayProfiles = useMemo(() => {
-    if (!allProfiles.length) return []
+  // Enhanced memoized filtering to handle both search and games filtering
+  const filteredProfiles = useMemo(() => {
+    if (!hitRatesData?.profiles) return [];
+
+    let profiles = [...hitRatesData.profiles];
     
-    let filtered = [...allProfiles]
+    // Apply search filter first
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      profiles = profiles.filter(profile => {
+        const nameMatch = profile.player_name.toLowerCase().includes(query);
+        const teamMatch = profile.team_abbreviation?.toLowerCase().includes(query) || 
+                         profile.team_name?.toLowerCase().includes(query);
+        return nameMatch || teamMatch;
+      });
+    }
     
-    // Filter out players whose games have already started
-    const now = new Date()
-    filtered = filtered.filter((profile: PlayerHitRateProfile) => {
-      if (!profile.commence_time) return true
-      const gameTime = new Date(profile.commence_time)
-      return gameTime > now
-    })
-    
-    // Apply game filter if selected
+    // Then filter by selected games
     if (selectedGames && selectedGames.length > 0) {
-      filtered = filtered.filter((profile: PlayerHitRateProfile) => 
+      profiles = profiles.filter(profile => 
         profile.odds_event_id && selectedGames.includes(profile.odds_event_id)
       );
     }
+
+    // Filter out games that have already started
+    const now = new Date();
+    profiles = profiles.filter(profile => {
+      if (!profile.commence_time) return true;
+      const gameTime = new Date(profile.commence_time);
+      return gameTime > now;
+    });
+
+    return profiles;
+  }, [hitRatesData?.profiles, searchQuery, selectedGames]);
+
+
+
+  // Update getBestOddsForProfile to include sportsbook
+  const getBestOddsForProfile = (profile: PlayerHitRateProfile) => {
+    const allOdds = profile.all_odds
+    if (!allOdds) return null
     
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter((profile: PlayerHitRateProfile) => 
-        profile.player_name.toLowerCase().includes(query) ||
-        profile.team_abbreviation?.toLowerCase().includes(query)
-      )
+    // Find the best odds among available sportsbooks
+    let bestOdds = {
+      american: 0,
+      decimal: 0,
+      sportsbook: "",
+      link: null as string | null
     }
-    
-    // Sort the filtered results
-    const sorted = sortProfiles(filtered)
-    
-    return sorted
-  }, [allProfiles, searchQuery, selectedGames, sortField, sortDirection, customTier])
 
-  // Client-side pagination
-  const totalPages = Math.ceil(displayProfiles.length / itemsPerPage)
-  const currentPageProfiles = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return displayProfiles.slice(startIndex, startIndex + itemsPerPage)
-  }, [displayProfiles, currentPage, itemsPerPage])
-
-  // Extract available games from profiles (V2 approach)
-  const availableGames = useMemo(() => {
-    if (!allProfiles.length) return []
-    
-    const gamesMap = new Map()
-    const now = new Date()
-    
-    allProfiles.forEach((profile: PlayerHitRateProfile) => {
-      if (profile.odds_event_id && profile.home_team && profile.away_team && profile.commence_time) {
-        const gameTime = new Date(profile.commence_time)
-        
-        if (gameTime > now) {
-          gamesMap.set(profile.odds_event_id, {
-            odds_event_id: profile.odds_event_id,
-            home_team: profile.home_team,
-            away_team: profile.away_team,
-            commence_time: profile.commence_time,
-          })
+    Object.entries(allOdds).forEach(([sportsbook, odds]) => {
+      const overOdds = odds.over?.odds
+      if (overOdds && (!bestOdds.american || overOdds > bestOdds.american)) {
+        bestOdds = {
+          american: overOdds,
+          decimal: overOdds > 0 ? (overOdds / 100) + 1 : (-100 / overOdds) + 1,
+          sportsbook,
+          link: odds.over?.link || null
         }
       }
     })
-    
-    return Array.from(gamesMap.values()).sort((a, b) => {
-      const timeA = new Date(a.commence_time).getTime()
-      const timeB = new Date(b.commence_time).getTime()
-      return timeA - timeB
-    })
-  }, [allProfiles])
 
-  // Simplified approach using Redis Odds Resolver
-  const getBestOddsForProfile = (profile: PlayerHitRateProfile): BestOddsV4 | null => {
-    console.log(`[getBestOddsForProfile] ${profile.player_name} | ${profile.market} | Line: ${profile.line}`);
-    
-    // Priority 1: Check if we have resolved fresh odds from Redis Odds Resolver
-    const profileKey = `${profile.player_id}:${profile.market}:${profile.line}`;
-    const resolvedOdds = freshOddsData[profileKey];
-    
-    if (resolvedOdds) {
-      console.log(`[getBestOddsForProfile] ✅ Using resolved fresh odds from ${resolvedOdds.source}`);
-      
-      // For now, return just the over odds in the old format for compatibility
-      // The V4OddsCell will handle both over and under separately
-      if (resolvedOdds.over) {
-        return {
-          american: resolvedOdds.over.odds,
-          decimal: resolvedOdds.over.odds > 0 ? (resolvedOdds.over.odds / 100) + 1 : (-100 / resolvedOdds.over.odds) + 1,
-          sportsbook: resolvedOdds.over.sportsbook,
-          link: resolvedOdds.over.link || null,
-          // Add the full resolved structure for V4OddsCell
-          _resolved: resolvedOdds
-        }
-      }
-    }
-    
-    // Priority 2: Check if profile.all_odds contains fresh Redis structure with lines data
-    if (profile.all_odds && profile.all_odds.lines) {
-      console.log(`[getBestOddsForProfile] ✅ Found fresh Redis structure in profile.all_odds`);
-      console.log(`[getBestOddsForProfile] Available lines:`, Object.keys(profile.all_odds.lines));
-      
-      // Return the full structure for V4OddsCell to handle both over and under
-      return {
-        american: 0,
-        decimal: 1,
-        sportsbook: "Multiple",
-        link: null,
-        lines: profile.all_odds.lines
-      };
-    }
-    
-    // Priority 3: Fallback to old format for backward compatibility
-    if (profile.all_odds) {
-      console.log(`[getBestOddsForProfile] 📋 Using old format from profile.all_odds`);
-      console.log(`[getBestOddsForProfile] Available lines:`, Object.keys(profile.all_odds));
-      
-      let bestOddsValue = -Infinity;
-      let bestBook = "";
-      let directLink: string | undefined = undefined;
-      
-      const lineToSearch = customTier !== null ? (customTier - 0.5).toString() : profile.line.toString();
-      console.log(`[getBestOddsForProfile] Searching for line: ${lineToSearch}`);
-      
-      if (profile.all_odds[lineToSearch]) {
-        const availableOddsForLine = profile.all_odds[lineToSearch];
-        console.log(`[getBestOddsForProfile] Found odds for line ${lineToSearch}:`, availableOddsForLine);
-        
-        Object.entries(availableOddsForLine).forEach(([book, bookData]) => {
-          let currentOdds: number | undefined;
-          
-          if (bookData && bookData.odds !== undefined) {
-            currentOdds = Math.round(Number(bookData.odds));
-          } else if (!isNaN(Number(bookData))) {
-            currentOdds = Math.round(Number(bookData));
-          }
-          
-          console.log(`[getBestOddsForProfile] Sportsbook ${book}: ${currentOdds} (raw: ${JSON.stringify(bookData)})`);
-          
-          if (currentOdds !== undefined && !isNaN(currentOdds)) {
-            if ((currentOdds > 0 && currentOdds > bestOddsValue) || 
-                (currentOdds < 0 && currentOdds > bestOddsValue)) {
-              bestOddsValue = currentOdds;
-              bestBook = book;
-              
-              if (bookData && bookData.over_link) {
-                directLink = bookData.over_link;
-              } else if (bookData && bookData.link) {
-                directLink = bookData.link;
-              }
-            }
-          }
-        });
-        
-        if (bestOddsValue !== -Infinity) {
-          console.log(`[getBestOddsForProfile] ⚠️ Using OLD FORMAT - Best: ${bestOddsValue} from ${bestBook}`);
-          return {
-            american: bestOddsValue,
-            decimal: bestOddsValue > 0 ? (bestOddsValue / 100) + 1 : (-100 / bestOddsValue) + 1,
-            sportsbook: bestBook,
-            link: directLink || null
-          }
-        } else {
-          console.log(`[getBestOddsForProfile] ❌ No valid odds found for line ${lineToSearch}`);
-        }
-      } else {
-        console.log(`[getBestOddsForProfile] ❌ No odds found for line ${lineToSearch}`);
-      }
-    }
-    
-    console.log(`[getBestOddsForProfile] ❌ No odds data available`);
-    return null
+    return bestOdds.american ? bestOdds : null
   }
 
   // Get custom tier options for the current market
@@ -494,18 +515,17 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
       case "Home Runs":
         return [1, 2]
       case "Strikeouts":
-        return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
       default:
         return [1, 2, 3]
     }
   }
 
-  // Handle filter callbacks - all client-side (V2 approach)
+  // Handle filter callbacks
   const handleMarketChange = (market: SportMarket) => {
     setCurrentMarket(market)
     setCustomTier(null)
-    setInitialLoadComplete(false) // Trigger new data fetch
-    setAllProfiles([]) // Clear cached profiles
+    // No longer resetting selectedGames to preserve the game filter across market changes
     
     // Update URL
     const newPath = pathname.replace(/\/[^\/]+$/, `/${encodeURIComponent(market)}`)
@@ -518,6 +538,10 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
 
   const handleViewModeChange = (mode: "table" | "grid") => {
     setCurrentViewMode(mode)
+    // Persist view mode preference to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hit-rates-view-mode', mode)
+    }
   }
 
   const handleSortChange = (field: string, direction: "asc" | "desc") => {
@@ -530,83 +554,41 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
   }
 
   const handleRefreshData = () => {
-    setInitialLoadComplete(false)
-    setAllProfiles([])
-    setPlayerTeamData({})
-    setFreshOddsData({})
+    // Invalidate and refetch all queries
+    queryClient.invalidateQueries({ queryKey: ['hitRates'] })
+    queryClient.invalidateQueries({ queryKey: ['teamData'] })
+    queryClient.invalidateQueries({ queryKey: ['oddsData'] })
   }
 
-  // Helper function to get team abbreviation and position for a player
-  const getPlayerData = (playerId: number) => {
-    const data = playerTeamData[playerId]
-    
-    if (data) {
-      return {
-        teamAbbreviation: data.team_abbreviation,
-        positionAbbreviation: data.position_abbreviation,
-      }
-    }
-    
-    // Fallback using profile data
-    const playerProfile = allProfiles.find((p) => p.player_id === playerId)
-    let teamAbbr = "—"
-    
-    if (playerProfile?.team_name) {
-      teamAbbr = playerProfile.team_name
-        .split(" ")
-        .map((word) => word.charAt(0))
-        .join("")
-        .toUpperCase()
-    }
-    
-    return {
-      teamAbbreviation: teamAbbr,
-      positionAbbreviation: "—",
-    }
-  }
+
 
   // Check if all games have passed
   const allGamesPassed = useMemo(() => {
-    if (!allProfiles.length) return false
+    if (!hitRatesData?.profiles?.length) return false
     
     const now = new Date()
-    const hasUpcomingGames = allProfiles.some((profile: PlayerHitRateProfile) => {
+    const hasUpcomingGames = hitRatesData.profiles.some((profile: PlayerHitRateProfile) => {
       if (!profile.commence_time) return false
       const gameTime = new Date(profile.commence_time)
       return gameTime > now
     })
     
     return !hasUpcomingGames
-  }, [allProfiles])
+  }, [hitRatesData?.profiles])
 
-  // Show loading state
-  if (loading || !initialLoadComplete) {
+  // Show loading state only when we have no data and are loading
+  if ((isHitRatesLoading || isHitRatesFetching) && !hitRatesData) {
     return (
       <main className="container mx-auto py-8 px-4">
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent"></div>
-          <span className="ml-3 text-sm text-muted-foreground">Loading hit rates data...</span>
+          <span className="ml-3 text-muted-foreground">Loading hit rates data...</span>
         </div>
       </main>
     )
   }
 
-  // Render error state
-  if (error) {
-    return (
-      <main className="container mx-auto py-8 px-4">
-        <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">
-          <h3 className="font-bold text-lg">Error Loading Data</h3>
-          <p>{error}</p>
-          <div className="mt-4">
-            <Button onClick={handleRefreshData} className="bg-red-600 hover:bg-red-700 text-white">
-              Retry
-            </Button>
-          </div>
-        </div>
-      </main>
-    )
-  }
+
 
   // Render coming soon state for inactive sports
   if (!sportConfig.isActive) {
@@ -628,40 +610,27 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
     )
   }
 
-  // Generate pagination items
-  const getPaginationItems = () => {
-    const items = []
-    const maxPagesToShow = 5
-    
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2))
-    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1)
-    
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1)
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      items.push(
-        <PaginationItem key={i}>
-          <PaginationLink isActive={currentPage === i} onClick={() => setCurrentPage(i)}>
-            {i}
-          </PaginationLink>
-        </PaginationItem>,
-      )
-    }
-    
-    return items
-  }
-
   return (
-    <main className="container mx-auto py-8 px-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <main className={cn(
+      "container mx-auto",
+      isMobile ? "py-4 px-0" : "py-8 px-4"
+    )}>
+      <div className={cn(
+        "flex flex-col md:flex-row md:items-center justify-between gap-4",
+        isMobile ? "mb-4 px-4" : "mb-6"
+      )}>
         <div>
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className={cn(
+            "font-bold mb-2",
+            isMobile ? "text-2xl" : "text-3xl"
+          )}>
             {sportConfig.name} {currentMarket}
             <Badge variant="outline" className="ml-2 text-xs">V4</Badge>
           </h1>
-          <p className="text-base text-muted-foreground/90 leading-relaxed max-w-[85ch]">
+          <p className={cn(
+            "text-muted-foreground/90 leading-relaxed max-w-[85ch]",
+            isMobile ? "text-sm" : "text-base"
+          )}>
             Analyze {currentMarket.toLowerCase()} {sportConfig.statTerminology.hitRate.toLowerCase()} for {sportConfig.name} players.
           </p>
         </div>
@@ -672,130 +641,186 @@ export default function HitRateDashboardV4({ sport, market: initialMarket }: Hit
       </div>
 
       {/* Filters */}
-      <div className="mb-6">
+      <div className={cn(isMobile ? "mb-4" : "mb-6")}>
         <HitRateFiltersV4
           sport={sport}
+          currentMarket={currentMarket}
           onMarketChange={handleMarketChange}
-          onViewModeChange={handleViewModeChange}
           onSearchChange={handleSearchChange}
+          onViewModeChange={handleViewModeChange}
           onSortChange={handleSortChange}
           onGameFilterChange={handleGameFilterChange}
-          currentMarket={currentMarket}
+          onRefreshData={handleRefreshData}
+          onCustomTierChange={setCustomTier}
           currentViewMode={currentViewMode}
           searchQuery={searchQuery}
           availableGames={availableGames}
           selectedGames={selectedGames}
-          onRefreshData={handleRefreshData}
-          isLoading={loading}
+          isLoading={isHitRatesLoading || isHitRatesFetching}
           currentSortField={sortField}
           currentSortDirection={sortDirection}
           customTierOptions={getCustomTierOptions(currentMarket)}
           customTier={customTier}
-          onCustomTierChange={setCustomTier}
         />
       </div>
 
-      {/* Show "no upcoming games" message */}
-      {allGamesPassed ? (
-        <Card className="p-8 text-center">
-          <div className="space-y-4">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">No More Games Today</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                All {sportConfig.name} games for today have started or finished. 
-                Check back tomorrow morning for fresh hit rates and betting opportunities!
-              </p>
-            </div>
-            <div className="pt-2">
-              <Button
-                variant="outline"
-                onClick={() => window.location.reload()}
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh Page
-              </Button>
-            </div>
-          </div>
-        </Card>
+      {currentViewMode === "table" ? (
+        <HitRateTableV4
+          profiles={currentProfiles}
+          playerTeamData={teamData || {}}
+          sport={sport}
+          market={currentMarket}
+          customTier={customTier}
+          onSort={handleSortChange}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          calculateHitRate={(profile, timeWindow) => {
+            if (customTier !== null) {
+              const windowKey = timeWindow === "5_games" ? "last_5" : timeWindow === "10_games" ? "last_10" : "last_20"
+              return calculateHitRateWithCustomTier(profile, customTier, windowKey)
+            }
+            const key = timeWindow === "5_games" ? "last_5_hit_rate" : timeWindow === "10_games" ? "last_10_hit_rate" : "last_20_hit_rate"
+            return profile[key]
+          }}
+          getPlayerData={(playerId) => ({
+            teamAbbreviation: teamData?.[playerId]?.team_abbreviation || "",
+            positionAbbreviation: teamData?.[playerId]?.position_abbreviation || ""
+          })}
+          getBestOddsForProfile={(profile) => {
+            const odds = oddsData?.[`${profile.player_id}:${profile.market}:${profile.line}`]
+            if (!odds || !odds.over) return null
+            return {
+              american: odds.over.odds,
+              decimal: odds.over.odds, // Note: We might need to convert American to decimal if needed
+              sportsbook: odds.over.sportsbook,
+              link: odds.over.link || null,
+              _resolved: odds,
+              lines: null
+            }
+          }}
+          isLoading={isHitRatesLoading || isHitRatesFetching}
+        />
       ) : (
-        <>
-          {/* Empty State */}
-          {displayProfiles.length === 0 && (
-            <div className="p-8 text-center border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-              <h3 className="font-semibold text-lg text-gray-600 dark:text-gray-300">No Hit Rate Profiles Found</h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">Try adjusting your filters or search query.</p>
-            </div>
-          )}
+        <div className={cn(
+          "grid gap-4 w-full",
+          isMobile 
+            ? "grid-cols-1 px-2" // Single column on mobile with side padding
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        )}>
+          {currentProfiles.map((profile) => (
+            <HitRateCardV4
+              key={profile.player_id}
+              profile={profile}
+              customTier={customTier}
+              selectedTimeWindow={selectedTimeWindow}
+              getPlayerData={(playerId) => ({
+                teamAbbreviation: teamData?.[playerId]?.team_abbreviation || "",
+                positionAbbreviation: teamData?.[playerId]?.position_abbreviation || ""
+              })}
+              getBestOddsForProfile={(profile) => {
+                const odds = oddsData?.[`${profile.player_id}:${profile.market}:${profile.line}`]
+                if (!odds || !odds.over) return null
+                return {
+                  american: odds.over.odds,
+                  decimal: odds.over.odds,
+                  sportsbook: odds.over.sportsbook,
+                  link: odds.over.link || null,
+                  _resolved: odds,
+                  lines: null
+                }
+              }}
+              onSort={handleSortChange}
+              sortField={sortField}
+              sortDirection={sortDirection}
+            />
+          ))}
+        </div>
+      )}
 
-          {/* Content */}
-          {displayProfiles.length > 0 && (
-            <>
-              {/* Table */}
-              <HitRateTableV4
-                profiles={currentPageProfiles}
-                playerTeamData={playerTeamData}
-                sport={sport}
-                market={currentMarket}
-                activeTimeWindow="10_games"
-                customTier={customTier}
-                onSort={handleSortChange}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                calculateHitRate={calculateHitRate}
-                getPlayerData={getPlayerData}
-                getBestOddsForProfile={getBestOddsForProfile}
-              />
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                      />
-                    </PaginationItem>
-                    
-                    {getPaginationItems()}
-                    
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage === totalPages}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+      {/* Add pagination UI */}
+      {filteredAndSortedProfiles.length > 25 && (
+        <div className={cn(
+          "flex items-center justify-center space-x-2",
+          isMobile ? "mt-4 px-4 pb-6" : "mt-6"
+        )}>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                />
+              </PaginationItem>
+
+              {/* First page */}
+              {currentPage > 3 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
+                </PaginationItem>
               )}
 
-              {/* Results count */}
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, displayProfiles.length)} of {displayProfiles.length} players
-                {selectedGames && selectedGames.length > 0 && ` from ${selectedGames.length} selected game${selectedGames.length > 1 ? 's' : ''}`}
-                {searchQuery && ` (filtered by "${searchQuery}")`}
-              </div>
-            </>
-          )}
-        </>
+              {/* Ellipsis */}
+              {currentPage > 4 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNumber = Math.min(
+                  Math.max(currentPage - 2 + i, i + 1),
+                  totalPages - 2 + i
+                )
+                if (pageNumber <= 0 || pageNumber > totalPages) return null
+                return (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(pageNumber)}
+                      isActive={currentPage === pageNumber}
+                    >
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
+
+              {/* Ellipsis */}
+              {currentPage < totalPages - 3 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {/* Last page */}
+              {currentPage < totalPages - 2 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setCurrentPage(totalPages)}>
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       )}
+
+      {/* Update total count display */}
+      {filteredAndSortedProfiles.length > 0 && (
+        <div className="text-sm text-muted-foreground text-center mt-2">
+          Showing {((currentPage - 1) * 25) + 1} to {Math.min(currentPage * 25, filteredAndSortedProfiles.length)} of {filteredAndSortedProfiles.length} profiles
+        </div>
+      )}
+
+      {/* TanStack Query DevTools for cache debugging */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </main>
   )
 } 

@@ -18,57 +18,28 @@ CREATE TABLE betslips (
 );
 
 -- Create table for betslip selections
-CREATE TABLE betslip_selections (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    betslip_id UUID REFERENCES betslips(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    
-    -- Event/Game Data
+CREATE TABLE IF NOT EXISTS betslip_selections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    betslip_id UUID NOT NULL REFERENCES betslips(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     event_id TEXT NOT NULL,
     sport_key TEXT NOT NULL,
-    commence_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    commence_time TIMESTAMPTZ NOT NULL,
     home_team TEXT NOT NULL,
     away_team TEXT NOT NULL,
-    
-    -- Market Data
-    bet_type bet_type NOT NULL,
-    market_type market_type NOT NULL,
+    bet_type TEXT NOT NULL,
+    market_type TEXT NOT NULL,
     market_key TEXT NOT NULL,
+    market_display TEXT,  -- Display name for the market (e.g. "Home Runs"), nullable
     selection TEXT NOT NULL,
-    
-    -- Player Prop Specific Data (null for standard bets)
     player_name TEXT,
     player_team TEXT,
     line NUMERIC,
-    
-    -- Odds Data (store all sportsbook data as JSONB)
-    odds_data JSONB NOT NULL,
-    /* Example odds_data structure:
-    {
-      "fanduel": {
-        "odds": 190,
-        "line": 2.5,
-        "sid": "10885583",
-        "link": "https://...",
-        "last_update": "2024-05-29T15:35:39Z"
-      },
-      "draftkings": {
-        "odds": 185,
-        "line": 2.5,
-        "sid": "12345",
-        "link": "https://...",
-        "last_update": "2024-05-29T15:35:39Z"
-      }
-    }
-    */
-    
-    -- Metadata
-    status TEXT DEFAULT 'active',
+    odds_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'active',
     result TEXT,
-    settled_at TIMESTAMP WITH TIME ZONE,
-    
-    CONSTRAINT unique_selection_per_betslip UNIQUE (betslip_id, event_id, market_key, selection)
+    settled_at TIMESTAMPTZ
 );
 
 -- Create indexes for better query performance

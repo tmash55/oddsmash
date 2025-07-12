@@ -62,7 +62,7 @@ export function BetActions({ selection, directBetLink, className }: BetActionsPr
             <DialogTitle>Add to Betslip</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
-            {betslips.map((betslip) => (
+            {betslips?.map((betslip) => (
               <button
                 key={betslip.id}
                 onClick={() => handleBetslipSelect(betslip.id, selection)}
@@ -80,7 +80,7 @@ export function BetActions({ selection, directBetLink, className }: BetActionsPr
                       <Star className="h-3.5 w-3.5 fill-primary text-primary" />
                     )}
                     <span className="font-medium">
-                      {betslip.title || `Slip ${betslips.indexOf(betslip) + 1}`}
+                      {betslip.title || `Slip ${(betslips?.indexOf(betslip) || 0) + 1}`}
                     </span>
                   </div>
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
@@ -123,7 +123,7 @@ export function BetActions({ selection, directBetLink, className }: BetActionsPr
                           <Star className="h-3.5 w-3.5 fill-primary text-primary" />
                       )}
                         <span className="font-medium">
-                        {betslip.title || `Slip ${betslips.indexOf(betslip) + 1}`}
+                        {betslip.title || `Slip ${(betslips?.indexOf(betslip) || 0) + 1}`}
                       </span>
                       </div>
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
@@ -158,10 +158,10 @@ export function BetActions({ selection, directBetLink, className }: BetActionsPr
                   </div>
                 )}
               </button>
-            ))}
+            )) || []}
 
             {/* Create New Betslip Button */}
-            {betslips.length < 5 && (
+            {(betslips?.length || 0) < 5 && (
               <button
                 onClick={() => setShowNewBetslipDialog(true)}
                 className={cn(

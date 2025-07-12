@@ -8,27 +8,33 @@ import { createBetslipForUser, getBetslipsForUser, deleteBetslip as deleteBetsli
 import { calculateParlayOdds, americanToDecimal, decimalToAmerican, calculateSGPOdds, calculatePayout } from "@/lib/odds-utils"
 import { formatOdds } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
+import { SPORT_MARKETS, SportMarket } from "@/lib/constants/markets"
 
-type BetslipContextType = {
+interface BetslipContextType {
   betslips: Betslip[]
   activeBetslipId: string | null
-  isVisible: boolean
   isLoading: boolean
-  addSelection: (selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">, betslipId?: string) => Promise<void>
-  removeSelection: (selectionId: string) => Promise<void>
+  setActiveBetslip: (id: string) => void
+  addSelection: (
+    selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">,
+    betslipId: string
+  ) => Promise<BetslipSelection | null>
+  removeSelection: (selectionId: string, betslipId: string) => Promise<void>
   createBetslip: (title?: string, isDefault?: boolean) => Promise<Betslip | null>
-  deleteBetslip: (betslipId: string) => Promise<void>
-  setActiveBetslip: (betslipId: string) => void
-  clearBetslip: (betslipId: string) => Promise<void>
-  toggleVisibility: () => void
+  deleteBetslip: (id: string) => Promise<void>
+  clearBetslip: (id: string) => Promise<void>
   updateBetslipTitle: (betslipId: string, title: string) => Promise<void>
   setBetslipAsDefault: (betslipId: string) => Promise<void>
+  replaceBetslipSelection: (
+    oldSelectionId: string,
+    betslipId: string,
+    selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">
+  ) => Promise<BetslipSelection | null>
   calculateBetslipOdds: (betslipId: string) => number | null
   calculateBetslipPayout: (betslipId: string, wager: number) => number
-  formatOdds: (odds: number) => string
   getBetslipSelections: (betslipId: string) => BetslipSelection[]
-  calculateParlayOddsForSportsbook: (selections: BetslipSelection[], bookmaker: string) => number | null
-  replaceBetslipSelection: (oldSelectionId: string, betslipId: string, selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">) => Promise<void>
+  calculateParlayOddsForSportsbook: (selections: BetslipSelection[], sportsbook: string) => number | null
+  formatOdds: (odds: number | null) => string
 }
 
 // Routes where betslip should be visible
@@ -83,42 +89,36 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
 
   const addSelection = async (
     selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">,
-    betslipId?: string
+    betslipId: string
   ) => {
-    console.log("addSelection called with:", { selection, betslipId, activeBetslipId })
-    if (!user) {
-      console.error("No user logged in")
-      return
-    }
+    console.log("[BetslipContext] addSelection called with:", { selection, betslipId, activeBetslipId })
+    try {
+      // Find target betslip
+      const targetBetslip = betslips.find(b => b.id === betslipId)
+      console.log("[BetslipContext] Found target betslip:", targetBetslip)
 
-    const targetBetslipId = betslipId || activeBetslipId
-    if (!targetBetslipId) {
-      console.error("No betslip ID provided")
-      return
-    }
-
-    // Check if selection already exists in the betslip
-    const targetBetslip = betslips.find(b => b.id === targetBetslipId)
-    console.log("Found target betslip:", targetBetslip)
-    if (targetBetslip) {
-      const exists = targetBetslip.selections.some(s => 
-        s.event_id === selection.event_id &&
-        s.market_key === selection.market_key &&
-        s.selection === selection.selection
-      )
-      if (exists) {
-        console.error("Selection already exists in betslip")
-        return
+      if (!targetBetslip) {
+        console.error("[BetslipContext] Target betslip not found:", betslipId)
+        return null
       }
-    }
 
-    console.log("Attempting to add selection to betslip:", targetBetslipId)
-    const newSelection = await addSelectionToDb(targetBetslipId, selection)
-    console.log("Selection added to database:", newSelection)
-    if (newSelection) {
-      setBetslips(current => {
-        return current.map(betslip => {
-          if (betslip.id === targetBetslipId) {
+      // Log odds data before adding selection
+      console.log("[BetslipContext] Selection odds_data before adding:", selection.odds_data)
+
+      // Attempt to add selection to betslip
+      console.log("[BetslipContext] Attempting to add selection to betslip:", betslipId)
+      const newSelection = await addSelectionToDb(betslipId, selection)
+      console.log("[BetslipContext] Selection added to database:", newSelection)
+
+      if (!newSelection) {
+        console.error("[BetslipContext] Failed to add selection to database")
+        return null
+      }
+
+      // Update local state
+      setBetslips(prev => {
+        const updated = prev.map(betslip => {
+          if (betslip.id === betslipId) {
             return {
               ...betslip,
               selections: [...betslip.selections, newSelection]
@@ -126,7 +126,14 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
           }
           return betslip
         })
+        console.log("[BetslipContext] Updated betslips state:", updated)
+        return updated
       })
+
+      return newSelection
+    } catch (error) {
+      console.error("[BetslipContext] Error in addSelection:", error)
+      return null
     }
   }
 
@@ -175,8 +182,8 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
   }
 
   const clearBetslip = async (betslipId: string) => {
-    const success = await clearBetslipFromDb(betslipId)
-    if (success) {
+    try {
+      await clearBetslipFromDb(betslipId)
       setBetslips(current => {
         return current.map(betslip => {
           if (betslip.id === betslipId) {
@@ -188,6 +195,9 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
           return betslip
         })
       })
+    } catch (error) {
+      console.error("Error clearing betslip:", error)
+      throw error
     }
   }
 
@@ -379,28 +389,88 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  const createBetslipSelection = async (betslipId: string, selection: Partial<BetslipSelection>): Promise<BetslipSelection | null> => {
+    try {
+      // Map sport key to API format
+      const sportApiKey = selection.sport_key === 'mlb' ? 'baseball_mlb' : selection.sport_key
+
+      // Get market config from our constants
+      const marketConfig = SPORT_MARKETS[sportApiKey || '']?.find((m: SportMarket) => 
+        m.value === selection.market_key || 
+        m.label === selection.market_key
+      )
+
+      if (!marketConfig) {
+        console.error('[BetslipContext] Market config not found:', selection.market_key)
+        return null
+      }
+
+      // Get API keys (including alternate if available)
+      const marketApiKeys = marketConfig.hasAlternates 
+        ? `${marketConfig.apiKey},${marketConfig.alternateKey}`
+        : marketConfig.apiKey
+
+      // Format selection to include line
+      const formattedSelection = `${selection.selection} ${selection.line}`
+
+      const response = await fetch('/api/betslip/selections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          betslip_id: betslipId,
+          event_id: selection.event_id,
+          sport_key: sportApiKey,
+          market_key: marketApiKeys,
+          market_display: marketConfig.label,
+          market_type: selection.market_type,
+          bet_type: selection.bet_type,
+          selection: formattedSelection,
+          player_name: selection.player_name,
+          player_id: selection.player_id,
+          player_team: selection.player_team,
+          line: selection.line,
+          commence_time: selection.commence_time,
+          home_team: selection.home_team,
+          away_team: selection.away_team,
+          odds_data: selection.odds_data,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create betslip selection')
+      }
+
+      const data = await response.json()
+      console.log('[BetslipService] Successfully added selection. Response data:', data)
+      return data
+    } catch (error) {
+      console.error('[BetslipService] Error adding selection:', error)
+      return null
+    }
+  }
+
   return (
     <BetslipContext.Provider
       value={{
         betslips,
         activeBetslipId,
-        isVisible,
-        isLoading: isLoading || authLoading,
+        isLoading,
+        setActiveBetslip: setActiveBetslipId,
         addSelection,
         removeSelection,
         createBetslip,
         deleteBetslip,
-        setActiveBetslip: setActiveBetslipId,
         clearBetslip,
-        toggleVisibility,
         updateBetslipTitle,
         setBetslipAsDefault,
+        replaceBetslipSelection,
         calculateBetslipOdds,
         calculateBetslipPayout,
-        formatOdds,
         getBetslipSelections,
         calculateParlayOddsForSportsbook,
-        replaceBetslipSelection
+        formatOdds
       }}
     >
       {children}

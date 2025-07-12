@@ -474,10 +474,123 @@ export function getMarketsForSport(sport: string): SportMarket[] {
   return SPORT_MARKETS[sport] || [];
 }
 
+// Market types by sport
+export const SUPPORTED_MARKETS: Record<string, string[]> = {
+  mlb: [
+    // Batter markets
+    'home runs',  // Set as first item to be default
+    'hits',
+    'total bases',
+    'rbis',
+    'runs',
+    'batting strikeouts',
+    'batting walks',
+    'singles',
+    'doubles',
+    'triples',
+    'hits + runs + rbis',
+    'stolen bases',
+    // Pitcher markets
+    'strikeouts',
+    'hits allowed',
+    'walks',
+    'earned runs',
+    'outs',
+    'pitcher win'
+  ],
+  nba: [
+    'points', // Set as default
+    'rebounds',
+    'assists',
+    'three pointers made',
+    'points rebounds assists',
+    'points rebounds',
+    'points assists',
+    'rebounds assists',
+    'blocks',
+    'steals',
+    'blocks steals',
+    'turnovers',
+    'double double',
+    'triple double'
+  ],
+  nfl: [
+    'anytime touchdown', // Set as default
+    'passing yards',
+    'rushing yards',
+    'receiving yards',
+    'touchdowns',
+    'receptions',
+    'passing touchdowns',
+    'rushing touchdowns',
+    'receiving touchdowns',
+    'interceptions thrown',
+    'sacks taken',
+    'completions',
+    'attempts',
+    'carries',
+    'targets'
+  ],
+  nhl: [
+    'anytime goal', // Set as default
+    'points',
+    'goals',
+    'assists',
+    'shots on goal',
+    'power play points',
+    'blocked shots',
+    'total saves',
+    'first goal',
+    'last goal'
+  ]
+};
+
+// Export supported sports array
+export const SUPPORTED_SPORTS = ['mlb', 'nba', 'nfl', 'nhl'] as const;
+
+// Helper function to format market labels with special cases
+export function formatMarketLabel(market: string): string {
+  // Special case mappings
+  const specialCases: Record<string, string> = {
+    'rbis': 'RBIs',
+    'hits + runs + rbis': 'Hits + Runs + RBIs',
+  };
+
+  if (specialCases[market]) {
+    return specialCases[market];
+  }
+
+  // Handle markets with + signs
+  if (market.includes(' + ')) {
+    return market.split(' + ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' + ');
+  }
+
+  return market
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 // Helper function to get default market for a sport
 export function getDefaultMarket(sport: string): string {
-  const markets = getMarketsForSport(sport);
-  return markets.length > 0 ? markets[0].value : "Points";
+  const markets = SUPPORTED_MARKETS[sport] || [];
+  if (!markets.length) return '';
+  
+  // Sport-specific defaults
+  switch (sport) {
+    case 'mlb':
+      return 'home runs';
+    case 'nba':
+      return 'points';
+    case 'nfl':
+      return 'anytime touchdown';
+    case 'nhl':
+      return 'anytime goal';
+    default:
+      return markets[0];
+  }
 }
 
 // Helper function to get API key for a market

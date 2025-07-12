@@ -148,6 +148,7 @@ CREATE OR REPLACE FUNCTION add_selection_to_betslip(
   p_bet_type bet_type,
   p_market_type market_type,
   p_market_key TEXT,
+  p_market_display TEXT,
   p_selection TEXT,
   p_player_name TEXT DEFAULT NULL,
   p_player_team TEXT DEFAULT NULL,
@@ -166,6 +167,18 @@ BEGIN
     RAISE EXCEPTION 'Betslip not found';
   END IF;
 
+  -- Check for duplicate player props based on player name and market
+  IF p_bet_type = 'player_prop' AND EXISTS (
+    SELECT 1 
+    FROM betslip_selections 
+    WHERE betslip_id = p_betslip_id 
+      AND player_name = p_player_name 
+      AND market_key = p_market_key
+      AND line = p_line
+  ) THEN
+    RAISE EXCEPTION 'Selection already exists for this player and market';
+  END IF;
+
   INSERT INTO betslip_selections (
     betslip_id,
     event_id,
@@ -176,6 +189,7 @@ BEGIN
     bet_type,
     market_type,
     market_key,
+    market_display,
     selection,
     player_name,
     player_team,
@@ -192,6 +206,7 @@ BEGIN
     p_bet_type,
     p_market_type,
     p_market_key,
+    p_market_display,
     p_selection,
     p_player_name,
     p_player_team,
@@ -258,6 +273,7 @@ CREATE OR REPLACE FUNCTION replace_betslip_selection(
   p_bet_type bet_type,
   p_market_type market_type,
   p_market_key TEXT,
+  p_market_display TEXT,
   p_selection TEXT,
   p_player_name TEXT DEFAULT NULL,
   p_player_team TEXT DEFAULT NULL,
@@ -271,13 +287,15 @@ AS $$
 DECLARE
   v_selection betslip_selections;
 BEGIN
-  -- Start transaction
-  BEGIN
-    -- Delete the old selection
-    DELETE FROM betslip_selections
-    WHERE id = p_old_selection_id;
+  -- Verify betslip exists and belongs to the user
+  IF NOT EXISTS (SELECT 1 FROM betslips WHERE id = p_betslip_id) THEN
+    RAISE EXCEPTION 'Betslip not found';
+  END IF;
 
-    -- Insert the new selection
+  -- Delete old selection
+  DELETE FROM betslip_selections WHERE id = p_old_selection_id;
+
+  -- Insert new selection
     INSERT INTO betslip_selections (
       betslip_id,
       event_id,
@@ -288,6 +306,7 @@ BEGIN
       bet_type,
       market_type,
       market_key,
+    market_display,
       selection,
       player_name,
       player_team,
@@ -304,6 +323,7 @@ BEGIN
       p_bet_type,
       p_market_type,
       p_market_key,
+    p_market_display,
       p_selection,
       p_player_name,
       p_player_team,
@@ -312,13 +332,7 @@ BEGIN
     )
     RETURNING * INTO v_selection;
 
-    -- If we get here, both operations succeeded
     RETURN v_selection;
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- If anything fails, the transaction will be rolled back
-      RAISE EXCEPTION 'Failed to replace selection: %', SQLERRM;
-  END;
 END;
 $$;
 

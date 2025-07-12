@@ -21,22 +21,23 @@ import { useState } from "react"
 
 interface BetslipSelectionProps {
   selection: {
-    id: string
-    event_id: string
-    sport_key: string
-    market_key: string
-    selection: string
-    player_name?: string
-    line?: number
-    commence_time: string
-    home_team: string
-    away_team: string
+    id: string;
+    event_id: string;
+    sport_key: string;
+    market_key: string;
+    market_display?: string;
+    selection: string;
+    player_name?: string;
+    line?: number;
+    commence_time: string;
+    home_team: string;
+    away_team: string;
     odds_data: Record<string, {
-      odds: number
-      line?: number
-      link?: string
-      last_update: string
-    }>
+      odds: number;
+      line?: number;
+      link?: string;
+      last_update: string;
+    }>;
   }
 }
 
@@ -106,6 +107,11 @@ export function BetslipSelection({ selection }: BetslipSelectionProps) {
 
   // Get market label from SPORT_MARKETS
   const getMarketLabel = () => {
+    // If market_display is available, use it
+    if (selection.market_display) {
+      return selection.market_display;
+    }
+    // Fallback to old behavior
     const sportMarkets = SPORT_MARKETS[selection.sport_key] || []
     const market = sportMarkets.find(m => m.apiKey === selection.market_key)
     return market?.label || selection.market_key.split("_").join(" ")

@@ -13,10 +13,16 @@ export type MLBMarket =
   | "Home Runs"
   | "Strikeouts"
   | "Walks"
+  | "Batting Walks"
   | "RBIs"
   | "Singles"
   | "Doubles"
   | "Triples"
+  | "Earned Runs"
+  | "Hits Allowed"
+  | "Hits + Runs + RBIs"
+  | "Outs"
+  | "Stolen Bases"
 
 export type NFLMarket = 
   | "Passing Yards"
@@ -69,10 +75,16 @@ export const SPORT_CONFIGS: Record<SupportedSport, SportConfig> = {
       { value: "Home Runs", label: "Home Runs" },
       { value: "Strikeouts", label: "Strikeouts" },
       { value: "Walks", label: "Walks" },
+      { value: "Batting Walks", label: "Batting Walks" },
       { value: "RBIs", label: "RBIs" },
       { value: "Singles", label: "Singles" },
       { value: "Doubles", label: "Doubles" },
       { value: "Triples", label: "Triples" },
+      { value: "Earned Runs", label: "Earned Runs" },
+      { value: "Hits Allowed", label: "Hits Allowed" },
+      { value: "Hits + Runs + RBIs", label: "H+R+RBI" },
+      { value: "Outs", label: "Outs" },
+      { value: "Stolen Bases", label: "Stolen Bases" }
     ],
     defaultMarket: "Hits",
     statTerminology: {

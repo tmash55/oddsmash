@@ -54,10 +54,46 @@ export function useBetActions() {
     )
   }
 
+  // Helper function to validate odds availability
+  const validateOddsAvailability = (selection: BetslipSelectionInput): boolean => {
+    // Check if odds_data exists
+    if (!selection.odds_data || Object.keys(selection.odds_data).length === 0) {
+      return false;
+    }
+
+    // Check if the selection has valid odds for its type (over/under)
+    const isOver = selection.selection.toLowerCase().includes('over');
+    const isUnder = selection.selection.toLowerCase().includes('under');
+
+    // Look through all sportsbooks
+    for (const bookmaker of Object.values(selection.odds_data)) {
+      if (!bookmaker.odds || bookmaker.odds === 0) {
+        continue;
+      }
+
+      // For over selections, odds should be positive for overs
+      if (isOver && bookmaker.odds > 0) {
+        return true;
+      }
+      // For under selections, odds should be positive for unders
+      if (isUnder && bookmaker.odds > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   const handleAddToBetslip = async (selection: BetslipSelectionInput) => {
     console.log("handleAddToBetslip called with selection:", selection)
     if (!user) {
       setShowAuthModal(true)
+      return
+    }
+
+    // Validate odds availability before proceeding
+    if (!validateOddsAvailability(selection)) {
+      toast.error("No valid odds available for this selection")
       return
     }
 
@@ -80,6 +116,13 @@ export function useBetActions() {
     console.log("handleBetslipSelect called with:", { betslipId, selection })
     
     try {
+      // Validate odds availability before proceeding
+      if (!validateOddsAvailability(selection)) {
+        toast.error("No valid odds available for this selection")
+        setShowBetslipDialog(false)
+        return
+      }
+
       // First check for exact match (same line)
       if (selectionExists(betslipId, selection)) {
         toast.error("This selection already exists in the betslip")

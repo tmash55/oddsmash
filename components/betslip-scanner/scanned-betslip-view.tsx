@@ -689,6 +689,7 @@ export function ScannedBetslipView({
 
   // Helper function to get proper market label from markets.ts
   const getMarketLabel = (marketKey: string, sport: string = "baseball_mlb"): string => {
+    if (!marketKey) return 'Unknown Market'
     const markets = SPORT_MARKETS[sport] || SPORT_MARKETS["baseball_mlb"]
     const market = markets.find(m => m.value === marketKey || m.apiKey === marketKey)
     return market?.label || marketKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())

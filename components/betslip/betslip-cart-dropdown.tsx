@@ -187,7 +187,7 @@ function BetslipCartColumn({ betslip, index }: { betslip: any; index: number }) 
                   {selection.player_name || selection.description}
                 </p>
                 <p className="text-muted-foreground text-xs truncate">
-                  {selection.market} {selection.line ? `${selection.line}+` : ''}
+                  {selection.market_display || selection.market_key} {selection.line ? `${selection.line}+` : ''}
                 </p>
               </div>
               <div className="text-right ml-2">
