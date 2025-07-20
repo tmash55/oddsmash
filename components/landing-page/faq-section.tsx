@@ -173,7 +173,7 @@ export function FaqSection() {
                 Still have questions?
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                We're here to help! Reach out to our team for personalized support.
+                We&apos;re here to help! Reach out to our team for personalized support.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a

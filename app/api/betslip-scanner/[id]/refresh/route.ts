@@ -53,7 +53,7 @@ interface OddsMetadata {
 function normalizePlayerName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[.,\-]/g, '')
+    .replace(/[.,-]/g, '')  // Remove dots, commas, hyphens
     .replace(/\s+/g, ' ')
     .trim()
 }

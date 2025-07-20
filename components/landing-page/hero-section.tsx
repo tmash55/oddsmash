@@ -273,7 +273,7 @@ export function HeroSection() {
                 ))}
               </div>
               <blockquote className="text-lg text-slate-900 dark:text-slate-100 font-medium mb-3">
-                "{testimonials[currentTestimonial].text}"
+                &quot;{testimonials[currentTestimonial].text}&quot;
               </blockquote>
               <cite className="text-slate-500 dark:text-slate-400 text-sm">
                 — {testimonials[currentTestimonial].author}

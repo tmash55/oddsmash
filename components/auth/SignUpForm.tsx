@@ -377,7 +377,7 @@ export default function SignUpForm({ className, ...props }: React.ComponentProps
                           ) : (
                             <>
                               <X className="w-4 h-4 md:w-3 md:h-3" />
-                              <span>Passwords don't match</span>
+                              <span>Passwords don&apos;t match</span>
                             </>
                           )}
                         </motion.div>
