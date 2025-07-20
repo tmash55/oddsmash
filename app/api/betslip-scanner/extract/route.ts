@@ -5,6 +5,7 @@ import { getMarketApiKey, getMarketsForSport, type SportMarket } from '@/lib/con
 import { createClient } from '@/libs/supabase/server'
 import { sportsbooks } from '@/data/sportsbooks'
 import { calculateAllHitRatesForLine, shouldRecalculateForLine } from "@/lib/hit-rate-calculator"
+import { getGoogleCredentials, hasGoogleCredentials } from '@/lib/google-credentials-simple'
 
 interface BetSelection {
   id: string
@@ -111,27 +112,21 @@ let visionClient: ImageAnnotatorClient | null = null
 function getVisionClient() {
   if (!visionClient) {
     try {
-      // Try to initialize with environment credentials
-      if (process.env.GOOGLE_APPLICATION_CREDENTIALS || 
-          (process.env.GOOGLE_CLOUD_PRIVATE_KEY && process.env.GOOGLE_CLOUD_CLIENT_EMAIL)) {
+      // Check if Google credentials are configured
+      if (hasGoogleCredentials()) {
+        const credentials = getGoogleCredentials()
         
-        const config = process.env.GOOGLE_APPLICATION_CREDENTIALS 
-          ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
-          : {
-              credentials: {
-                private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-                client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
-              },
-              projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-            }
-        
-        visionClient = new ImageAnnotatorClient(config)
-        console.log('Google Vision API initialized successfully')
+        visionClient = new ImageAnnotatorClient({
+          credentials,
+          projectId: credentials.project_id
+        })
+        console.log('✅ Google Vision API initialized successfully with environment variables')
       } else {
-        console.warn('Google Vision API credentials not found, using mock OCR')
+        console.warn('⚠️ Google Vision API credentials not found in environment variables, using mock OCR')
       }
     } catch (error) {
-      console.error('Failed to initialize Google Vision API:', error)
+      console.error('❌ Failed to initialize Google Vision API:', error)
+      console.error('Falling back to mock OCR for development')
     }
   }
   return visionClient
