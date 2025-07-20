@@ -47,15 +47,15 @@ export default function SignUpPage() {
         transition={{ duration: 0.3 }}
       >
         <div className="w-full max-w-md text-center">
-          <h2 className="text-2xl font-bold mb-4 text-white dark:text-white text-gray-900">You're already signed in!</h2>
+          <h2 className="text-2xl font-bold mb-4 text-white dark:text-white text-gray-900">You&apos;re already signed in!</h2>
           <p className="text-white/70 dark:text-white/70 text-gray-600 mb-6">
-            You're already logged into your account.
+            You&apos;re already logged into your account.
           </p>
           <Link 
             href="/hit-rates" 
             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
           >
-            Let's Go!
+            Let&apos;s Go!
           </Link>
         </div>
       </motion.div>

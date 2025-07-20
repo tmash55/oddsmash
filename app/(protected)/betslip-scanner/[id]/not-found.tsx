@@ -15,7 +15,7 @@ export default function BetslipNotFound() {
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">
-            This betslip doesn't exist or you don't have permission to view it.
+            This betslip doesn&apos;t exist or you don&apos;t have permission to view it.
           </p>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
@@ -24,8 +24,8 @@ export default function BetslipNotFound() {
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
               <li>The betslip was deleted</li>
               <li>The link is incorrect</li>
-              <li>You don't have access to view this betslip</li>
-              <li>The betslip is private and you're not the owner</li>
+              <li>You don&apos;t have access to view this betslip</li>
+              <li>The betslip is private and you&apos;re not the owner</li>
             </ul>
           </div>
           <div className="pt-4">

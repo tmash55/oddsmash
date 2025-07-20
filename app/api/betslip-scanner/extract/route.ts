@@ -1340,7 +1340,7 @@ function normalizePlayerName(name: string): string {
     .toLowerCase()
     .normalize('NFD') // Decompose accented characters
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
-    .replace(/[.,\-]/g, '') // Remove dots, commas, hyphens
+    .replace(/[.,-]/g, '')  // Remove dots, commas, hyphens
     .replace(/\s+/g, ' ')
     .trim()
 }

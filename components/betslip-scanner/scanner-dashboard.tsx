@@ -310,7 +310,7 @@ export function ScannerDashboard() {
           </div>
         </div>
         <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Upload a screenshot of any betslip and we'll extract the picks, compare odds across all major sportsbooks, and
+          Upload a screenshot of any betslip and we&apos;ll extract the picks, compare odds across all major sportsbooks, and
           help you recreate it with the best available lines.
         </p>
       </div>

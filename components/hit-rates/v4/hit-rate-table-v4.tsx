@@ -28,7 +28,8 @@ import DualOddsCell from "@/components/shared/dual-odds-cell"
 import { BarChart, Bar, Cell, ResponsiveContainer, ReferenceLine, YAxis, LabelList } from "recharts"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { getMarketApiKey, getMarketsForSport, type SportMarket } from "@/lib/constants/markets"
+import { getMarketApiKey, getMarketsForSport, type SportMarket as SportMarketInterface } from "@/lib/constants/markets"
+import { type SportMarket } from "@/types/sports"
 import OddsComparison from "@/components/shared/odds-comparison"
 import type { BetslipSelection } from "@/types/betslip"
 import { sportsbooks } from "@/data/sportsbooks"
@@ -350,7 +351,7 @@ const createBetslipSelection = (
   
   // Get the correct market API key, including alternates if available
   const markets = getMarketsForSport("baseball_mlb")
-  const marketConfig = markets.find((m: SportMarket) => m.value === marketValue)
+          const marketConfig = markets.find((m: SportMarketInterface) => m.value === marketValue)
   
   const marketKey = marketConfig ? (
     marketConfig.hasAlternates && marketConfig.alternateKey ? 

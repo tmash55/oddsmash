@@ -295,7 +295,7 @@ export function PropComparisonFiltersV2({
                   <Info className="h-4 w-4 text-slate-400" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-sm">Shows each player's default line from their market</p>
+                  <p className="text-sm">Shows each player&apos;s default line from their market</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -446,7 +446,7 @@ export function PropComparisonFiltersV2({
                       <Info className="h-4 w-4 text-slate-400" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-sm">Shows each player's default line from their market</p>
+                      <p className="text-sm">Shows each player&apos;s default line from their market</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

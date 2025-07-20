@@ -157,8 +157,8 @@ export function SocialProofSection() {
                   ))}
                 </div>
                 <blockquote className="text-lg text-slate-700 dark:text-slate-300 mb-4 italic">
-                  "OddSmash saves me so much time. No more bouncing between apps — I see all the odds I need in one
-                  spot."
+                  &quot;OddSmash saves me so much time. No more bouncing between apps — I see all the odds I need in one
+                  spot.&quot;
                 </blockquote>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
@@ -211,7 +211,7 @@ export function SocialProofSection() {
                       )}
                     >
                       <blockquote className="text-lg md:text-xl text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">
-                        "{testimonial.quote}"
+                        &quot;{testimonial.quote}&quot;
                       </blockquote>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

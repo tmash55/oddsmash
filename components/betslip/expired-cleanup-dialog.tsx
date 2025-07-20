@@ -106,7 +106,7 @@ export function ExpiredCleanupDialog({
               <Clock className="h-4 w-4" />
               <AlertDescription>
                 Games have started or finished for some of your selections. 
-                Since live betting isn't available, these should be removed.
+                Since live betting isn&apos;t available, these should be removed.
               </AlertDescription>
             </Alert>
 

@@ -81,7 +81,7 @@ export function Footer() {
                   </Button>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  We'll never share your email. Unsubscribe anytime.
+                  We&apos;ll never share your email. Unsubscribe anytime.
                 </p>
               </form>
             </div>

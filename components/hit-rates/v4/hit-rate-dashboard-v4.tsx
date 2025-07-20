@@ -77,9 +77,9 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   const queryClient = useQueryClient()
   const isMobile = useMediaQuery("(max-width: 768px)")
   
-  // Get market from URL params
+  // Get market from URL params with proper type casting
   const urlMarket = pathname.split('/').pop()
-  const initialMarket = urlMarket ? decodeURIComponent(urlMarket) as SportMarket : 'Hits'
+  const initialMarket: SportMarket = urlMarket ? decodeURIComponent(urlMarket) as SportMarket : 'Hits'
   
   // Memoize sportConfig to prevent unnecessary re-renders
   const sportConfig = useMemo(() => SPORT_CONFIGS[sport], [sport])
@@ -660,7 +660,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     // No longer resetting selectedGames to preserve the game filter across market changes
     
     // Update URL
-    const newPath = pathname.replace(/\/[^\/]+$/, `/${encodeURIComponent(market)}`)
+    const newPath = pathname.replace(/\/[^/]+$/, `/${encodeURIComponent(market)}`)
     router.push(newPath)
   }
 
@@ -732,7 +732,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">{sportConfig.comingSoonMessage}</h2>
               <p className="text-muted-foreground">
-                We're working hard to bring you comprehensive hit rate analysis for {sportConfig.name}.
+                We&apos;re working hard to bring you comprehensive hit rate analysis for {sportConfig.name}.
                 Check back soon for updates!
               </p>
             </div>

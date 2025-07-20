@@ -230,7 +230,7 @@ function SelectionCard({
           )}
 
           <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 p-3 rounded-lg border-l-4 border-slate-300 dark:border-slate-600">
-            <span className="font-medium">Raw text:</span> "{selection.rawText}"
+            <span className="font-medium">Raw text:</span> &quot;{selection.rawText}&quot;
           </div>
         </div>
 
@@ -341,7 +341,7 @@ export function ExtractionResults({
               <AlertCircle className="h-16 w-16 text-slate-400 mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">No selections found</h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                We couldn't extract any bet selections from this image. Try uploading a clearer screenshot or a
+                We couldn&apos;t extract any bet selections from this image. Try uploading a clearer screenshot or a
                 different image.
               </p>
             </Card>

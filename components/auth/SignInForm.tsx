@@ -305,7 +305,7 @@ export default function SignInForm({ className, ...props }: React.ComponentProps
               transition={{ delay: 0.6, duration: 0.5 }}
               className="text-center text-base text-gray-600 dark:text-gray-400"
             >
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/sign-up"
                 className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 underline-offset-4 hover:underline font-semibold transition-colors duration-300"

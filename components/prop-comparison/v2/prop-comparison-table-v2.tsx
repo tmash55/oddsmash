@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { ReactElement } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -159,8 +159,10 @@ interface ProcessedPlayerOdds extends PlayerOdds {
 }
 
 // Update the renderClickableOdds function
-function renderClickableOdds(odds: OddsPrice | null | undefined, type: "over" | "under" | null = null): JSX.Element {
-  if (!odds) {
+function renderClickableOdds(
+  odds: OddsPrice | null | undefined,
+  type: "over" | "under" | null = null
+): ReactElement | null {  if (!odds) {
     return <span className="text-sm text-muted-foreground">-</span>
   }
 
@@ -176,7 +178,7 @@ function renderEV(
   method: "market-average" | "no-vig" = "market-average",
   odds: Record<string, BookmakerOdds>,
   type: "over" | "under",
-): JSX.Element {
+): ReactElement | null {
   if (!bestOdds)
     return (
       <div className="min-w-[30px] text-center">

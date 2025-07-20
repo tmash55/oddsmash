@@ -200,7 +200,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             Welcome to OddSmash{userData?.firstName ? `, ${userData.firstName}` : ""} 👋
           </CardTitle>
           <CardDescription className="text-white/70 text-xl md:text-lg leading-relaxed">
-            Let's customize your betting experience to help you find the smartest plays and best value.
+            Let&apos;s customize your betting experience to help you find the smartest plays and best value.
           </CardDescription>
         </CardHeader>
 
@@ -253,7 +253,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               size="lg"
               className="h-16 md:h-12 px-10 md:px-8 text-xl md:text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl md:rounded-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
-              Let's Get Started
+              Let&apos;s Get Started
               <ArrowRight className="w-6 h-6 md:w-5 md:h-5 ml-3 md:ml-2" />
             </Button>
           </div>
@@ -299,7 +299,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             What state are you betting from?
           </CardTitle>
           <CardDescription className="text-white/70 text-lg md:text-base">
-            We'll show you legal sportsbooks in your area
+            We&apos;ll show you legal sportsbooks in your area
           </CardDescription>
         </CardHeader>
 
@@ -332,7 +332,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           {selectedState && selectedState !== "none" && !LEGAL_BETTING_STATES.includes(selectedState) && (
             <div className="p-6 md:p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl md:rounded-lg">
               <p className="text-base md:text-sm text-yellow-400 text-center">
-                ⚠️ Sports betting isn't currently legal in{" "}
+                ⚠️ Sports betting isn&apos;t currently legal in{" "}
                 {Object.entries(STATE_CODES).find(([_, code]) => code === selectedState)?.[0]}. You can still use
                 OddSmash for research and analysis!
               </p>
@@ -396,7 +396,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </div>
           <CardTitle className="text-3xl md:text-2xl text-white mb-4 md:mb-2">Which sportsbooks do you use?</CardTitle>
           <CardDescription className="text-white/70 text-lg md:text-base">
-            We'll tailor your experience to show you the best payouts from your favorite sportsbooks — and highlight
+              We&apos;ll tailor your experience to show you the best payouts from your favorite sportsbooks — and highlight
             where better odds exist.
           </CardDescription>
         </CardHeader>
@@ -533,7 +533,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 onClick={handleSelectNone}
                 className="h-12 md:h-10 px-8 md:px-6 text-white/60 hover:text-white hover:bg-white/10 text-lg md:text-base rounded-2xl md:rounded-md"
               >
-                I don't use any yet
+                I don&apos;t use any yet
               </Button>
             </div>
 
@@ -580,7 +580,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <div className="w-24 h-24 md:w-20 md:h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 md:mb-4">
             <Check className="w-12 h-12 md:w-10 md:h-10 text-white" />
           </div>
-          <CardTitle className="text-3xl md:text-2xl text-white mb-4 md:mb-2">You're All Set!</CardTitle>
+          <CardTitle className="text-3xl md:text-2xl text-white mb-4 md:mb-2">You&apos;re All Set!</CardTitle>
           <CardDescription className="text-white/70 text-lg md:text-base">
             Your personalized OddSmash experience is ready
           </CardDescription>
@@ -590,10 +590,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           {/* Celebratory personalization impact */}
           <div className="text-center space-y-4 md:space-y-2">
             <h3 className="text-2xl md:text-lg font-semibold text-white">
-              🎉 You're ready to find the smartest bets, faster.
+              🎉 You&apos;re ready to find the smartest bets, faster.
             </h3>
             <p className="text-base md:text-sm text-white/70">
-              We've tailored your experience based on your preferences.
+              We&apos;ve tailored your experience based on your preferences.
             </p>
           </div>
 

@@ -74,7 +74,7 @@ export function ProblemSection() {
             </span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Stop wasting time manually checking every sportsbook. There's a better way.
+            Stop wasting time manually checking every sportsbook. There&apos;s a better way.
           </p>
         </motion.div>
 

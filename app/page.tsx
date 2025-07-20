@@ -4,7 +4,7 @@ import { StickyCTABanner } from "@/components/landing-page/cta-section";
 import { FaqSection } from "@/components/landing-page/faq-section";
 import LandingFeaturesSection from "@/components/landing-page/features-section";
 
-import { HeroSection } from "@/components/landing-page/hero-section2";
+import { HeroSection } from "@/components/landing-page/hero-section";
 import { HowItWorks } from "@/components/landing-page/how-it-works";
 import { ProblemSection } from "@/components/landing-page/problem-section";
 import { SocialProofSection } from "@/components/landing-page/social-proof-section";

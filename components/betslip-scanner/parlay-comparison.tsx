@@ -131,7 +131,7 @@ export function ParlayComparison({ parlayComparison, parlayLinks }: ParlayCompar
           <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto" />
           <h3 className="font-semibold">No Parlay Comparison Available</h3>
           <p className="text-sm text-muted-foreground">
-            We couldn't find current odds for the extracted selections.
+            We couldn&apos;t find current odds for the extracted selections.
           </p>
         </div>
       </Card>
@@ -185,7 +185,7 @@ export function ParlayComparison({ parlayComparison, parlayLinks }: ParlayCompar
             <div className="space-y-1">
               <h4 className="font-medium text-yellow-800">Incomplete Parlay</h4>
               <p className="text-sm text-yellow-700">
-                Some selections don't have current odds available. The parlay comparison shows odds for available selections only.
+                Some selections don&apos;t have current odds available. The parlay comparison shows odds for available selections only.
               </p>
             </div>
           </div>
