@@ -102,7 +102,6 @@ export const teamAbbreviationMap: Record<string, string> = {
   ROCKIES: "COL",
   TIGERS: "DET",
   ASTROS: "HOU",
-  ROYALS: "KC",
   MARLINS: "MIA",
   BREWERS: "MIL",
   TWINS: "MIN",

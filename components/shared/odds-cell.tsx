@@ -164,16 +164,6 @@ function OddsCell({
     enabled: false // Disabled - using fallback_odds instead
   });
 
-  // Show loading state if no fallback odds available
-  if (oddsLoading && !fallback_odds && !hasValidOdds) {
-    return (
-      <div className="flex items-center gap-2">
-        <LoadingSpinner size="sm" />
-        <div className="text-xs text-muted-foreground">Loading odds...</div>
-      </div>
-    )
-  }
-
   // Process odds data when currentOdds or fallback_odds change
   useEffect(() => {
     const newOddsData: BetslipSelection['odds_data'] = {};
@@ -203,7 +193,6 @@ function OddsCell({
             odds: betData.price,
             line: targetLine,
             link: betData.link || null,
-            sid: betData.sid || null,
             last_update: betData.last_update || currentOdds.last_updated || new Date().toISOString()
           }
         });
@@ -226,7 +215,6 @@ function OddsCell({
           odds: data.price,
           line: targetLine,
           link: data.link || null,
-          sid: data.sid,
           last_update: data.last_update || new Date().toISOString()
         }
       });
@@ -269,6 +257,16 @@ function OddsCell({
     oddsData,
     betType
   ]);
+
+  // Show loading state if no fallback odds available
+  if (oddsLoading && !fallback_odds && !hasValidOdds) {
+    return (
+      <div className="flex items-center gap-2">
+        <LoadingSpinner size="sm" />
+        <div className="text-xs text-muted-foreground">Loading odds...</div>
+      </div>
+    )
+  }
 
   // Find the sportsbook in our data using the standardized ID
   const standardizedId = getStandardizedSportsbookId(sportsbook)
