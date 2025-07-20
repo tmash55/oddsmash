@@ -24,17 +24,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export function BetslipOverlay() {
+interface BetslipOverlayProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function BetslipOverlay({ isOpen = false, onClose }: BetslipOverlayProps) {
   const {
     betslips,
     activeBetslipId,
-    isVisible,
     isLoading,
     createBetslip,
     deleteBetslip,
     setActiveBetslip,
     clearBetslip,
-    toggleVisibility,
     updateBetslipTitle,
     setBetslipAsDefault,
   } = useBetslip()
@@ -80,7 +83,7 @@ export function BetslipOverlay() {
     toast.success("Default betslip updated")
   }
 
-  if (!isVisible) return null
+  if (!isOpen) return null
 
   // Show loading state
   if (isLoading) {
@@ -98,7 +101,7 @@ export function BetslipOverlay() {
       >
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleVisibility}>
+            <Button variant="ghost" size="icon" onClick={onClose}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-lg font-semibold">Betslip</h2>
@@ -118,185 +121,188 @@ export function BetslipOverlay() {
 
   return (
     <>
-      <AnimatePresence>
-        <motion.div
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className={cn(
-            "fixed right-0 top-0 z-50 flex h-screen w-96 flex-col",
-            "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-            "border-l shadow-xl"
-          )}
-        >
-          <div className="flex items-center justify-between border-b px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={toggleVisibility}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-lg font-semibold">Betslip</h2>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setShowNewBetslipDialog(true)}
-              disabled={betslips.length >= 5}
-            >
-              <Icons.plus className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="border-b px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Select 
-                value={activeBetslipId || undefined} 
-                onValueChange={setActiveBetslip}
+      <AnimatePresence mode="wait">
+        {isOpen && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={cn(
+              "fixed right-0 top-0 z-50 flex h-screen w-96 flex-col",
+              "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+              "border-l shadow-xl"
+            )}
+          >
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="text-lg font-semibold">Betslip</h2>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowNewBetslipDialog(true)}
+                disabled={betslips.length >= 5}
               >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue>
-                    {activeBetslip ? (
-                      <div className="flex items-center gap-2">
-                        <span>
-                          {activeBetslip.title || `Slip ${betslips.indexOf(activeBetslip) + 1}`}
-                        </span>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                          {activeBetslip.selections.length}
-                        </span>
-                      </div>
-                    ) : (
-                      "Select a betslip"
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {betslips.map((betslip) => (
-                    <SelectItem 
-                      key={betslip.id} 
-                      value={betslip.id}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Star 
-                          className={cn(
-                            "h-3 w-3",
-                            betslip.is_default ? "fill-primary text-primary" : "text-muted-foreground"
-                          )}
-                        />
-                        <span>
-                          {betslip.title || `Slip ${betslips.indexOf(betslip) + 1}`}
-                        </span>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                          {betslip.selections.length}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {activeBetslip && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleSetDefault(activeBetslip.id)}
-                  >
-                    <Star 
-                      className={cn(
-                        "h-4 w-4 transition-all",
-                        activeBetslip.is_default ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary"
+                <Icons.plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="border-b px-6 py-4">
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={activeBetslipId || undefined} 
+                  onValueChange={setActiveBetslip}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue>
+                      {activeBetslip ? (
+                        <div className="flex items-center gap-2">
+                          <span>
+                            {activeBetslip.title || `Slip ${betslips.indexOf(activeBetslip) + 1}`}
+                          </span>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                            {activeBetslip.selections.length}
+                          </span>
+                        </div>
+                      ) : (
+                        "Select a betslip"
                       )}
-                    />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => activeBetslip && handleEditTitle(activeBetslip.id)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  {betslips.length > 1 && (
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {betslips.map((betslip) => (
+                      <SelectItem 
+                        key={betslip.id} 
+                        value={betslip.id}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Star 
+                            className={cn(
+                              "h-3 w-3",
+                              betslip.is_default ? "fill-primary text-primary" : "text-muted-foreground"
+                            )}
+                          />
+                          <span>
+                            {betslip.title || `Slip ${betslips.indexOf(betslip) + 1}`}
+                          </span>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                            {betslip.selections.length}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {activeBetslip && (
+                  <>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setShowDeleteDialog(true)}
+                      className="h-8 w-8"
+                      onClick={() => handleSetDefault(activeBetslip.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Star 
+                        className={cn(
+                          "h-4 w-4 transition-all",
+                          activeBetslip.is_default ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary"
+                        )}
+                      />
                     </Button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {activeBetslip && (
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearBetslip(activeBetslip.id)}
-                  disabled={activeBetslip.selections.length === 0}
-                >
-                  Clear All
-                </Button>
-              </div>
-
-              {activeBetslip.selections.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-                  <div className="space-y-4">
-                    <Icons.empty className="mx-auto h-12 w-12 opacity-50" />
-                    {!user ? (
-                      <>
-                        <p className="font-medium">Sign in to use Betslip</p>
-                        <p className="max-w-[24ch] mx-auto">
-                          Create an account or sign in to save your selections and compare odds across sportsbooks
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowAuthModal(true)}
-                          className="mt-2"
-                        >
-                          Sign In
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-medium">Your betslip is empty</p>
-                        <p className="max-w-[24ch] mx-auto">
-                          Add bets to your betslip to compare odds across popular sportsbooks
-                        </p>
-                      </>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => activeBetslip && handleEditTitle(activeBetslip.id)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {betslips.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-hidden px-6">
-                    <ScrollArea className="h-full pr-4">
-                      <div className="space-y-4 pb-4">
-                        {activeBetslip.selections.map((selection) => (
-                          <BetslipSelection
-                            key={selection.id}
-                            selection={selection}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                  
-                  <div className="border-t px-6 py-4">
-                    <BetslipFooter 
-                      betslipId={activeBetslip.id}
-                    />
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          )}
-        </motion.div>
+
+            {activeBetslip && (
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => clearBetslip(activeBetslip.id)}
+                    disabled={activeBetslip.selections.length === 0}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+
+                {activeBetslip.selections.length === 0 ? (
+                  <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
+                    <div className="space-y-4">
+                      <Icons.empty className="mx-auto h-12 w-12 opacity-50" />
+                      {!user ? (
+                        <>
+                          <p className="font-medium">Sign in to use Betslip</p>
+                          <p className="max-w-[24ch] mx-auto">
+                            Create an account or sign in to save your selections and compare odds across sportsbooks
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAuthModal(true)}
+                            className="mt-2"
+                          >
+                            Sign In
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-medium">Your betslip is empty</p>
+                          <p className="max-w-[24ch] mx-auto">
+                            Add bets to your betslip to compare odds across popular sportsbooks
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 overflow-hidden px-6">
+                      <ScrollArea className="h-full pr-4">
+                        <div className="space-y-4 pb-4">
+                          {activeBetslip.selections.map((selection) => (
+                            <BetslipSelection
+                              key={selection.id}
+                              selection={selection}
+                              betslipId={activeBetslip.id}
+                            />
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    
+                    <div className="border-t px-6 py-4">
+                      <BetslipFooter 
+                        betslipId={activeBetslip.id}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <Dialog open={showNewBetslipDialog} onOpenChange={setShowNewBetslipDialog}>

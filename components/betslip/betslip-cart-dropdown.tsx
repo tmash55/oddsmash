@@ -17,20 +17,45 @@ import {
   Edit3
 } from "lucide-react"
 import Image from "next/image"
+import { useBetslip } from "@/contexts/betslip-context"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import type { Betslip } from "@/types/betslip"
 
 interface BetslipCartDropdownProps {
   isOpen: boolean
   onClose: () => void
-  betslips: any[]
   totalSelections: number
 }
 
 export function BetslipCartDropdown({ 
   isOpen, 
   onClose, 
-  betslips, 
   totalSelections 
 }: BetslipCartDropdownProps) {
+  const {
+    betslips: contextBetslips,
+    activeBetslipId,
+    isLoading,
+    createBetslip,
+    deleteBetslip,
+    setActiveBetslip,
+    clearBetslip,
+    updateBetslipTitle,
+    setBetslipAsDefault,
+  } = useBetslip()
+
+  // Sort betslips: ones with selections first, then by updated_at
+  const sortedBetslips = [...contextBetslips].sort((a: Betslip, b: Betslip) => {
+    // First sort by whether they have selections
+    const aHasSelections = (a.selections?.length || 0) > 0
+    const bHasSelections = (b.selections?.length || 0) > 0
+    if (aHasSelections !== bHasSelections) {
+      return aHasSelections ? -1 : 1
+    }
+    // Then sort by updated_at date (most recent first)
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  })
+
   // Click outside is now handled by the backdrop
   if (!isOpen) return null
 
@@ -83,7 +108,7 @@ export function BetslipCartDropdown({
 
         {/* Content */}
         <div className="overflow-hidden" style={{ maxHeight: 'calc(70vh - 80px)' }}>
-          {betslips.length === 0 ? (
+          {sortedBetslips.length === 0 ? (
             /* Empty State */
             <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
               <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
@@ -104,19 +129,20 @@ export function BetslipCartDropdown({
             /* Betslips Grid - Full width Apple style */
             <div className="px-6 py-6">
               <ScrollArea className="h-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
-                  {betslips.map((betslip, index) => (
-                    <BetslipCartColumn 
-                      key={betslip.id} 
-                      betslip={betslip} 
-                      index={index}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+                  {sortedBetslips.map((betslip, index) => (
+                    <div key={betslip.id} className="h-full">
+                      <BetslipCartColumn 
+                        betslip={betslip} 
+                        index={index}
+                      />
+                    </div>
                   ))}
                   
                   {/* Add New Betslip Card */}
-                  {betslips.length < 5 && (
-                    <Card className="h-fit border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 transition-colors">
-                      <CardContent className="flex flex-col items-center justify-center py-12 px-4">
+                  {contextBetslips.length < 5 && (
+                    <Card className="h-full border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 transition-colors">
+                      <CardContent className="flex flex-col items-center justify-center py-12 px-4 h-full">
                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
                           <Plus className="h-6 w-6 text-muted-foreground" />
                         </div>
@@ -137,11 +163,11 @@ export function BetslipCartDropdown({
         </div>
 
         {/* Footer */}
-        {betslips.length > 0 && (
+        {contextBetslips.length > 0 && (
           <div className="border-t p-6 bg-muted/50">
             <div className="flex items-center justify-between max-w-7xl mx-auto">
               <div className="text-base text-muted-foreground">
-                {betslips.length} betslip{betslips.length !== 1 ? 's' : ''} • {totalSelections} total selections
+                {contextBetslips.length} betslip{contextBetslips.length !== 1 ? 's' : ''} • {totalSelections} total selections
               </div>
               <div className="flex items-center gap-3">
                 <Button variant="outline" size="default">
@@ -162,24 +188,24 @@ export function BetslipCartDropdown({
 }
 
 // Individual Betslip Column Component
-function BetslipCartColumn({ betslip, index }: { betslip: any; index: number }) {
+function BetslipCartColumn({ betslip, index }: { betslip: Betslip; index: number }) {
   const selectionCount = betslip.selections?.length || 0
   
   return (
-    <Card className="h-fit">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">
-            Betslip {index + 1}
+            {betslip.title || `Betslip ${index + 1}`}
           </CardTitle>
           <Badge variant="outline" className="text-xs">
             {selectionCount} picks
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex-1 flex flex-col">
         {/* Selections Preview */}
-        <div className="space-y-2">
+        <div className="flex-1 space-y-2 min-h-[200px]">
           {betslip.selections?.slice(0, 3).map((selection: any, idx: number) => (
             <div key={idx} className="flex items-center justify-between text-sm">
               <div className="flex-1 min-w-0">
@@ -203,18 +229,29 @@ function BetslipCartColumn({ betslip, index }: { betslip: any; index: number }) 
               +{selectionCount - 3} more selections
             </div>
           )}
+
+          {selectionCount === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center py-6">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">No selections yet</p>
+              <Button variant="link" size="sm" asChild className="mt-2">
+                <a href="/mlb/props">Browse Props</a>
+              </Button>
+            </div>
+          )}
         </div>
 
-        <Separator />
+        <Separator className="my-4" />
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-2">
           <Button variant="outline" size="sm" className="flex-1">
-            <ExternalLink className="h-3 w-3 mr-2" />
-            View
+            View Details
           </Button>
-          <Button variant="ghost" size="sm">
-            <Trash2 className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="flex-1">
+            Compare Odds
           </Button>
         </div>
       </CardContent>

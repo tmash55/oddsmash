@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, TrendingUp, TrendingDown, Minus, Info, X, Scale, Clock, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
+import { ExternalLink, TrendingUp, TrendingDown, Minus, Info, X, Scale, Clock, ArrowUp, ArrowDown, ArrowUpDown, Plus } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Image from "next/image"
@@ -15,9 +15,10 @@ import { sportsbooks } from "@/data/sportsbooks"
 import DualOddsCell from "@/components/shared/dual-odds-cell"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { SportMarket } from "@/types/sports"
-import { BetActions } from "@/components/betting/bet-actions"
-import { getMarketApiKey } from "@/lib/constants/markets"
+
+import { useBetActions } from "@/hooks/use-bet-actions"
+import { BetslipDialog } from "@/components/betting/betslip-dialog"
+import { getMarketApiKey, getMarketsForSport, type SportMarket } from "@/lib/constants/markets"
 
 // Helper function to get market-specific terminology
 const getMarketTerminology = (market: SportMarket) => {
@@ -50,32 +51,102 @@ const formatTierOption = (tier: number, market: SportMarket): string => {
 // Helper function to map hit rate market to market value
 const mapHitRateMarketToMarketValue = (hitRateMarket: string): string => {
   const hitRateToApiMarketMap: Record<string, string> = {
-    "Hits": "hits",
-    "Home Runs": "home_runs", 
-    "RBIs": "rbis",
-    "RBI": "rbis",
-    "Total Bases": "total_bases",
-    "Runs": "runs_scored",
-    "Stolen Bases": "stolen_bases",
-    "Strikeouts": "strikeouts",
-    "Walks": "walks"
+    "Hits": "Hits",
+    "Home Runs": "Home_Runs", 
+    "RBIs": "RBIs",
+    "RBI": "RBIs",
+    "Total Bases": "Total_Bases",
+    "Runs": "Runs",
+    "Stolen Bases": "Stolen_Bases",
+    "Strikeouts": "Strikeouts",
+    "Walks": "Walks",
+    "Earned Runs": "Earned_Runs",
+    "Hits Allowed": "Hits_Allowed",
+    "Walks Allowed": "Walks_Allowed",
+    "Outs": "Outs_Recorded"
   }
   
-  return hitRateToApiMarketMap[hitRateMarket] || hitRateMarket.toLowerCase().replace(/\s+/g, "_")
+  return hitRateToApiMarketMap[hitRateMarket] || hitRateMarket.replace(/\s+/g, "_")
 }
 
 // Helper function to create betslip selection
 const createBetslipSelection = (
   profile: PlayerHitRateProfile,
   customTier: number | null,
-  bestOdds: any | null,
   betType: "over" | "under" = "over"
 ) => {
   // Map the hit rate market to the market value format
   const marketValue = mapHitRateMarketToMarketValue(profile.market)
   
-  // Get the correct market API key
-  const marketKey = getMarketApiKey("baseball_mlb", marketValue)
+  // Get the correct market API key, including alternates if available
+  const markets = getMarketsForSport("baseball_mlb")
+  const marketConfig = markets.find((m) => m.value === marketValue)
+  
+  const marketKey = marketConfig ? (
+    marketConfig.hasAlternates && marketConfig.alternateKey ? 
+    `${marketConfig.apiKey},${marketConfig.alternateKey}` : 
+    marketConfig.apiKey
+  ) : getMarketApiKey("baseball_mlb", marketValue)
+  
+  // Get best odds for the specific bet type - simplified for card view
+  const getBestOddsForCard = (profile: PlayerHitRateProfile, betType: "over" | "under") => {
+    // For custom tiers, the betting line is 0.5 less than the tier (e.g., 3+ bases = 2.5 line)
+    const targetLine = customTier !== null ? customTier - 0.5 : profile.line
+    
+    // Check if we have fresh Redis structure with lines data
+    if (profile.all_odds && profile.all_odds.lines) {
+      const lineData = profile.all_odds.lines[targetLine.toString()]
+      
+      if (lineData) {
+        let bestOdds = -Infinity
+        let bestBook = ""
+        
+        Object.entries(lineData).forEach(([sportsbook, bookData]: [string, any]) => {
+          if (bookData && bookData[betType] && typeof bookData[betType].price === 'number') {
+            const odds = bookData[betType].price
+            if (odds > bestOdds) {
+              bestOdds = odds
+              bestBook = sportsbook
+            }
+          }
+        })
+        
+        if (bestOdds !== -Infinity) {
+          return { american: bestOdds, sportsbook: bestBook }
+        }
+      }
+    }
+    
+    // For over bets, check old format
+    if (betType === "over" && profile.all_odds) {
+      // The old format uses the betting line as the key (e.g., "2.5" for 3+ bases)
+      const lineKey = targetLine.toString()
+      const relevantOdds = lineKey ? profile.all_odds[lineKey] : null
+      
+      if (relevantOdds) {
+        let bestOdds = -Infinity
+        let bestBook = ""
+        
+        Object.entries(relevantOdds).forEach(([book, bookData]) => {
+          if (bookData && typeof bookData === 'object' && 'odds' in bookData) {
+            const currentOdds = Number(bookData.odds)
+            if (!isNaN(currentOdds) && currentOdds > bestOdds) {
+              bestOdds = currentOdds
+              bestBook = book
+            }
+          }
+        })
+        
+        if (bestOdds !== -Infinity) {
+          return { american: bestOdds, sportsbook: bestBook }
+        }
+      }
+    }
+    
+    return null
+  }
+  
+  const bestOdds = getBestOddsForCard(profile, betType)
   
   // Create odds_data object
   const odds_data: Record<string, {
@@ -86,21 +157,21 @@ const createBetslipSelection = (
     last_update: string
   }> = {}
   
+  // Use line from custom tier or profile
+  // For custom tiers, the betting line is 0.5 less than the tier (e.g., 3+ bases = 2.5 line)
+  const line = customTier !== null ? customTier - 0.5 : profile.line
+  
   // Add best odds if available
   if (bestOdds) {
     odds_data[bestOdds.sportsbook] = {
       odds: bestOdds.american,
-      line: customTier !== null ? customTier : profile.line,
-      link: bestOdds.link || undefined,
+      line: line, // Use the calculated line (already adjusted for custom tiers)
       last_update: new Date().toISOString()
     }
   }
   
-  // Use line from custom tier or profile
-  const line = customTier !== null ? customTier : profile.line
-  
   return {
-    event_id: `${profile.away_team}_${profile.home_team}_${profile.commence_time}`,
+    event_id: profile.odds_event_id, // Use the actual odds_event_id from hit rate profile
     sport_key: "baseball_mlb",
     commence_time: profile.commence_time || new Date().toISOString(),
     home_team: profile.home_team || "",
@@ -108,7 +179,7 @@ const createBetslipSelection = (
     bet_type: "player_prop" as const,
     market_type: "player_prop" as const,
     market_key: marketKey,
-    selection: betType === "over" ? `Over ${line}` : `Under ${line}`,
+    selection: betType === "over" ? "Over" : "Under",
     player_name: profile.player_name,
     player_id: profile.player_id,
     player_team: profile.team_name,
@@ -399,6 +470,19 @@ export default function HitRateCardV4({
   sortField = "L10",
   sortDirection = "desc",
 }: HitRateCardV4Props) {
+  const [showBetslipDialog, setShowBetslipDialog] = useState(false)
+  const [pendingSelection, setPendingSelection] = useState<any>(null)
+
+  const { betslips, handleBetslipSelect, handleCreateBetslip, conflictingSelection, handleResolveConflict } =
+    useBetActions()
+    
+  // Function to handle adding to betslip
+  const handleAddToBetslip = (type: "over" | "under" = "over") => {
+    const selection = createBetslipSelection(profile, customTier, type)
+    setPendingSelection(selection)
+    setShowBetslipDialog(true)
+  }
+    
   const [showInfoModal, setShowInfoModal] = useState(false)
   const previousCustomTierRef = useRef<number | null>(customTier);
 
@@ -784,6 +868,7 @@ export default function HitRateCardV4({
   const homeAwaySplits = getMaxGameHomeAwaySplits()
 
   return (
+    <>
     <Card className={cn(
       "relative transition-all duration-200 hover:shadow-lg",
       isMobile 
@@ -860,11 +945,37 @@ export default function HitRateCardV4({
           </div>
         </div>
 
-        {/* Bet Actions Button */}
-        <div className="flex items-center gap-2 shrink-0">
-          <BetActions
-            selection={createBetslipSelection(profile, customTier, getBestOddsForProfile(profile), "over")}
-          />
+        {/* Over/Under Action Buttons */}
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "min-w-[32px] px-1.5",
+              "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
+              "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
+              "border-emerald-500/20",
+            )}
+            onClick={() => handleAddToBetslip("over")}
+          >
+            <Plus className="w-2.5 h-2.5 mr-0.5" />
+            O
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "min-w-[32px] px-1.5",
+              "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400",
+              "dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 dark:hover:text-red-300",
+              "border-red-500/20",
+            )}
+            onClick={() => handleAddToBetslip("under")}
+          >
+            <Plus className="w-2.5 h-2.5 mr-0.5" />
+            U
+          </Button>
         </div>
       </CardHeader>
 
@@ -1374,5 +1485,12 @@ export default function HitRateCardV4({
         </CardFooter>
       </CardContent>
     </Card>
+
+    <BetslipDialog
+      open={showBetslipDialog}
+      onOpenChange={setShowBetslipDialog}
+      selection={pendingSelection}
+    />
+  </>
   )
 }

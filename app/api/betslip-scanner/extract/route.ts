@@ -498,42 +498,54 @@ GAME-LEVEL MARKETS:
 CRITICAL LINE EXTRACTION RULES:
 PAY CLOSE ATTENTION TO THE EXACT FORMAT IN THE BETSLIP:
 
-1. "Over X.5" format (e.g., "Over 6.5", "Over 4.5"):
-   - Extract the EXACT decimal number shown
-   - "Over 6.5 strikeouts" → line: 6.5
-   - "Over 4.5 strikeouts" → line: 4.5
-   - "Over 1.5 hits" → line: 1.5
+1. STRIKEOUTS - SPECIAL HANDLING REQUIRED:
+   a) For "X+" format (e.g., "7+", "8+", "6+"):
+      - CRITICAL: Keep the EXACT whole number shown
+      - "7+ strikeouts" → line: 7 (keep 7 exactly)
+      - "8+ strikeouts" → line: 8 (keep 8 exactly)
+      - "6+ strikeouts" → line: 6 (keep 6 exactly)
+      DO NOT convert or modify the number for strikeouts!
 
-2. "X+" format (e.g., "6+", "7+", "2+"):
-   - For STRIKEOUTS: Keep the exact whole number (strikeouts are always whole numbers in real games)
-   - "6+ strikeouts" → line: 6
-   - "7+ strikeouts" → line: 7
-   - For OTHER markets: Convert to X-0.5
-   - "2+ hits" → line: 1.5
-   - "3+ total bases" → line: 2.5
+   b) For "Over X.5" format:
+      - Keep the exact decimal shown
+      - "Over 6.5 strikeouts" → line: 6.5
+      - "Over 7.5 strikeouts" → line: 7.5
 
-3. SPREAD formats (e.g., "+1.5", "-1.5", "+2.5", "-2.5"):
-   - CRITICAL: Extract the EXACT sign and number from the betslip
-   - "Team +1.5" → line: 1.5 (positive, team is underdog)
-   - "Team -1.5" → line: -1.5 (negative, team is favorite)
-   - "Team +2.5" → line: 2.5 (positive, team is underdog)
-   - "Team -2.5" → line: -2.5 (negative, team is favorite)
+2. ALL OTHER MARKETS - Standard Rules:
+   a) "Over X.5" format (e.g., "Over 6.5", "Over 4.5"):
+      - Extract the EXACT decimal number shown
+      - "Over 6.5 hits" → line: 6.5
+      - "Over 4.5 hits" → line: 4.5
+      - "Over 1.5 hits" → line: 1.5
 
-4. Binary props (no number):
+   b) "X+" format (e.g., "2+", "3+"):
+      - For NON-STRIKEOUT markets: Convert to X-0.5
+      - "2+ hits" → line: 1.5
+      - "3+ total bases" → line: 2.5
+
+3. Binary props (no number):
    - "TO HIT A HOME RUN" → line: 0.5
    - "TO HIT A DOUBLE" → line: 0.5
    - "TO RECORD A HIT" → line: 0.5
 
-EXAMPLES:
-- "Over 6.5 Strikeouts" → line: 6.5 (exact decimal)
-- "6+ Strikeouts" → line: 6 (whole number for X+ format)
-- "Over 4.5 Strikeouts" → line: 4.5 (exact decimal)
-- "4+ Strikeouts" → line: 4 (whole number for X+ format)
-- "Over 1.5 Hits" → line: 1.5 (exact decimal)
-- "2+ Hits" → line: 1.5 (X+ format converted to X-0.5)
-- "Over 17.5 Outs Recorded" → line: 17.5 (exact decimal)
-- "Over 15.5 CHRIS BASSITT OUTS RECORDED" → line: 15.5 (exact decimal)
-- "18+ Outs" → line: 17.5 (X+ format converted to X-0.5)
+STRIKEOUT EXAMPLES (PAY SPECIAL ATTENTION):
+- "7+ Strikeouts" → line: 7 (keep exact number)
+- "8+ Strikeouts" → line: 8 (keep exact number)
+- "Over 6.5 Strikeouts" → line: 6.5 (keep decimal)
+- "Over 7.5 Strikeouts" → line: 7.5 (keep decimal)
+- "6+ Jacob deGrom Strikeouts" → line: 6 (keep exact number)
+- "7+ SHOTA IMANAGA STRIKEOUTS" → line: 7 (keep exact number)
+
+NON-STRIKEOUT EXAMPLES:
+- "2+ Hits" → line: 1.5 (convert to X-0.5)
+- "3+ Total Bases" → line: 2.5 (convert to X-0.5)
+- "Over 1.5 Hits" → line: 1.5 (keep decimal)
+
+CRITICAL VALIDATION:
+- For strikeouts, NEVER modify the number in X+ format
+- For strikeouts, if you see "7+", the line MUST be 7
+- For strikeouts, if you see "8+", the line MUST be 8
+- Double-check all strikeout lines before returning!
 
 TEAM NAME VARIATIONS:
 - Handle abbreviations: "NYY" = "New York Yankees", "LAD" = "Los Angeles Dodgers"
@@ -1277,9 +1289,54 @@ async function saveBetslipToDatabase(
   }
 }
 
+// Function to fix common OCR mistakes in player names
+function fixOcrMistakes(name: string): string {
+  // Common OCR mistakes in player names
+  const ocrFixes: Record<string, string> = {
+    'lan': 'ian',    // Common mistake with capital I
+    'lvan': 'ivan',  // Another common I mistake
+    'lonathan': 'jonathan', // Another I case
+    'lames': 'james',  // Another I case
+    'lulio': 'julio',  // Another I case
+    'luan': 'juan',    // Another I case
+    'lasper': 'jasper', // J mistaken for I
+    'losh': 'josh',    // J mistaken for I
+    'lustin': 'justin', // J mistaken for I
+    'lordan': 'jordan', // J mistaken for I
+    'lose': 'jose',    // J mistaken for I
+    'loey': 'joey',    // J mistaken for I
+    'lavier': 'javier', // J mistaken for I
+    'lj': 'jj',        // Common for JJ players
+    'rj': 'rj',        // Keep RJ as is
+    'tj': 'tj',        // Keep TJ as is
+    'dj': 'dj',        // Keep DJ as is
+    'aj': 'aj',        // Keep AJ as is
+    'cj': 'cj'         // Keep CJ as is
+  }
+
+  // Split name into parts to handle first/last names separately
+  const parts = name.toLowerCase().split(' ')
+  
+  // Fix each part if it matches a known OCR mistake
+  const fixedParts = parts.map(part => {
+    // Check if this part matches any known OCR mistakes
+    const fixed = ocrFixes[part]
+    if (fixed) {
+      console.log(`🔧 OCR Fix: "${part}" -> "${fixed}"`)
+      return fixed
+    }
+    return part
+  })
+
+  return fixedParts.join(' ')
+}
+
 // Enhanced player name matching with fuzzy logic (copied from refresh endpoint)
 function normalizePlayerName(name: string): string {
-  return name
+  // First fix any OCR mistakes
+  const fixedName = fixOcrMistakes(name)
+  
+  return fixedName
     .toLowerCase()
     .normalize('NFD') // Decompose accented characters
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks

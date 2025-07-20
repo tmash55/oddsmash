@@ -1,5 +1,45 @@
 from datetime import datetime, timedelta, timezone
 
+TARGET_MARKETS = [
+    "Hits",
+    "Strikeouts",
+    "Total Bases",
+    "RBIs",
+    "Singles",
+    "Doubles",
+    "Triples",
+    "Hits + Runs + RBIs",
+    "Earned Runs",
+    "Pitcher Win",
+    "Home Runs",
+    "Batting Strikeouts",
+    "Batting Walks",
+    "Walks",
+    "Outs",
+    "Runs",           # New market
+    "Stolen Bases"    # New market
+]
+
+MARKET_TO_STAT_KEY = {
+    "hits": "hits",
+    "strikeouts": "pitching_strike_outs",
+    "total bases": "total_bases",
+    "rbis": "rbi",
+    "singles": "singles",            # computed in SQL RPC
+    "hits + runs + rbis": "hrr",     # computed in SQL RPC
+    "triples": "triples",
+    "doubles": "doubles",
+    "home runs": "home_runs",
+    "earned runs": "earned_runs",
+    "pitcher win": "wins",
+    "batting strikeouts": "strikeouts",
+    "batting walks": "base_on_balls",
+    "walks": "pitching_base_on_balls",
+    "outs": "outs",
+    "runs": "runs",                  # New mapping
+    "stolen bases": "stolen_bases"   # New mapping
+}
+
 def fetch_today_standard_props():
     """
     Fetch props for today from player_odds_history table (non‐alt lines plus Home Runs alt line).

@@ -25,6 +25,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { americanToDecimal, decimalToAmerican } from "@/lib/odds-utils"
+import { 
+  getTeamLogoUrl,
+  getPlayerHeadshotUrl,
+  getDefaultPlayerImage
+} from "@/lib/constants/sport-assets"
+import { SPORT_MARKETS, getMarketsForSport } from "@/lib/constants/markets"
+import { SportMarket } from "@/lib/constants/markets"
 
 // Add back the SPORTSBOOK_ID_MAP since it's not exported from sportsbooks
 const SPORTSBOOK_ID_MAP: Record<string, string> = {
@@ -105,6 +112,7 @@ interface PropComparisonCardV3Props {
   evMethod: "market-average" | "no-vig"
   sortField: "odds" | "line" | "edge" | "name" | "ev"
   sortDirection: "asc" | "desc"
+  sport: string
 }
 
 // Add EV calculation functions
@@ -179,20 +187,6 @@ function decimalToProbability(decimal: number): number {
   return 1 / decimal;
 }
 
-const getTeamLogoFilename = (abbr: string | undefined): string => {
-  if (!abbr) return "DEFAULT"
-
-  const teamMap: Record<string, string> = {
-    ARI: "AZ",
-    ATH: "OAK",
-    AT: "OAK",
-    A: "OAK",
-    CWS: "CHW",
-  }
-
-  return teamMap[abbr.toUpperCase()] || abbr.toUpperCase() || "DEFAULT"
-}
-
 const getPlayerInitials = (name: string | undefined): string => {
   if (!name) return "NA"
   return name
@@ -265,7 +259,8 @@ export function PropComparisonCardV2({
   globalLine, 
   evMethod = "market-average",
   sortField,
-  sortDirection
+  sortDirection,
+  sport
 }: PropComparisonCardV3Props) {
   const [selectedLine, setSelectedLine] = useState(() => {
     // Use global line if available and the player has odds for that line
@@ -276,12 +271,18 @@ export function PropComparisonCardV2({
     return data.primary_line
   })
 
-  // Update selected line when global line changes
+  // Update selected line when global line changes or when data/lines change
   useEffect(() => {
     if (globalLine && data.lines?.[globalLine]) {
       setSelectedLine(globalLine)
+    } else if (data.primary_line) {
+      setSelectedLine(data.primary_line)
+    } else {
+      // If no primary line, use the first available line
+      const firstLine = Object.keys(data.lines || {})[0]
+      setSelectedLine(firstLine)
     }
-  }, [globalLine, data.lines])
+  }, [globalLine, data.lines, data.primary_line])
 
   // Add sorting value calculation for display
   const sortValue = useMemo(() => {
@@ -384,9 +385,13 @@ export function PropComparisonCardV2({
       }
     });
 
+    // Get market config from our constants
+    const markets = getMarketsForSport(sport);
+    const marketConfig = markets.find((m: SportMarket) => m.value === data.market || m.apiKey === data.market);
+
     return {
       event_id: data.event_id,
-      sport_key: "baseball_mlb", // Make this dynamic based on sport
+      sport_key: sport,
       market_key: data.market,
       market_type: "player_props",
       bet_type: type,
@@ -398,9 +403,7 @@ export function PropComparisonCardV2({
       home_team: data.home_team || "",
       away_team: data.away_team || "",
       odds_data: oddsData,
-      market_display: data.market_display || data.market.split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' '),
+      market_display: marketConfig?.label || data.market_display || data.market,
       selection: type === 'over' ? 'Over' : 'Under'
     };
   };
@@ -479,7 +482,7 @@ export function PropComparisonCardV2({
   }, [data.lines, selectedLine])
 
   // Get player info and other required data
-  const playerHeadshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_100/v1/people/${data.player_id}/headshot/silo/current`
+  const playerHeadshotUrl = getPlayerHeadshotUrl(data.player_id.toString(), "mlb")
   const availableLines = Object.keys(data.lines).sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b))
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
 
@@ -491,9 +494,9 @@ export function PropComparisonCardV2({
     ? sportsbooks.find((book) => book.id.toLowerCase() === bestOdds.under.book.toLowerCase())
     : null
 
-  // Update the getBookLogo function to use sportsbooks data correctly
+  // Update the getBookLogo function to include a default fallback
   const getBookLogo = (bookId: string): string => {
-    if (!bookId) return ""
+    if (!bookId) return "/images/sports-books/generic-sportsbook.png"
 
     const mappedId = SPORTSBOOK_ID_MAP[bookId.toLowerCase()] || bookId.toLowerCase()
     const sportsbook = sportsbooks.find((book) => {
@@ -509,7 +512,7 @@ export function PropComparisonCardV2({
       )
     })
 
-    return sportsbook?.logo || ""
+    return sportsbook?.logo || "/images/sports-books/generic-sportsbook.png"
   }
 
   // Add helper function to get sportsbook name for alt text
@@ -569,17 +572,28 @@ export function PropComparisonCardV2({
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 ring-2 ring-white dark:ring-gray-800 shadow-sm">
-                    {playerHeadshotUrl ? (
-                      <Image
-                        src={playerHeadshotUrl || "/placeholder.svg"}
-                        alt={data.description || "Player"}
-                        width={48}
-                        height={48}
-                        className="object-cover w-full h-full"
-                      />
+                    {data.description ? (
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={getPlayerHeadshotUrl(data.player_id.toString(), sport)}
+                          alt={data.description || "Player"}
+                          width={48}
+                          height={48}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            // Show parent div with initials
+                            target.parentElement.querySelector('.player-initials')?.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="player-initials hidden absolute inset-0 flex items-center justify-center text-lg font-semibold text-gray-600 dark:text-gray-300">
+                          {getPlayerInitials(data.description)}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <UserIcon className="w-6 h-6" />
+                      <div className="w-full h-full flex items-center justify-center text-lg font-semibold text-gray-600 dark:text-gray-300">
+                        NA
                       </div>
                     )}
                   </div>
@@ -587,7 +601,7 @@ export function PropComparisonCardV2({
                   {data.team && (
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white dark:bg-gray-800 shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden">
                       <Image
-                        src={`/images/mlb-teams/${getTeamLogoFilename(data.team)}.svg`}
+                        src={getTeamLogoUrl(data.team, sport)}
                         alt={data.team}
                         width={24}
                         height={24}
@@ -695,7 +709,7 @@ export function PropComparisonCardV2({
                             <div className="flex items-center gap-2 mt-2">
                               <div className="w-5 h-5 rounded-md overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                                 <Image
-                                  src={getBookLogo(bestOdds.over.book) || "/placeholder.svg"}
+                                  src={getBookLogo(bestOdds.over.book)}
                                   alt={getBookName(bestOdds.over.book)}
                                   width={20}
                                   height={20}
@@ -716,7 +730,7 @@ export function PropComparisonCardV2({
                           <div className="flex items-center gap-2 mt-2">
                             <div className="w-5 h-5 rounded-md overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                               <Image
-                                src={getBookLogo(bestOdds.over.book) || "/placeholder.svg"}
+                                src={getBookLogo(bestOdds.over.book)}
                                 alt={getBookName(bestOdds.over.book)}
                                 width={20}
                                 height={20}
@@ -769,7 +783,7 @@ export function PropComparisonCardV2({
                             <div className="flex items-center gap-2 mt-2">
                               <div className="w-5 h-5 rounded-md overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                                 <Image
-                                  src={getBookLogo(bestOdds.under.book) || "/placeholder.svg"}
+                                  src={getBookLogo(bestOdds.under.book)}
                                   alt={getBookName(bestOdds.under.book)}
                                   width={20}
                                   height={20}
@@ -790,7 +804,7 @@ export function PropComparisonCardV2({
                           <div className="flex items-center gap-2 mt-2">
                             <div className="w-5 h-5 rounded-md overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                               <Image
-                                src={getBookLogo(bestOdds.under.book) || "/placeholder.svg"}
+                                src={getBookLogo(bestOdds.under.book)}
                                 alt={getBookName(bestOdds.under.book)}
                                 width={20}
                                 height={20}
@@ -903,7 +917,7 @@ export function PropComparisonCardV2({
                                 <div className="flex items-center gap-2">
                                   <div className="w-6 h-6 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                                     <Image
-                                      src={getBookLogo(book.id) || "/placeholder.svg"}
+                                      src={getBookLogo(book.id)}
                                       alt={getBookName(book.id)}
                                       width={24}
                                       height={24}
@@ -980,7 +994,7 @@ export function PropComparisonCardV2({
                                 <div className="flex items-center gap-2">
                                   <div className="w-6 h-6 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                                     <Image
-                                      src={getBookLogo(book.id) || "/placeholder.svg"}
+                                      src={getBookLogo(book.id)}
                                       alt={getBookName(book.id)}
                                       width={24}
                                       height={24}

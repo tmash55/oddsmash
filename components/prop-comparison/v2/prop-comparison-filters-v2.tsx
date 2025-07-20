@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Settings } from "lucide-react"
+import { getTeamLogoUrl } from '@/lib/constants/sport-assets'
 
 const ALL_SPORTSBOOKS = "all_sportsbooks"
 const ALL_LINES = "all_lines"
@@ -84,13 +85,19 @@ function getTeamLogoFilename(abbr: string): string {
 
 function getStandardAbbreviation(abbr: string): string {
   const map: Record<string, string> = {
+    // MLB variations
     AT: "OAK",
+    // WNBA variations
+    CON: "CTN", // Connecticut Sun
+    LOS: "LAS", // Los Angeles Sparks
+    PHX: "PHO"  // Phoenix Mercury
   }
   return map[abbr] || abbr
 }
 
 function getTeamAbbreviation(teamName: string): string {
   const teamMap: Record<string, string> = {
+    // MLB Teams
     "Los Angeles Angels": "LAA",
     "Houston Astros": "HOU",
     "Oakland Athletics": "OAK",
@@ -121,6 +128,19 @@ function getTeamAbbreviation(teamName: string): string {
     "Chicago White Sox": "CWS",
     "Chicago Cubs": "CHC",
     "New York Yankees": "NYY",
+    // WNBA Teams
+    "Atlanta Dream": "ATL",
+    "Chicago Sky": "CHI",
+    "Connecticut Sun": "CTN",
+    "Dallas Wings": "DAL",
+    "Indiana Fever": "IND",
+    "Los Angeles Sparks": "LAS",
+    "Las Vegas Aces": "LVA",
+    "Minnesota Lynx": "MIN",
+    "New York Liberty": "NYL",
+    "Phoenix Mercury": "PHO",
+    "Seattle Storm": "SEA",
+    "Washington Mystics": "WAS"
   }
   return teamMap[teamName] || teamName.slice(0, 3).toUpperCase()
 }
@@ -314,19 +334,19 @@ export function PropComparisonFiltersV2({
                       return (
                         <>
                           <Image
-                            src={`/images/mlb-teams/${getTeamLogoFilename(awayAbbr)}.svg`}
+                            src={getTeamLogoUrl(awayAbbr, sport)}
                             alt={awayAbbr}
-                            width={16}
-                            height={16}
+                            width={24}
+                            height={24}
                             className="object-contain"
                           />
                           <span className="font-medium text-sm">{awayAbbr}</span>
                           <span className="text-slate-400">@</span>
                           <Image
-                            src={`/images/mlb-teams/${getTeamLogoFilename(homeAbbr)}.svg`}
+                            src={getTeamLogoUrl(homeAbbr, sport)}
                             alt={homeAbbr}
-                            width={16}
-                            height={16}
+                            width={24}
+                            height={24}
                             className="object-contain"
                           />
                           <span className="font-medium text-sm">{homeAbbr}</span>
@@ -363,10 +383,10 @@ export function PropComparisonFiltersV2({
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
                       <Image
-                        src={`/images/mlb-teams/${getTeamLogoFilename(awayAbbr)}.svg`}
+                        src={getTeamLogoUrl(awayAbbr, sport)}
                         alt={awayAbbr}
-                        width={16}
-                        height={16}
+                        width={24}
+                        height={24}
                         className="object-contain"
                       />
                       <span className="font-medium">{awayAbbr}</span>
@@ -374,10 +394,10 @@ export function PropComparisonFiltersV2({
                     <span className="text-slate-400">@</span>
                     <div className="flex items-center gap-1">
                       <Image
-                        src={`/images/mlb-teams/${getTeamLogoFilename(homeAbbr)}.svg`}
+                        src={getTeamLogoUrl(homeAbbr, sport)}
                         alt={homeAbbr}
-                        width={16}
-                        height={16}
+                        width={24}
+                        height={24}
                         className="object-contain"
                       />
                       <span className="font-medium">{homeAbbr}</span>

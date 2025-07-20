@@ -68,7 +68,7 @@ const config = {
   },
   auth: {
     loginUrl: "/sign-in",
-    callbackUrl: "/hit-rates",
+    callbackUrl: "/mlb/odds/player-props?market=home+runs",
   },
 } as ConfigProps;
 

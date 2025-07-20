@@ -13,6 +13,7 @@ import {
   ArrowDown,
   Clock,
   Heart,
+  Plus,
 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -20,17 +21,21 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { SupportedSport, SportMarket } from "@/types/sports"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { SupportedSport } from "@/types/sports"
 import { PlayerHitRateProfile, TimeWindow } from "@/types/hit-rates"
 import DualOddsCell from "@/components/shared/dual-odds-cell"
 import { BarChart, Bar, Cell, ResponsiveContainer, ReferenceLine, YAxis, LabelList } from "recharts"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { BetActions } from "@/components/betting/bet-actions"
-import { getMarketApiKey } from "@/lib/constants/markets"
+import { getMarketApiKey, getMarketsForSport, type SportMarket } from "@/lib/constants/markets"
 import OddsComparison from "@/components/shared/odds-comparison"
 import type { BetslipSelection } from "@/types/betslip"
 import { sportsbooks } from "@/data/sportsbooks"
+import { getTeamAbbreviation as getTeamAbbr } from "@/lib/constants/team-mappings"
+import { useBetActions } from "@/hooks/use-bet-actions"
+import { BetslipDialog } from "@/components/betting/betslip-dialog"
+
 
 interface PlayerTeamData {
   player_id: number
@@ -136,19 +141,15 @@ const getSortIcon = (field: string, currentSortField: string, currentSortDirecti
   return currentSortDirection === "asc" ? "↑" : "↓"
 }
 
-const formatTimestamp = (timestamp: string) => {
-  try {
-    const date = new Date(timestamp)
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-  } catch (e) {
-    return "Unknown"
-  }
+const formatTimestamp = (date: string | undefined) => {
+  if (!date) return "";
+  return new Date(date).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 }
 
 // Get an appropriate max value for the chart based on market
@@ -251,23 +252,118 @@ const mapHitRateMarketToMarketValue = (hitRateMarket: string): string => {
     "Outs": "Outs_Recorded",
     "Batting Strikeouts": "Strikeouts", // This maps to batter strikeouts
     "Batting Walks": "Walks", // This maps to batter walks
+    "Runs": "Runs",
+    "Hits Allowed": "Hits_Allowed",
+    "Walks Allowed": "Walks_Allowed",
+    "Stolen Bases": "Stolen_Bases"
   }
   
   return marketMap[hitRateMarket] || hitRateMarket
+}
+
+// Helper function to extract the best odds for a specific bet type from profile
+const getBestOddsForBetType = (
+  profile: PlayerHitRateProfile,
+  customTier: number | null,
+  betType: "over" | "under"
+): BestOdds | null => {
+  // For custom tiers, the betting line is 0.5 less than the tier (e.g., 3+ bases = 2.5 line)
+  const targetLine = customTier !== null ? customTier - 0.5 : profile.line
+  
+  // Check if we have fresh Redis structure with lines data
+  if (profile.all_odds && profile.all_odds.lines) {
+    const lineData = profile.all_odds.lines[targetLine.toString()]
+    
+    if (lineData) {
+      let bestOdds = -Infinity
+      let bestBook = ""
+      let bestLink: string | null = null
+      
+      Object.entries(lineData).forEach(([sportsbook, bookData]: [string, any]) => {
+        if (bookData && bookData[betType] && typeof bookData[betType].price === 'number') {
+          const odds = bookData[betType].price
+          const link = bookData[betType].link
+          
+          if (odds > bestOdds) {
+            bestOdds = odds
+            bestBook = sportsbook
+            bestLink = link
+          }
+        }
+      })
+      
+      if (bestOdds !== -Infinity) {
+        return {
+          american: bestOdds,
+          decimal: bestOdds > 0 ? (bestOdds / 100) + 1 : (-100 / bestOdds) + 1,
+          sportsbook: bestBook,
+          link: bestLink
+        }
+      }
+    }
+  }
+  
+  // Check embedded all_odds with old format (over only for now)
+  if (betType === "over" && profile.all_odds) {
+    // The old format uses the betting line as the key (e.g., "2.5" for 3+ bases)
+    const lineKey = targetLine.toString()
+    const relevantOdds = lineKey ? profile.all_odds[lineKey] : null
+    
+    if (relevantOdds) {
+      let bestOdds = -Infinity
+      let bestBook = ""
+      let bestLink: string | null = null
+      
+      Object.entries(relevantOdds).forEach(([book, bookData]) => {
+        if (bookData && typeof bookData === 'object' && 'odds' in bookData) {
+          const currentOdds = Number(bookData.odds)
+          if (!isNaN(currentOdds) && currentOdds > bestOdds) {
+            bestOdds = currentOdds
+            bestBook = book
+            bestLink = bookData.over_link || bookData.link || null
+          }
+        }
+      })
+      
+      if (bestOdds !== -Infinity) {
+        return {
+          american: bestOdds,
+          decimal: bestOdds > 0 ? (bestOdds / 100) + 1 : (-100 / bestOdds) + 1,
+          sportsbook: bestBook,
+          link: bestLink
+        }
+      }
+    }
+  }
+  
+  return null
 }
 
 // Create a proper BetslipSelection object
 const createBetslipSelection = (
   profile: PlayerHitRateProfile,
   customTier: number | null,
-  bestOdds: BestOdds | null,
   betType: "over" | "under" = "over"
 ) => {
   // Map the hit rate market to the market value format
   const marketValue = mapHitRateMarketToMarketValue(profile.market)
   
-  // Get the correct market API key
-  const marketKey = getMarketApiKey("baseball_mlb", marketValue)
+  // Get the correct market API key, including alternates if available
+  const markets = getMarketsForSport("baseball_mlb")
+  const marketConfig = markets.find((m: SportMarket) => m.value === marketValue)
+  
+  const marketKey = marketConfig ? (
+    marketConfig.hasAlternates && marketConfig.alternateKey ? 
+    `${marketConfig.apiKey},${marketConfig.alternateKey}` : 
+    marketConfig.apiKey
+  ) : getMarketApiKey("baseball_mlb", marketValue)
+  
+  // Get odds for the specific bet type
+  const bestOdds = getBestOddsForBetType(profile, customTier, betType)
+  
+  // Use line from custom tier or profile
+  // For custom tiers, the betting line is 0.5 less than the tier (e.g., 3+ bases = 2.5 line)
+  const line = customTier !== null ? customTier - 0.5 : profile.line
   
   // Create odds_data object with required fields
   const odds_data: { [sportsbook: string]: { odds: number; line: number; link: string; last_update: string } } = {}
@@ -276,17 +372,14 @@ const createBetslipSelection = (
   if (bestOdds) {
     odds_data[bestOdds.sportsbook] = {
       odds: bestOdds.american,
-      line: customTier !== null ? customTier : profile.line,
+      line: line, // Use the calculated line (already adjusted for custom tiers)
       link: bestOdds.link || "#", // Provide default link if not available
       last_update: new Date().toISOString()
     }
   }
   
-  // Use line from custom tier or profile
-  const line = customTier !== null ? customTier : profile.line
-  
   return {
-    event_id: `${profile.away_team}_${profile.home_team}_${profile.commence_time}`,
+    event_id: profile.odds_event_id, // Use the actual odds_event_id from hit rate profile
     sport_key: "baseball_mlb",
     commence_time: profile.commence_time || new Date().toISOString(),
     home_team: profile.home_team || "",
@@ -295,7 +388,7 @@ const createBetslipSelection = (
     market_type: "player_prop" as const,
     market_key: marketKey,
     market_display: profile.market,
-    selection: betType === "over" ? `Over ${line}` : `Under ${line}`,
+    selection: betType === "over" ? "Over" : "Under",
     player_name: profile.player_name,
     player_id: profile.player_id,
     player_team: profile.team_name,
@@ -473,6 +566,11 @@ export default function HitRateTableV4({
   isLoading,
 }: HitRateTableV4Props) {
   const [favorites, setFavorites] = useState<Record<number, boolean>>({})
+  const [showBetslipDialog, setShowBetslipDialog] = useState(false)
+  const [pendingSelection, setPendingSelection] = useState<any>(null)
+
+  const { betslips, handleBetslipSelect, handleCreateBetslip, conflictingSelection, handleResolveConflict } =
+    useBetActions()
 
   const toggleFavorite = (playerId: number) => {
     setFavorites((prev) => ({
@@ -503,123 +601,33 @@ export default function HitRateTableV4({
     onSort(field, newDirection)
   }
 
-  const getActualMatchupInfo = (profile: PlayerHitRateProfile, playerTeam: string) => {
-    if (!profile.away_team || !profile.home_team || !playerTeam) {
-      return {
-        opponent: "TBD",
-        isHome: true,
-        matchupText: "TBD",
-        time: "TBD",
-      }
-    }
-
-    const awayTeamAbbr = getTeamAbbreviation(profile.away_team)
-    const homeTeamAbbr = getTeamAbbreviation(profile.home_team)
-
-    const isPlayerTeamHome = playerTeam === homeTeamAbbr || 
-                            (homeTeamAbbr && homeTeamAbbr.includes(playerTeam)) || 
-                            (playerTeam && playerTeam.includes(homeTeamAbbr))
-
-    if (isPlayerTeamHome) {
-      return {
-        opponent: awayTeamAbbr,
-        isHome: true,
-        matchupText: `vs ${awayTeamAbbr}`,
-        time: formatGameTime(profile.commence_time),
-      }
-    }
-
-    return {
-      opponent: homeTeamAbbr,
-      isHome: false,
-      matchupText: `@ ${homeTeamAbbr}`,
-      time: formatGameTime(profile.commence_time),
-    }
-  }
-
-  const getTeamAbbreviation = (teamName: string): string => {
-    const teamAbbreviations: Record<string, string> = {
-      "New York Yankees": "NYY",
-      "New York Mets": "NYM",
-      "Boston Red Sox": "BOS",
-      "Los Angeles Dodgers": "LAD",
-      "Los Angeles Angels": "LAA",
-      "Chicago Cubs": "CHC",
-      "Chicago White Sox": "CHW",
-      "Milwaukee Brewers": "MIL",
-      "Atlanta Braves": "ATL",
-      "Houston Astros": "HOU",
-      "Philadelphia Phillies": "PHI",
-      "San Francisco Giants": "SF",
-      "San Diego Padres": "SD",
-      "Toronto Blue Jays": "TOR",
-      "Texas Rangers": "TEX",
-      "Cleveland Guardians": "CLE",
-      "Detroit Tigers": "DET",
-      "Minnesota Twins": "MIN",
-      "Kansas City Royals": "KC",
-      "Colorado Rockies": "COL",
-      "Arizona Diamondbacks": "ARI",
-      "Seattle Mariners": "SEA",
-      "Tampa Bay Rays": "TB",
-      "Miami Marlins": "MIA",
-      "Baltimore Orioles": "BAL",
-      "Washington Nationals": "WSH",
-      "Pittsburgh Pirates": "PIT",
-      "Cincinnati Reds": "CIN",
-      "Oakland Athletics": "OAK",
-      "St. Louis Cardinals": "STL",
-    }
-
-    if (teamAbbreviations[teamName]) {
-      return teamAbbreviations[teamName]
-    }
-
-    return teamName
-      .split(" ")
-      .map((word) => word.charAt(0))
-      .join("")
-      .toUpperCase()
-  }
-
-  function formatGameTime(date: string | undefined) {
-    if (!date) return "";
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  }
-
-  const formatOdds = (odds: number): string => {
-    if (odds === undefined || odds === null || isNaN(odds)) {
-      return "-"
-    }
-    return odds > 0 ? `+${odds}` : odds.toString()
+  // Function to handle adding to betslip
+  const handleAddToBetslip = (profile: PlayerHitRateProfile, type: "over" | "under" = "over") => {
+    const selection = createBetslipSelection(profile, customTier, type)
+    setPendingSelection(selection)
+    setShowBetslipDialog(true)
   }
 
   return (
-    <div className="w-full overflow-auto rounded-xl border shadow-sm">
-      {/* Timestamp */}
-      {profiles.length > 0 && (
-        <div className="flex justify-end px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b">
-          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Clock className="h-3 w-3" />
-            Last updated: {formatTimestamp(profiles[0].updated_at)}
-          </span>
-        </div>
-      )}
-      
-      <div className="overflow-x-auto">
-        <Table className="min-w-[1200px]">
+    <>
+      <div className="w-full overflow-auto rounded-xl border shadow-sm">
+        {/* Timestamp */}
+        {profiles.length > 0 && (
+          <div className="flex justify-end px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              Last updated: {formatTimestamp(profiles[0].updated_at)}
+            </span>
+          </div>
+        )}
+        
+        <div className="overflow-x-auto">
+          <Table className="min-w-[1200px]">
         <TableHeader className="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10">
           {/* Main header row */}
           <TableRow className="border-b-0">
             <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
               <span className="text-base font-semibold">Player</span>
-            </TableHead>
-            <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
-              <span className="text-base font-semibold">Matchup</span>
             </TableHead>
             <TableHead colSpan={1} className="text-center border-b border-slate-200 dark:border-slate-700">
               <span className="text-base font-semibold">Recent Games</span>
@@ -652,9 +660,6 @@ export default function HitRateTableV4({
                 <span className={sortField === "name" ? "text-indigo-500 dark:text-indigo-400" : ""}>Name</span>
                 {getSortIcon("name", sortField, sortDirection)}
               </Button>
-            </TableHead>
-            <TableHead className="text-center w-[7%] py-2">
-              <span className="font-semibold text-sm">Game</span>
             </TableHead>
             <TableHead className="text-center w-[15%] py-2">
               <span className="font-semibold text-sm">Chart</span>
@@ -701,29 +706,31 @@ export default function HitRateTableV4({
               </Button>
             </TableHead>
             
+            {/* L20 Hit Rate (only show if not custom tier) */}
+            <TableHead className="text-center w-[5%] py-2">
+              <Button 
+                variant="ghost" 
+                className="p-0 font-semibold text-sm" 
+                onClick={() => handleSort("L20")}
+              >
+                <span className={sortField === "L20" ? "text-indigo-500 dark:text-indigo-400" : ""}>L20</span>
+                {getSortIcon("L20", sortField, sortDirection)}
+              </Button>
+            </TableHead>
+            
+            {/* Season Hit Rate (only show if not custom tier) */}
             {customTier === null && (
               <TableHead className="text-center w-[5%] py-2">
                 <Button 
                   variant="ghost" 
                   className="p-0 font-semibold text-sm" 
-                  onClick={() => handleSort("L20")}
+                  onClick={() => handleSort("season")}
                 >
-                  <span className={sortField === "L20" ? "text-indigo-500 dark:text-indigo-400" : ""}>L20</span>
-                  {getSortIcon("L20", sortField, sortDirection)}
+                  <span className={sortField === "season" ? "text-indigo-500 dark:text-indigo-400" : ""}>Season</span>
+                  {getSortIcon("season", sortField, sortDirection)}
                 </Button>
               </TableHead>
             )}
-            
-            <TableHead className="text-center w-[5%] py-2">
-              <Button 
-                variant="ghost" 
-                className="p-0 font-semibold text-sm" 
-                onClick={() => handleSort("season")}
-              >
-                <span className={sortField === "season" ? "text-indigo-500 dark:text-indigo-400" : ""}>Season</span>
-                {getSortIcon("season", sortField, sortDirection)}
-              </Button>
-            </TableHead>
             
             <TableHead className="text-center w-[5%] py-2">
               <span className="font-semibold text-sm">Best Over</span>
@@ -750,7 +757,6 @@ export default function HitRateTableV4({
 
             const trend = getTrend(profile)
             const trendIndicator = getTrendIndicator(trend)
-            const gameInfo = getActualMatchupInfo(profile, teamAbbreviation)
 
             // Get best odds using V2 approach
             const bestOdds = getBestOddsForProfile(profile)
@@ -824,40 +830,16 @@ export default function HitRateTableV4({
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {formatGameTime(profile.commence_time)}
+                        {formatTimestamp(profile.commence_time)}
                         {profile.away_team && profile.home_team && (
                           <div className="flex items-center gap-1">
-                            {teamAbbreviation === getStandardAbbreviation(getTeamAbbreviation(profile.home_team)) ? (
+                            {teamAbbreviation === getTeamAbbr(profile.home_team) ? (
                               <>
                                 <span>vs</span>
                                 <div className="w-4 h-4 relative flex-shrink-0">
                                   <Image
-                                    src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(getTeamAbbreviation(profile.away_team)))}.svg`}
-                                    alt={getTeamAbbreviation(profile.away_team)}
-                            width={16}
-                            height={16}
-                            className="object-contain w-full h-full p-0.5"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                      const parent = target.parentElement;
-                                      if (parent) {
-                                        const fallback = document.createElement('div');
-                                        fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
-                                        fallback.textContent = getStandardAbbreviation(getTeamAbbreviation(profile.away_team))?.substring(0, 2) || '?';
-                                        parent.appendChild(fallback);
-                              }
-                            }}
-                          />
-                        </div>
-                              </>
-                            ) : (
-                              <>
-                                <span>@</span>
-                                <div className="w-4 h-4 relative flex-shrink-0">
-                                  <Image
-                                    src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(getTeamAbbreviation(profile.home_team)))}.svg`}
-                                    alt={getTeamAbbreviation(profile.home_team)}
+                                    src={`/images/mlb-teams/${getTeamLogoFilename(getTeamAbbr(profile.away_team))}.svg`}
+                                    alt={getTeamAbbr(profile.away_team)}
                                     width={16}
                                     height={16}
                                     className="object-contain w-full h-full p-0.5"
@@ -868,81 +850,45 @@ export default function HitRateTableV4({
                                       if (parent) {
                                         const fallback = document.createElement('div');
                                         fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
-                                        fallback.textContent = getStandardAbbreviation(getTeamAbbreviation(profile.home_team))?.substring(0, 2) || '?';
+                                        fallback.textContent = getTeamAbbr(profile.away_team)?.substring(0, 2) || '?';
                                         parent.appendChild(fallback);
                                       }
                                     }}
                                   />
-                      </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span>@</span>
+                                <div className="w-4 h-4 relative flex-shrink-0">
+                                  <Image
+                                    src={`/images/mlb-teams/${getTeamLogoFilename(getTeamAbbr(profile.home_team))}.svg`}
+                                    alt={getTeamAbbr(profile.home_team)}
+                                    width={16}
+                                    height={16}
+                                    className="object-contain w-full h-full p-0.5"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
+                                        fallback.textContent = getTeamAbbr(profile.home_team)?.substring(0, 2) || '?';
+                                        parent.appendChild(fallback);
+                                      }
+                                    }}
+                                  />
+                                </div>
                               </>
                             )}
-                        </div>
+                          </div>
                         )}
                         {isFavorite && (
                           <Heart className="w-3 h-3 fill-current text-red-500" />
                         )}
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-
-                {/* Matchup - Updated with team logo like V2 */}
-                <TableCell className="font-medium p-1 text-center">
-                  <div className="px-1 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 inline-block text-xs">
-                    <div className="flex items-center justify-center gap-1">
-                      {gameInfo.isHome ? (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-medium">vs</span>
-                          <span className="text-xs font-medium">{gameInfo.opponent}</span>
-                          <div className="w-5 h-5 relative flex-shrink-0" data-team-logo={gameInfo.opponent}>
-                            <Image
-                              src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.svg`}
-                              alt={gameInfo.opponent}
-                              width={20}
-                              height={20}
-                              className="object-contain w-full h-full p-0.5"
-                              onError={() => {
-                                const fallback = document.createElement("div")
-                                fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                fallback.textContent = getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
-                                
-                                const imgContainer = document.querySelector(`[data-team-logo="${gameInfo.opponent}"]`)
-                                if (imgContainer) {
-                                  imgContainer.innerHTML = ""
-                                  imgContainer.appendChild(fallback)
-                                }
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-medium">@</span>
-                          <span className="text-xs font-medium">{gameInfo.opponent}</span>
-                          <div className="w-5 h-5 relative flex-shrink-0" data-team-logo={gameInfo.opponent}>
-                            <Image
-                              src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(gameInfo.opponent))}.svg`}
-                              alt={gameInfo.opponent}
-                              width={20}
-                              height={20}
-                              className="object-contain w-full h-full p-0.5"
-                              onError={() => {
-                                const fallback = document.createElement("div")
-                                fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                fallback.textContent = getStandardAbbreviation(gameInfo.opponent)?.substring(0, 2) || "?"
-                                
-                                const imgContainer = document.querySelector(`[data-team-logo="${gameInfo.opponent}"]`)
-                                if (imgContainer) {
-                                  imgContainer.innerHTML = ""
-                                  imgContainer.appendChild(fallback)
-                                }
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">{gameInfo.time}</div>
                   </div>
                 </TableCell>
 
@@ -1239,29 +1185,29 @@ export default function HitRateTableV4({
                   </div>
                 </TableCell>
 
-                {/* L20 Hit Rate (only show if not custom tier) */}
+                {/* L20 Hit Rate */}
+                <TableCell className="p-0.5 sm:p-1">
+                  <div
+                    className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(hitRateL20)}`}
+                  >
+                    <div className="py-2 px-3 font-medium text-sm sm:text-base">
+                      {hitRateL20}%
+                    </div>
+                  </div>
+                </TableCell>
+
+                {/* Season Hit Rate (only show if not custom tier) */}
                 {customTier === null && (
                   <TableCell className="p-0.5 sm:p-1">
                     <div
-                      className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(hitRateL20)}`}
+                      className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(seasonHitRate)}`}
                     >
                       <div className="py-2 px-3 font-medium text-sm sm:text-base">
-                        {hitRateL20}%
+                        {Math.round(seasonHitRate)}%
                       </div>
                     </div>
                   </TableCell>
                 )}
-
-                {/* Season Hit Rate */}
-                <TableCell className="p-0.5 sm:p-1">
-                  <div
-                    className={`flex items-center justify-center rounded-lg shadow-sm ${getPercentageColor(seasonHitRate)}`}
-                  >
-                    <div className="py-2 px-3 font-medium text-sm sm:text-base">
-                      {Math.round(seasonHitRate)}%
-                    </div>
-                  </div>
-                </TableCell>
 
                 {/* Best Odds */}
                 <TableCell className="text-center p-1">
@@ -1285,16 +1231,136 @@ export default function HitRateTableV4({
 
                 {/* Actions */}
                 <TableCell className="text-center p-1">
-                  <BetActions
-                    selection={createBetslipSelection(profile, customTier, bestOdds, "over")}
-                  />
+                  <div className="flex gap-1 justify-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "min-w-[32px] px-1.5",
+                              "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
+                              "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
+                              "border-emerald-500/20",
+                              !getBestOddsForBetType(profile, customTier, "over") && "opacity-50 cursor-not-allowed",
+                            )}
+                            onClick={() => handleAddToBetslip(profile, "over")}
+                            disabled={!getBestOddsForBetType(profile, customTier, "over")}
+                          >
+                            <Plus className="w-2.5 h-2.5 mr-0.5" />
+                            O
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {getBestOddsForBetType(profile, customTier, "over")
+                            ? "Add Over to betslip"
+                            : "No odds available for Over"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "min-w-[32px] px-1.5",
+                              "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400",
+                              "dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 dark:hover:text-red-300",
+                              "border-red-500/20",
+                              !getBestOddsForBetType(profile, customTier, "under") && "opacity-50 cursor-not-allowed",
+                            )}
+                            onClick={() => handleAddToBetslip(profile, "under")}
+                            disabled={!getBestOddsForBetType(profile, customTier, "under")}
+                          >
+                            <Plus className="w-2.5 h-2.5 mr-0.5" />
+                            U
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {getBestOddsForBetType(profile, customTier, "under")
+                            ? "Add Under to betslip"
+                            : "No odds available for Under"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </TableCell>
               </TableRow>
             )
           })}
         </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
-    </div>
+
+      <BetslipDialog 
+        open={showBetslipDialog} 
+        onOpenChange={setShowBetslipDialog} 
+        selection={pendingSelection} 
+      />
+
+      {/* Conflict Resolution Dialog */}
+      <Dialog 
+        open={conflictingSelection !== null} 
+        onOpenChange={() => handleResolveConflict(false)}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Replace Existing Selection?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">You already have a selection for this player:</p>
+
+            {conflictingSelection && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-lg border bg-muted/50">
+                  <div className="text-xs font-medium text-foreground mb-0.5">
+                    {Math.ceil(conflictingSelection.existingSelection.line || 0)}+ {" "}
+                    {conflictingSelection.existingSelection.market_key
+                      .split("_")
+                      .map((word) =>
+                        word.toLowerCase() === "mlb" ? "MLB" : word.charAt(0).toUpperCase() + word.slice(1),
+                      )
+                      .join(" ")}
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {conflictingSelection.existingSelection.player_name}
+                  </div>
+                </div>
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="p-3 rounded-lg border bg-primary/5">
+                  <div className="text-xs font-medium text-foreground mb-0.5">
+                    {Math.ceil(conflictingSelection.newSelection.line || 0)}+ {" "}
+                    {conflictingSelection.newSelection.market_key
+                      .split("_")
+                      .map((word) =>
+                        word.toLowerCase() === "mlb" ? "MLB" : word.charAt(0).toUpperCase() + word.slice(1),
+                      )
+                      .join(" ")}
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {conflictingSelection.newSelection.player_name}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleResolveConflict(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleResolveConflict(true)} className="bg-primary">
+              Replace Selection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

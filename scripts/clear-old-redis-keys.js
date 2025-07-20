@@ -21,6 +21,21 @@ const redis = new Redis({
   token: 'AUrGAAIjcDFjOGUyMWUxOTA3NDY0NzAwOTFiMGU3OWMzYzVjN2QyMHAxMA',
 });
 
+// List of known bookmakers
+const BOOKMAKERS = [
+  'fanduel',
+  'draftkings',
+  'betmgm',
+  'caesars',
+  'espn_bet',
+  'bet365',
+  'pinnacle',
+  'betrivers',
+  'bally_bet',
+  'fanatics',
+  'novig'
+];
+
 async function clearOldRedisKeys() {
   const BATCH_SIZE = 100;
   let cursor = '0';
@@ -34,12 +49,6 @@ async function clearOldRedisKeys() {
     await redis.ping();
     console.log('Redis connection successful!');
     
-    // First, let's check the specific key
-    const specificKey = 'odds:mlb:02963f093cc9cf5ff7c8b72e0b265ebe';
-    const value = await redis.get(specificKey);
-    console.log(`\nChecking specific key ${specificKey}:`);
-    console.log('Value:', value);
-    
     do {
       console.log(`\nScanning with cursor: ${cursor}`);
       // SCAN through keys in batches
@@ -52,8 +61,8 @@ async function clearOldRedisKeys() {
       if (keys.length > 0) {
         console.log(`Found ${keys.length} keys to process`);
         
-        // Filter for old format keys
-        const oldFormatKeys = keys.filter(key => {
+        // Filter for keys to delete
+        const keysToDelete = keys.filter(key => {
           const parts = key.split(':');
           
           // Check for hash:id:market pattern (e.g. odds:mlb:12aac445fabac34890553bfa00ac48d2:672724:batter_total_bases)
@@ -67,17 +76,29 @@ async function clearOldRedisKeys() {
             console.log(`Found old format key with hash: ${key}`);
             return true;
           }
+
+          // Check for hash:market pattern (e.g. odds:mlb:70642d005ece4e396411f6ca2bf919ea:h2h)
+          if (parts.length === 4 && /^[a-f0-9]{32}$/.test(parts[2])) {
+            const lastPart = parts[3];
+            // Check if the last part is either a market type or a bookmaker
+            if (['h2h', 'spreads', 'totals'].includes(lastPart) || BOOKMAKERS.includes(lastPart)) {
+              console.log(`Found key with market/bookmaker in key: ${key}`);
+              return true;
+            }
+          }
           
           return false;
         });
         
-        if (oldFormatKeys.length > 0) {
-          console.log(`Deleting ${oldFormatKeys.length} old format keys...`);
-          for (const key of oldFormatKeys) {
+        if (keysToDelete.length > 0) {
+          console.log(`Deleting ${keysToDelete.length} keys...`);
+          for (const key of keysToDelete) {
             await redis.del(key);
             deletedCount++;
             console.log(`Deleted key: ${key}`);
           }
+        } else {
+          console.log('No keys to delete in this batch');
         }
       } else {
         console.log('No keys found in this batch');
@@ -85,7 +106,7 @@ async function clearOldRedisKeys() {
       
     } while (cursor !== '0');
     
-    console.log(`Cleanup complete! Deleted ${deletedCount} old format keys.`);
+    console.log(`Cleanup complete! Deleted ${deletedCount} keys.`);
     
   } catch (error) {
     console.error('Error during cleanup:', error);

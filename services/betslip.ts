@@ -7,6 +7,35 @@ export async function createBetslipForUser(userId: string, title?: string, isDef
   try {
     const supabase = createClient();
     
+    // First check if user already has 5 betslips
+    const { data: existingBetslips, error: countError } = await supabase
+      .from('betslips')
+      .select('id')
+      .eq('user_id', userId);
+      
+    if (countError) {
+      console.error("Error checking betslip count:", countError);
+      return null;
+    }
+    
+    if (existingBetslips && existingBetslips.length >= 5) {
+      console.error("User already has maximum number of betslips");
+      return null;
+    }
+
+    // If this is meant to be default, ensure no other default exists
+    if (isDefault) {
+      const { error: updateError } = await supabase
+        .from('betslips')
+        .update({ is_default: false })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error("Error updating existing default betslips:", updateError);
+        return null;
+      }
+    }
+    
     const { data, error } = await supabase
       .rpc('create_betslip_for_user', {
         p_user_id: userId,

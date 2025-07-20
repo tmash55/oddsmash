@@ -343,8 +343,8 @@ async function fetchCurrentOdds(gameId: string, market: string, includeSids = fa
       'RBIs': ['batter_rbis', 'batter_rbis_alternate'],
       'Strikeouts': ['pitcher_strikeouts', 'pitcher_strikeouts_alternate'],
       'Total Bases': ['batter_total_bases', 'batter_total_bases_alternate'],
-      'Runs': ['batter_runs'],
-      'Stolen Bases': ['batter_stolen_bases']
+      'Runs': ['batter_runs_scored', 'batter_runs_scored_alternate'],
+      'Stolen Bases': ['batter_stolen_bases', 'batter_stolen_bases_alternate']
     }
     
     const apiMarkets = marketMapping[market] || ['batter_home_runs']

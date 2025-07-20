@@ -5,7 +5,7 @@ import { sportsbooks } from "@/data/sportsbooks"
 import { ArrowUpRight } from "lucide-react"
 
 interface OddsDisplayProps {
-  odds: number
+  odds: number | string
   sportsbook?: string
   link?: string | null
   className?: string
@@ -14,10 +14,15 @@ interface OddsDisplayProps {
 }
 
 // Format odds to always show + for positive odds
-function formatOdds(odds: number): string {
-  if (odds === undefined || odds === null || isNaN(odds)) {
+function formatOdds(odds: number | string): string {
+  if (odds === undefined || odds === null || (typeof odds === 'number' && isNaN(odds))) {
     return "-"
   }
+  // If odds is already a string, return it as is
+  if (typeof odds === 'string') {
+    return odds
+  }
+  // Format number odds
   return odds > 0 ? `+${odds}` : odds.toString()
 }
 
@@ -42,7 +47,6 @@ export function OddsDisplay({
       onClick={() => link && window.open(link, "_blank")}
     >
       <span className="font-medium">{formatOdds(odds)}</span>
-      {link && <ArrowUpRight className="h-3 w-3" />}
       {showSportsbook && sportsbookData && (
         <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
           <Image

@@ -26,7 +26,6 @@ import { PlayerPropOdds, fetchBestOddsForHitRateProfiles } from "@/services/play
 import { fetchPlayerTeamData } from "@/services/teams"
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import { resolveOddsForProfiles } from "@/lib/redis-odds-resolver"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import HitRateCardV4 from "./hit-rate-card-v4"
@@ -87,7 +86,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   
   // UI State - Proper view mode initialization
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('')
   const [currentMarket, setCurrentMarket] = useState<SportMarket>(initialMarket)
   const [currentViewMode, setCurrentViewMode] = useState<"table" | "grid">(() => {
     // Initialize view mode based on device, but allow user preference to override
@@ -103,6 +102,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [customTier, setCustomTier] = useState<number | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[] | null>(null)
+  const [showPastGames, setShowPastGames] = useState(false) // Changed to false to filter past games by default
   const [selectedTimeWindow, setSelectedTimeWindow] = useState<"5_games" | "10_games" | "20_games">("10_games")
   
   // Enhanced React Query implementation - now only fetches once per market
@@ -129,6 +129,32 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     gcTime: 10 * 60 * 1000, // 10 minutes - increased from 5 minutes
   })
 
+  // Enhanced logging to debug data structure
+  useEffect(() => {
+    if (hitRatesData?.profiles?.length) {
+      const sampleProfile = hitRatesData.profiles[0]
+      console.log(`📊 [V4 Dashboard] Sample profile structure:`, {
+        player_name: sampleProfile.player_name,
+        market: sampleProfile.market,
+        line: sampleProfile.line,
+        has_all_odds: !!sampleProfile.all_odds,
+        all_odds_keys: sampleProfile.all_odds ? Object.keys(sampleProfile.all_odds) : [],
+        all_odds_sample: sampleProfile.all_odds ? Object.keys(sampleProfile.all_odds).slice(0, 2).reduce((acc, key) => {
+          acc[key] = sampleProfile.all_odds[key]
+          return acc
+        }, {} as Record<string, any>) : {},
+      })
+      
+      // Check how many profiles have odds data
+      const profilesWithOdds = hitRatesData.profiles.filter(p => p.all_odds && Object.keys(p.all_odds).length > 0)
+      console.log(`📊 [V4 Dashboard] Profiles with odds: ${profilesWithOdds.length}/${hitRatesData.profiles.length}`)
+      
+      if (profilesWithOdds.length === 0) {
+        console.warn(`⚠️ [V4 Dashboard] No profiles have all_odds data! This will cause display issues.`)
+      }
+    }
+  }, [hitRatesData])
+
   // Log cache status
   useEffect(() => {
     if (hitRatesData) {
@@ -151,53 +177,144 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     gcTime: 30 * 60 * 1000, // 30 minutes
   })
 
-  const {
-    data: oddsData,
-    isLoading: isOddsLoading,
-  } = useQuery({
-    queryKey: ['oddsData', hitRatesData?.profiles?.map(p => p.player_id)],
-    queryFn: () => resolveOddsForProfiles(
-      hitRatesData?.profiles?.map(profile => ({
-        player_id: profile.player_id,
-        market: profile.market,
-        line: profile.line,
-        all_odds: profile.all_odds
-      })) || [],
-      sport
-    ),
-    enabled: !!hitRatesData?.profiles?.length,
-    staleTime: 60 * 1000, // 1 minute - odds data becomes stale more quickly
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  })
+  // REMOVED: Failing Redis Odds Resolver query
+  // Instead, we'll extract odds from the embedded all_odds data in hit rate profiles
+  
+  // Function to extract best odds from profile's embedded all_odds data
+  const extractBestOddsFromProfile = (profile: PlayerHitRateProfile, customTier?: number | null) => {
+    const targetLine = customTier !== null ? customTier - 0.5 : profile.line
+    const lineKey = targetLine.toString()
+    
+    console.log(`[V4 Dashboard] Extracting odds for ${profile.player_name}, line: ${targetLine}, customTier: ${customTier}`)
+    
+    if (!profile.all_odds) {
+      console.log(`[V4 Dashboard] ❌ No all_odds field for ${profile.player_name}`)
+      return null
+    }
+    
+    if (Object.keys(profile.all_odds).length === 0) {
+      console.log(`[V4 Dashboard] ❌ Empty all_odds object for ${profile.player_name}`)
+      return null
+    }
+    
+    console.log(`[V4 Dashboard] Available lines for ${profile.player_name}:`, Object.keys(profile.all_odds))
+    
+    if (!profile.all_odds[lineKey]) {
+      console.log(`[V4 Dashboard] ❌ No odds found for ${profile.player_name} line ${targetLine} (looking for key: ${lineKey})`)
+      return null
+    }
+    
+    const lineOdds = profile.all_odds[lineKey]
+    let bestOdds = -Infinity
+    let bestBook = ""
+    let bestLink: string | null = null
+    
+    console.log(`[V4 Dashboard] Line odds structure for ${profile.player_name}:`, lineOdds)
+    
+    // Find best odds across all sportsbooks
+    Object.entries(lineOdds).forEach(([book, bookData]: [string, any]) => {
+      let odds: number | undefined
+      let link: string | undefined
+      
+      if (bookData && typeof bookData.odds === 'number') {
+        odds = bookData.odds
+        link = bookData.over_link || bookData.link
+      } else if (typeof bookData === 'number') {
+        odds = bookData
+      }
+      
+      console.log(`[V4 Dashboard] ${book} odds for ${profile.player_name}:`, { odds, link })
+      
+      if (odds !== undefined && odds > bestOdds) {
+        bestOdds = odds
+        bestBook = book
+        bestLink = link || null
+      }
+    })
+    
+    if (bestOdds === -Infinity) {
+      console.log(`[V4 Dashboard] ❌ No valid odds found for ${profile.player_name} line ${targetLine}`)
+      return null
+    }
+    
+    console.log(`[V4 Dashboard] ✅ Best odds for ${profile.player_name}: ${bestOdds} from ${bestBook}`)
+    
+    return {
+      over: {
+        odds: bestOdds,
+        sportsbook: bestBook,
+        link: bestLink
+      },
+      source: "embedded",
+      lastUpdated: new Date().toISOString()
+    }
+  }
+
+  // V2 Approach - Client-side filtering and sorting
+  const calculateHitRateWithCustomTier = (
+    profile: PlayerHitRateProfile,
+    customTier: number,
+    timeWindow: "last_5" | "last_10" | "last_20",
+  ): number => {
+    const histogram = profile.points_histogram[timeWindow]
+    if (!histogram) return 0
+
+    const totalGames = Object.values(histogram).reduce((sum, count) => sum + count, 0)
+    if (totalGames === 0) return 0
+
+    let gamesHittingTier = 0
+    Object.entries(histogram).forEach(([value, count]) => {
+      if (Number(value) >= customTier) {
+        gamesHittingTier += count
+      }
+    })
+
+    return Math.round((gamesHittingTier / totalGames) * 100)
+  }
 
   // Client-side filtering and pagination
   const filteredAndSortedProfiles = useMemo(() => {
-    if (!hitRatesData?.profiles) return []
+    if (!hitRatesData?.profiles) {
+      console.log(`🔍 [V4 Dashboard] No hitRatesData.profiles available`)
+      return []
+    }
 
     let profiles = [...hitRatesData.profiles]
+    console.log(`🔍 [V4 Dashboard] Starting with ${profiles.length} profiles`)
 
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
+      const beforeSearch = profiles.length
       profiles = profiles.filter(profile => 
         profile.player_name.toLowerCase().includes(query)
       )
+      console.log(`🔍 [V4 Dashboard] After search filter (${searchQuery}): ${beforeSearch} → ${profiles.length}`)
     }
 
     // Apply game filter
     if (selectedGames?.length) {
+      const beforeGameFilter = profiles.length
       profiles = profiles.filter(profile => 
-        profile.odds_event_id && selectedGames.includes(profile.odds_event_id)
+        selectedGames.includes(profile.odds_event_id)
       )
+      console.log(`🔍 [V4 Dashboard] After game filter (${selectedGames.length} games): ${beforeGameFilter} → ${profiles.length}`)
     }
 
-    // Filter out past games
-    const now = new Date()
-    profiles = profiles.filter(profile => {
-      if (!profile.commence_time) return true
-      const gameTime = new Date(profile.commence_time)
-      return gameTime > now
-    })
+    // Optional time filter based on showPastGames toggle
+    if (!showPastGames) {
+      const now = new Date()
+      const beforeTimeFilter = profiles.length
+      profiles = profiles.filter(profile => {
+        const commenceTime = new Date(profile.commence_time)
+        const isUpcoming = commenceTime > now
+        if (!isUpcoming) {
+          console.log(`🔍 [V4 Dashboard] Filtering out past game: ${profile.player_name} (${profile.commence_time})`)
+        }
+        return isUpcoming
+      })
+      console.log(`🔍 [V4 Dashboard] After time filter (removing past games): ${beforeTimeFilter} → ${profiles.length}`)
+    }
 
     // Apply sorting
     profiles.sort((a, b) => {
@@ -217,20 +334,40 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
           bValue = b.season_hit_rate
           break
         case "L5":
-          aValue = a.last_5_hit_rate
-          bValue = b.last_5_hit_rate
+          if (customTier !== null) {
+            aValue = calculateHitRateWithCustomTier(a, customTier, "last_5")
+            bValue = calculateHitRateWithCustomTier(b, customTier, "last_5")
+          } else {
+            aValue = a.last_5_hit_rate
+            bValue = b.last_5_hit_rate
+          }
           break
         case "L10":
-          aValue = a.last_10_hit_rate
-          bValue = b.last_10_hit_rate
+          if (customTier !== null) {
+            aValue = calculateHitRateWithCustomTier(a, customTier, "last_10")
+            bValue = calculateHitRateWithCustomTier(b, customTier, "last_10")
+          } else {
+            aValue = a.last_10_hit_rate
+            bValue = b.last_10_hit_rate
+          }
           break
         case "L20":
-          aValue = a.last_20_hit_rate
-          bValue = b.last_20_hit_rate
+          if (customTier !== null) {
+            aValue = calculateHitRateWithCustomTier(a, customTier, "last_20")
+            bValue = calculateHitRateWithCustomTier(b, customTier, "last_20")
+          } else {
+            aValue = a.last_20_hit_rate
+            bValue = b.last_20_hit_rate
+          }
           break
         default:
-          aValue = a.last_10_hit_rate
-          bValue = b.last_10_hit_rate
+          if (customTier !== null) {
+            aValue = calculateHitRateWithCustomTier(a, customTier, "last_10")
+            bValue = calculateHitRateWithCustomTier(b, customTier, "last_10")
+          } else {
+            aValue = a.last_10_hit_rate
+            bValue = b.last_10_hit_rate
+          }
       }
 
       return sortDirection === "asc" 
@@ -238,15 +375,46 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
         : aValue < bValue ? 1 : -1
     })
 
+    console.log(`🔍 [V4 Dashboard] Final filtered and sorted profiles: ${profiles.length}`)
     return profiles
-  }, [hitRatesData?.profiles, searchQuery, selectedGames, sortField, sortDirection])
+  }, [hitRatesData?.profiles, searchQuery, selectedGames, sortField, sortDirection, customTier])
+
+  const calculateHitRate = (profile: PlayerHitRateProfile, timeWindow: string): number => {
+    if (customTier !== null) {
+      const windowKey = timeWindow === "5_games" ? "last_5" : timeWindow === "10_games" ? "last_10" : "last_20";
+      return calculateHitRateWithCustomTier(profile, customTier, windowKey);
+    }
+    
+    if (timeWindow === "5_games") {
+      return profile.last_5_hit_rate;
+    } else if (timeWindow === "10_games") {
+      return profile.last_10_hit_rate;
+    } else if (timeWindow === "20_games") {
+      return profile.last_20_hit_rate;
+    }
+    return profile.last_10_hit_rate;
+  }
 
   // Update pagination calculation based on filtered results
   const totalPages = Math.ceil(filteredAndSortedProfiles.length / 25);
   const currentProfiles = useMemo(() => {
     const startIndex = (currentPage - 1) * 25;
-    return filteredAndSortedProfiles.slice(startIndex, startIndex + 25);
-  }, [filteredAndSortedProfiles, currentPage]);
+    const slicedProfiles = filteredAndSortedProfiles.slice(startIndex, startIndex + 25);
+    
+    // Debug logging
+    console.log(`🔍 [V4 Dashboard] Pagination Debug:`, {
+      totalProfiles: hitRatesData?.profiles?.length || 0,
+      filteredAndSortedCount: filteredAndSortedProfiles.length,
+      currentPage,
+      startIndex,
+      endIndex: startIndex + 25,
+      currentProfilesCount: slicedProfiles.length,
+      totalPages,
+      firstProfileName: slicedProfiles[0]?.player_name || 'none',
+    });
+    
+    return slicedProfiles;
+  }, [filteredAndSortedProfiles, currentPage, hitRatesData?.profiles?.length]);
 
   // Extract available games from profiles
   const availableGames = useMemo(() => {
@@ -336,44 +504,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, selectedGames, customTier, sortField, sortDirection])
-
-  // V2 Approach - Client-side filtering and sorting
-  const calculateHitRateWithCustomTier = (
-    profile: PlayerHitRateProfile,
-    customTier: number,
-    timeWindow: "last_5" | "last_10" | "last_20",
-  ): number => {
-    const histogram = profile.points_histogram[timeWindow]
-    if (!histogram) return 0
-
-    const totalGames = Object.values(histogram).reduce((sum, count) => sum + count, 0)
-    if (totalGames === 0) return 0
-
-    let gamesHittingTier = 0
-    Object.entries(histogram).forEach(([value, count]) => {
-      if (Number(value) >= customTier) {
-        gamesHittingTier += count
-      }
-    })
-
-    return Math.round((gamesHittingTier / totalGames) * 100)
-  }
-
-  const calculateHitRate = (profile: PlayerHitRateProfile, timeWindow: string): number => {
-    if (customTier !== null) {
-      const windowKey = timeWindow === "5_games" ? "last_5" : timeWindow === "10_games" ? "last_10" : "last_20";
-      return calculateHitRateWithCustomTier(profile, customTier, windowKey);
-    }
-    
-    if (timeWindow === "5_games") {
-      return profile.last_5_hit_rate;
-    } else if (timeWindow === "10_games") {
-      return profile.last_10_hit_rate;
-    } else if (timeWindow === "20_games") {
-      return profile.last_20_hit_rate;
-    }
-    return profile.last_10_hit_rate;
-  }
 
   // V2 Approach - Client-side sorting
   const sortProfiles = (profiles: PlayerHitRateProfile[]): PlayerHitRateProfile[] => {
@@ -516,6 +646,8 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
         return [1, 2]
       case "Strikeouts":
         return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+      case "Runs":
+        return [1, 2, 3, 4]
       default:
         return [1, 2, 3]
     }
@@ -557,7 +689,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     // Invalidate and refetch all queries
     queryClient.invalidateQueries({ queryKey: ['hitRates'] })
     queryClient.invalidateQueries({ queryKey: ['teamData'] })
-    queryClient.invalidateQueries({ queryKey: ['oddsData'] })
+    // Removed oddsData invalidation since we now use embedded odds
   }
 
 
@@ -687,7 +819,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
             positionAbbreviation: teamData?.[playerId]?.position_abbreviation || ""
           })}
           getBestOddsForProfile={(profile) => {
-            const odds = oddsData?.[`${profile.player_id}:${profile.market}:${profile.line}`]
+            const odds = extractBestOddsFromProfile(profile, customTier)
             if (!odds || !odds.over) return null
             return {
               american: odds.over.odds,
@@ -718,7 +850,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
                 positionAbbreviation: teamData?.[playerId]?.position_abbreviation || ""
               })}
               getBestOddsForProfile={(profile) => {
-                const odds = oddsData?.[`${profile.player_id}:${profile.market}:${profile.line}`]
+                const odds = extractBestOddsFromProfile(profile, customTier)
                 if (!odds || !odds.over) return null
                 return {
                   american: odds.over.odds,

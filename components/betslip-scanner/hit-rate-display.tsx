@@ -1,13 +1,6 @@
 "use client"
-
-import React from "react"
-import { Badge } from "@/components/ui/badge"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Info } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Target, TrendingUp, BarChart3, Info } from "lucide-react"
 
 interface HitRateDisplayProps {
   hitRateData: any
@@ -16,58 +9,207 @@ interface HitRateDisplayProps {
 export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
   if (!hitRateData) return null
 
+  const getHitRateColor = (rate: number) => {
+    if (rate >= 70) return "emerald"
+    if (rate >= 50) return "amber"
+    return "red"
+  }
+
+  const getHitRateIcon = (rate: number) => {
+    if (rate >= 70) return <Target className="h-3 w-3" />
+    if (rate >= 50) return <TrendingUp className="h-3 w-3" />
+    return <BarChart3 className="h-3 w-3" />
+  }
+
   return (
-    <div className="flex items-center gap-2 mb-2">
-      {/* Last 10 Games Hit Rate */}
-      <Badge 
-        variant="outline" 
-        className={`text-xs px-2 py-1 ${
-          hitRateData.last_10_hit_rate >= 70 
-            ? 'bg-green-50 text-green-700 border-green-300 dark:bg-green-950/20 dark:text-green-400'
-            : hitRateData.last_10_hit_rate >= 50
-            ? 'bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-950/20 dark:text-yellow-400'
-            : 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950/20 dark:text-red-400'
-        }`}
-      >
-        🎯 L10: {hitRateData.last_10_hit_rate}%
-      </Badge>
-      
-      {/* Season Hit Rate */}
-      <Badge 
-        variant="outline"
-        className={`text-xs px-2 py-1 ${
-          hitRateData.season_hit_rate >= 50
-            ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/20 dark:text-blue-400'
-            : 'bg-gray-50 text-gray-700 border-gray-300 dark:bg-gray-950/20 dark:text-gray-400'
-        }`}
-      >
-        📊 Season: {hitRateData.season_hit_rate}%
-      </Badge>
-      
-      {/* Average per game */}
-      <Badge variant="outline" className="text-xs px-2 py-1 bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/20 dark:text-purple-400">
-        📈 Avg: {hitRateData.avg_stat_per_game}
-      </Badge>
-      
-      {/* Hit rate tooltip with more details */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{hitRateData.player_name} Hit Rates</div>
-            <div>Last 5 games: {hitRateData.last_5_hit_rate}%</div>
-            <div>Last 10 games: {hitRateData.last_10_hit_rate}%</div>
-            <div>Last 20 games: {hitRateData.last_20_hit_rate}%</div>
-            <div>Season ({hitRateData.season_games_count} games): {hitRateData.season_hit_rate}%</div>
-            <div className="pt-1 border-t border-gray-200">
-              <div>Line: {hitRateData.line}+ {hitRateData.market}</div>
-              <div>Team: {hitRateData.team_abbreviation}</div>
+    <div className="space-y-3">
+      {/* Mobile Layout - Stacked Cards */}
+      <div className="block sm:hidden">
+        <div className="grid grid-cols-2 gap-2">
+          {/* Last 10 Hit Rate - Mobile */}
+          <div
+            className={`bg-gradient-to-br from-${getHitRateColor(hitRateData.last_10_hit_rate)}-50 to-${getHitRateColor(hitRateData.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(hitRateData.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 border border-${getHitRateColor(hitRateData.last_10_hit_rate)}-200 dark:border-${getHitRateColor(hitRateData.last_10_hit_rate)}-800 rounded-xl p-3 shadow-sm`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              {getHitRateIcon(hitRateData.last_10_hit_rate)}
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">L10</span>
+            </div>
+            <div
+              className={`text-lg font-bold text-${getHitRateColor(hitRateData.last_10_hit_rate)}-700 dark:text-${getHitRateColor(hitRateData.last_10_hit_rate)}-400`}
+            >
+              {hitRateData.last_10_hit_rate}%
             </div>
           </div>
-        </TooltipContent>
-      </Tooltip>
+
+          {/* Season Hit Rate - Mobile */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100/50 dark:from-blue-950/20 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 className="h-3 w-3" />
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Season</span>
+            </div>
+            <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{hitRateData.season_hit_rate}%</div>
+          </div>
+        </div>
+
+        {/* Average Stat - Full Width Mobile */}
+        <div className="bg-gradient-to-br from-purple-50 to-violet-100/50 dark:from-purple-950/20 dark:to-violet-900/30 border border-purple-200 dark:border-purple-800 rounded-xl p-3 shadow-sm mt-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Average per Game</span>
+            </div>
+            <div className="text-xl font-bold text-purple-700 dark:text-purple-400">
+              {hitRateData.avg_stat_per_game}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout - Horizontal Cards */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-3 gap-4">
+          {/* Last 10 Hit Rate - Desktop */}
+          <div
+            className={`bg-gradient-to-br from-${getHitRateColor(hitRateData.last_10_hit_rate)}-50 to-${getHitRateColor(hitRateData.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(hitRateData.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 border border-${getHitRateColor(hitRateData.last_10_hit_rate)}-200 dark:border-${getHitRateColor(hitRateData.last_10_hit_rate)}-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className={`p-2 bg-${getHitRateColor(hitRateData.last_10_hit_rate)}-100 dark:bg-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 rounded-lg`}
+              >
+                {getHitRateIcon(hitRateData.last_10_hit_rate)}
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Last 10 Games</div>
+                <div
+                  className={`text-2xl font-bold text-${getHitRateColor(hitRateData.last_10_hit_rate)}-700 dark:text-${getHitRateColor(hitRateData.last_10_hit_rate)}-400`}
+                >
+                  {hitRateData.last_10_hit_rate}%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Season Hit Rate - Desktop */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100/50 dark:from-blue-950/20 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Season</div>
+                <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                  {hitRateData.season_hit_rate}%
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{hitRateData.season_games_count} games</div>
+          </div>
+
+          {/* Average Stat - Desktop */}
+          <div className="bg-gradient-to-br from-purple-50 to-violet-100/50 dark:from-purple-950/20 dark:to-violet-900/30 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Average</div>
+                <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+                  {hitRateData.avg_stat_per_game}
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">per game</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Tooltip - Always Visible */}
+      <TooltipProvider>
+        <div className="flex items-center justify-center pt-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200 group">
+                <Info className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300">
+                  View Details
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="max-w-sm p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl"
+            >
+              <div className="space-y-3">
+                {/* Player Header */}
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                  <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="font-semibold text-slate-900 dark:text-white">{hitRateData.player_name}</span>
+                </div>
+
+                {/* Hit Rate Breakdown */}
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                    Hit Rate History
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Last 5:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.last_5_hit_rate}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Last 10:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.last_10_hit_rate}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Last 20:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.last_20_hit_rate}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Season:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.season_hit_rate}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bet Details */}
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                    Bet Details
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Line:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.line}+ {hitRateData.market}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Team:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.team_abbreviation}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Games:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {hitRateData.season_games_count} this season
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
     </div>
   )
-} 
+}

@@ -17,195 +17,25 @@ import { motion } from "framer-motion"
 import { useBetActions } from "@/hooks/use-bet-actions"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BetslipDialog } from "@/components/betting/betslip-dialog"
-
-// Helper functions for team logos and abbreviations
-function getTeamLogoFilename(abbr: string): string {
-  if (!abbr) return "default"
-  const teamAbbreviationMap: Record<string, string> = {
-    // American League
-    LAA: "LAA", // Los Angeles Angels
-    BAL: "BAL", // Baltimore Orioles
-    BOS: "BOS", // Boston Red Sox
-    CWS: "CHW", // Chicago White Sox
-    CHW: "CHW", // Chicago White Sox (alternative)
-    CLE: "CLE", // Cleveland Guardians
-    DET: "DET", // Detroit Tigers
-    HOU: "HOU", // Houston Astros
-    KC: "KC", // Kansas City Royals
-    MIN: "MIN", // Minnesota Twins
-    NYY: "NYY", // New York Yankees
-    OAK: "OAK", // Oakland Athletics
-    A: "OAK", // Oakland Athletics (alternative)
-    ATH: "OAK", // Oakland Athletics (alternative)
-    Athletics: "OAK", // Oakland Athletics (full name)
-    SEA: "SEA", // Seattle Mariners
-    TB: "TB", // Tampa Bay Rays
-    TEX: "TEX", // Texas Rangers
-    TOR: "TOR", // Toronto Blue Jays
-    // National League
-    ARI: "AZ", // Arizona Diamondbacks
-    ATL: "ATL", // Atlanta Braves
-    CHC: "CHC", // Chicago Cubs
-    CIN: "CIN", // Cincinnati Reds
-    COL: "COL", // Colorado Rockies
-    LAD: "LAD", // Los Angeles Dodgers
-    MIA: "MIA", // Miami Marlins
-    MIL: "MIL", // Milwaukee Brewers
-    NYM: "NYM", // New York Mets
-    PHI: "PHI", // Philadelphia Phillies
-    PIT: "PIT", // Pittsburgh Pirates
-    SD: "SD", // San Diego Padres
-    SF: "SF", // San Francisco Giants
-    STL: "STL",
-    WSH: "WSH",
-  }
-  const upperAbbr = abbr.toUpperCase()
-  return teamAbbreviationMap[upperAbbr] || upperAbbr
-}
-
-function getStandardAbbreviation(teamName: string): string {
-  // Handle common variations first
-  const variationMap: Record<string, string> = {
-    ATH: "OAK",
-    Athletics: "OAK",
-    "A's": "OAK",
-    CWS: "CHW",
-    "White Sox": "CHW",
-  }
-  // Check variations first
-  if (variationMap[teamName]) {
-    return variationMap[teamName]
-  }
-  const teamMap: Record<string, string> = {
-    // American League
-    "Los Angeles Angels": "LAA",
-    "Baltimore Orioles": "BAL",
-    "Boston Red Sox": "BOS",
-    "Chicago White Sox": "CHW",
-    "Cleveland Guardians": "CLE",
-    "Detroit Tigers": "DET",
-    "Houston Astros": "HOU",
-    "Kansas City Royals": "KC",
-    "Minnesota Twins": "MIN",
-    "New York Yankees": "NYY",
-    "Oakland Athletics": "OAK",
-    "Seattle Mariners": "SEA",
-    "Tampa Bay Rays": "TB",
-    "Texas Rangers": "TEX",
-    "Toronto Blue Jays": "TOR",
-    // National League
-    "Arizona Diamondbacks": "AZ",
-    "Atlanta Braves": "ATL",
-    "Chicago Cubs": "CHC",
-    "Cincinnati Reds": "CIN",
-    "Colorado Rockies": "COL",
-    "Los Angeles Dodgers": "LAD",
-    "Miami Marlins": "MIA",
-    "Milwaukee Brewers": "MIL",
-    "New York Mets": "NYM",
-    "Philadelphia Phillies": "PHI",
-    "Pittsburgh Pirates": "PIT",
-    "San Diego Padres": "SD",
-    "San Francisco Giants": "SF",
-    "St. Louis Cardinals": "STL",
-    "Washington Nationals": "WSH",
-  }
-  return teamMap[teamName] || teamName.slice(0, 3).toUpperCase()
-}
-
-// Update the sportsbook ID mapping to be more comprehensive
-const SPORTSBOOK_ID_MAP: Record<string, string> = {
-  // ESPN Bet variations
-  espnbet: "espn bet",
-  espn_bet: "espn bet",
-  "espn-bet": "espn bet",
-  espn: "espn bet",
-
-  // Caesars variations
-  "william hill": "caesars",
-  williamhill: "caesars",
-  williamhill_us: "caesars",
-  caesars: "caesars",
-
-  // Bally Bet variations
-  "bally bet": "bally bet",
-  ballybet: "bally bet",
-  bally: "bally bet",
-  bally_bet: "bally bet",
-
-  // Hard Rock variations
-  "hard rock bet": "hard rock bet",
-  hardrockbet: "hard rock bet",
-  "hard rock": "hard rock bet",
-  hardrock: "hard rock bet",
-
-  // BetMGM variations
-  "bet mgm": "betmgm",
-  mgm: "betmgm",
-  betmgm: "betmgm",
-
-  // DraftKings variations
-  draftkings: "draftkings",
-  dk: "draftkings",
-
-  // FanDuel variations
-  fanduel: "fanduel",
-  fd: "fanduel",
-
-  // BetRivers variations
-  betrivers: "betrivers",
-  rivers: "betrivers",
-  bet_rivers: "betrivers",
-
-  // Fanatics variations
-  fanatics: "fanatics",
-  fanatics_sportsbook: "fanatics",
-
-  // Pinnacle variations
-  pinnacle: "pinnacle",
-  pin: "pinnacle",
-
-  // Others
-  novig: "novig",
-  superbook: "superbook",
-  bet365: "bet365",
-}
-
-// Update the REVERSE_SPORTSBOOK_MAP to match the correct ID for Caesars
-const REVERSE_SPORTSBOOK_MAP: Record<string, string> = {
-  "espn bet": "espnbet",
-  caesars: "williamhill_us", // This is correct but let's update the logo handling
-  "bally bet": "ballybet",
-  "hard rock bet": "hardrockbet",
-  betmgm: "betmgm",
-  draftkings: "draftkings",
-  fanduel: "fanduel",
-  betrivers: "betrivers",
-  fanatics: "fanatics",
-  pinnacle: "pinnacle",
-  novig: "novig",
-  superbook: "superbook",
-  bet365: "bet365",
-}
-
-interface PropComparisonTableV2Props {
-  data: PlayerOdds[]
-  sortField: "odds" | "line" | "edge" | "name" | "ev"
-  sortDirection: "asc" | "desc"
-  onSortChange: (field: "odds" | "line" | "edge" | "name" | "ev", direction: "asc" | "desc") => void
-  bestOddsFilter: BestOddsFilter | null
-  evMethod: "market-average" | "no-vig"
-  globalLine: string | null
-}
-
-// Format date and time
-function formatGameDateTime(date: string) {
-  return new Date(date).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
-}
+import { 
+  getTeamLogoFilename, 
+  getStandardAbbreviation, 
+  getPlayerImageUrl,
+  formatGameDateTime,
+  getSportSpecificStyles
+} from "@/lib/constants/team-mappings"
+import {
+  SPORTSBOOK_ID_MAP,
+  REVERSE_SPORTSBOOK_MAP,
+  getNormalizedBookmakerId,
+  getBookmakerLogoId
+} from "@/lib/constants/sportsbook-mappings"
+import { 
+  getTeamLogoUrl,
+  getPlayerHeadshotUrl,
+  getDefaultPlayerImage
+} from "@/lib/constants/sport-assets"
+import { createBetslipSelection } from "@/lib/betslip-utils";
 
 // Format odds to always show + for positive odds
 function formatOdds(odds: number): string {
@@ -225,8 +55,6 @@ function calculateImpliedProbability(odds: number): number {
 
 // Calculate profit per unit from American odds
 function calculateProfitPerUnit(odds: number): number {
-  // For positive odds: +130 means $1.30 profit per $1
-  // For negative odds: -150 means $100/150 = $0.67 profit per $1
   return odds > 0 ? odds / 100 : 100 / Math.abs(odds)
 }
 
@@ -474,6 +302,17 @@ function getMaxEV(
   return maxEV > 0 ? maxEV : Number.NEGATIVE_INFINITY
 }
 
+interface PropComparisonTableV2Props {
+  data: PlayerOdds[]
+  sortField: "odds" | "line" | "edge" | "name" | "ev"
+  sortDirection: "asc" | "desc"
+  onSortChange: (field: "odds" | "line" | "edge" | "name" | "ev", direction: "asc" | "desc") => void
+  bestOddsFilter: BestOddsFilter | null
+  evMethod: "market-average" | "no-vig"
+  globalLine: string | null
+  sport: string
+}
+
 export function PropComparisonTableV2({
   data,
   sortField,
@@ -482,6 +321,7 @@ export function PropComparisonTableV2({
   bestOddsFilter,
   evMethod = "market-average",
   globalLine,
+  sport = "baseball_mlb" // Default to MLB
 }: PropComparisonTableV2Props) {
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -493,60 +333,30 @@ export function PropComparisonTableV2({
     useBetActions()
 
   // Function to create betslip selection
-  const createBetslipSelection = (item: PlayerOdds, type: "over" | "under") => {
+  const createBetslipSelectionFromItem = (item: PlayerOdds, type: "over" | "under") => {
     const activeLine = globalLine && item.lines?.[globalLine] ? globalLine : Object.keys(item.lines || {})[0]
     const lineOdds = item.lines?.[activeLine] || {}
-    const oddsData: Record<string, any> = {}
 
-    Object.entries(lineOdds).forEach(([bookId, bookOdds]) => {
-      const mappedId = SPORTSBOOK_ID_MAP[bookId.toLowerCase()] || bookId.toLowerCase()
-      if (bookOdds) {
-        oddsData[mappedId] = {
-          over: bookOdds.over
-            ? {
-                ...bookOdds.over,
-                sid: bookOdds.over.sid || "default", // Ensure sid is always present
-              }
-            : null,
-          under: bookOdds.under
-            ? {
-                ...bookOdds.under,
-                sid: bookOdds.under.sid || "default", // Ensure sid is always present
-              }
-            : null,
-          line: Number.parseFloat(activeLine),
-          last_update: new Date().toISOString(),
-        }
-      }
-    })
-
-    return {
+    return createBetslipSelection({
       event_id: item.event_id,
-      sport_key: "baseball_mlb", // Make this dynamic based on sport
-      market_key: item.market,
-      market_type: "player_props",
+      sport_key: sport,
+      market: item.market,
+      // Remove market_display - let betslip-utils.ts handle the proper lookup
       bet_type: type,
       player_name: item.description,
-      player_id: item.player_id,
+      player_id: item.player_id.toString(),
       player_team: item.team,
       line: Number.parseFloat(activeLine),
       commence_time: item.commence_time,
       home_team: item.home_team || "",
       away_team: item.away_team || "",
-      odds_data: oddsData,
-      market_display:
-        item.market_display ||
-        item.market
-          .split("_")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" "),
-      selection: type === "over" ? "Over" : "Under", // Add the selection parameter
-    }
+      odds_data: lineOdds
+    });
   }
 
   // Function to handle adding to betslip
   const handleAddToBetslip = (item: PlayerOdds, type: "over" | "under") => {
-    const selection = createBetslipSelection(item, type)
+    const selection = createBetslipSelectionFromItem(item, type)
     setPendingSelection(selection)
     setShowBetslipDialog(true)
   }
@@ -605,7 +415,7 @@ export function PropComparisonTableV2({
         activeLine,
       }
     })
-  }, [data, globalLine])
+  }, [data, globalLine, sport])
 
   // Update the renderSportsbookLogo function to use sportsbooks data
   const renderSportsbookLogo = (bookId: string, size: "sm" | "md" | "lg" = "sm") => {
@@ -650,7 +460,7 @@ export function PropComparisonTableV2({
   // Update the mobile row renderer
   const renderMobileRow = (item: ProcessedPlayerOdds) => {
     const odds = item.lines[item.activeLine]
-    const teamAbbr = getStandardAbbreviation(item.team)
+    const teamAbbr = getStandardAbbreviation(item.team, sport)
     const isExpanded = expandedRows.has(item.player_id.toString())
     const avgOdds = calculateAverageOdds(odds)
 
@@ -667,7 +477,7 @@ export function PropComparisonTableV2({
                 <span className="font-medium">{item.description}</span>
                 <div className="flex items-center gap-1">
                   <Image
-                    src={`/images/mlb-teams/${getTeamLogoFilename(teamAbbr)}.svg`}
+                    src={getTeamLogoUrl(teamAbbr, sport)}
                     alt={teamAbbr}
                     width={16}
                     height={16}
@@ -756,6 +566,7 @@ export function PropComparisonTableV2({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
+                    key={`${item.player_id}-over`}
                     variant="outline"
                     size="sm"
                     className={cn(
@@ -783,6 +594,7 @@ export function PropComparisonTableV2({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
+                    key={`${item.player_id}-under`}
                     variant="outline"
                     size="sm"
                     className={cn(
@@ -843,7 +655,7 @@ export function PropComparisonTableV2({
                           .sort((a, b) => (b.odds.price || 0) - (a.odds.price || 0))
                           .map(({ book, odds: overOdds, hasBestOdds: hasOverBestOdds }) => (
                             <button
-                              key={`${book.id}-over`}
+                              key={`${book.id}-${item.player_id}-over`}
                               className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border transition-all duration-200",
                                 "hover:scale-105 hover:shadow-md active:scale-95",
@@ -894,7 +706,7 @@ export function PropComparisonTableV2({
                           .sort((a, b) => (b.odds.price || 0) - (a.odds.price || 0))
                           .map(({ book, odds: underOdds, hasBestOdds: hasUnderBestOdds }) => (
                             <button
-                              key={`${book.id}-under`}
+                              key={`${book.id}-${item.player_id}-under`}
                               className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border transition-all duration-200",
                                 "hover:scale-105 hover:shadow-md active:scale-95",
@@ -996,7 +808,7 @@ export function PropComparisonTableV2({
 
       return 0
     })
-  }, [processedData, sortField, sortDirection, evMethod, bestOddsFilter])
+  }, [processedData, sortField, sortDirection, evMethod, bestOddsFilter, sport])
 
   return (
     <>
@@ -1133,7 +945,7 @@ export function PropComparisonTableV2({
                     </div>
                   </TableHead>
                   {activeSportsbooks.map((book) => (
-                    <TableHead key={book.id} className="text-center w-[80px] bg-slate-950 sticky top-0">
+                    <TableHead key={`header-${book.id}`} className="text-center w-[80px] bg-slate-950 sticky top-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger>
@@ -1162,9 +974,9 @@ export function PropComparisonTableV2({
               }
 
               const odds = item.lines[item.activeLine]
-              const teamAbbr = getStandardAbbreviation(item.team)
-              const homeTeamAbbr = getStandardAbbreviation(item.home_team || "")
-              const awayTeamAbbr = getStandardAbbreviation(item.away_team || "")
+              const teamAbbr = getStandardAbbreviation(item.team, sport)
+              const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
+              const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
               const isHomeTeam = teamAbbr === homeTeamAbbr
               const avgOdds = calculateAverageOdds(odds)
 
@@ -1174,9 +986,9 @@ export function PropComparisonTableV2({
                   <TableCell className="text-slate-200">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className={getSportSpecificStyles(sport).avatarSize}>
                           <AvatarImage
-                            src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_48,q_100/v1/people/${item.player_id}/headshot/silo/current`}
+                            src={getPlayerHeadshotUrl(item.player_id.toString(), sport)}
                             alt={item.description}
                             className="object-cover"
                           />
@@ -1189,39 +1001,39 @@ export function PropComparisonTableV2({
                         </Avatar>
                         <div className="absolute -bottom-1 -right-1">
                           <Image
-                            src={`/images/mlb-teams/${getTeamLogoFilename(teamAbbr)}.svg`}
+                            src={getTeamLogoUrl(teamAbbr, sport)}
                             alt={teamAbbr}
                             width={20}
                             height={20}
-                            className="h-5 w-5"
+                            className={getSportSpecificStyles(sport).teamLogoSize}
                           />
                         </div>
                       </div>
                       <div className="flex flex-col">
                         <span className="font-medium text-slate-200">{item.description}</span>
                         <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <span>{formatGameDateTime(item.commence_time)}</span>
+                          <span>{formatGameDateTime(item.commence_time, sport)}</span>
                           <div className="flex items-center gap-1">
                             {isHomeTeam ? (
                               <>
                                 <span className="text-xs">vs</span>
                                 <Image
-                                  src={`/images/mlb-teams/${getTeamLogoFilename(awayTeamAbbr)}.svg`}
+                                  src={getTeamLogoUrl(awayTeamAbbr, sport)}
                                   alt={awayTeamAbbr}
-                                  width={16}
-                                  height={16}
-                                  className="h-4 w-4"
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
                                 />
                               </>
                             ) : (
                               <>
                                 <span className="text-xs">@</span>
                                 <Image
-                                  src={`/images/mlb-teams/${getTeamLogoFilename(homeTeamAbbr)}.svg`}
+                                  src={getTeamLogoUrl(homeTeamAbbr, sport)}
                                   alt={homeTeamAbbr}
-                                  width={16}
-                                  height={16}
-                                  className="h-4 w-4"
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
                                 />
                               </>
                             )}
@@ -1238,18 +1050,38 @@ export function PropComparisonTableV2({
                     <TableCell>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-400">O</span>
-                            {renderClickableOdds(item.bestOverOdds, "over")}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-slate-400">O</span>
+                              {item.bestOverOdds ? (
+                                <OddsDisplay 
+                                  odds={item.bestOverOdds.price} 
+                                  link={item.bestOverOdds.link} 
+                                  className="text-sm text-slate-200 hover:underline" 
+                                />
+                              ) : (
+                                <span className="text-sm text-slate-400">-</span>
+                              )}
+                            </div>
+                            {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
                           </div>
-                          {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
                         </div>
                         <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-400">U</span>
-                            {renderClickableOdds(item.bestUnderOdds, "under")}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-slate-400">U</span>
+                              {item.bestUnderOdds ? (
+                                <OddsDisplay 
+                                  odds={item.bestUnderOdds.price} 
+                                  link={item.bestUnderOdds.link} 
+                                  className="text-sm text-slate-200 hover:underline" 
+                                />
+                              ) : (
+                                <span className="text-sm text-slate-400">-</span>
+                              )}
+                            </div>
+                            {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
                           </div>
-                          {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
                         </div>
                       </div>
                     </TableCell>
@@ -1319,27 +1151,71 @@ export function PropComparisonTableV2({
                     {activeSportsbooks.map((book) => {
                       const bookId = book.id.toLowerCase()
                       const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
-                      const bookOdds =
-                        odds[mappedId] || odds[bookId] || odds[SPORTSBOOK_ID_MAP[bookId]] || odds[book.id]
+                      
+                      // Try all possible variations of the sportsbook ID
+                      const possibleIds = [
+                        mappedId,
+                        bookId,
+                        book.id,
+                        SPORTSBOOK_ID_MAP[bookId],
+                        // Add common variations
+                        bookId === "williamhill_us" ? "caesars" : null,
+                        bookId === "caesars" ? "williamhill_us" : null,
+                        bookId === "espnbet" ? "espn_bet" : null,
+                        bookId === "hardrockbet" ? "hard_rock" : null,
+                        bookId === "ballybet" ? "bally_bet" : null,
+                      ].filter(Boolean) as string[]
+
+                      // Find the first matching odds entry
+                      const bookOdds = possibleIds.reduce((found: BookmakerOdds | null, id) => {
+                        const foundOdds = odds[id]
+                        return found || (foundOdds as BookmakerOdds)
+                      }, null)
 
                       // Normalize the IDs before comparison
                       const normalizedBookId = SPORTSBOOK_ID_MAP[book.id.toLowerCase()] || book.id.toLowerCase()
-                      const normalizedBestOverBook =
-                        SPORTSBOOK_ID_MAP[item.bestOverBook?.toLowerCase()] || item.bestOverBook?.toLowerCase()
-                      const normalizedBestUnderBook =
-                        SPORTSBOOK_ID_MAP[item.bestUnderBook?.toLowerCase()] || item.bestUnderBook?.toLowerCase()
+                      const normalizedBestOverBook = SPORTSBOOK_ID_MAP[item.bestOverBook?.toLowerCase()] || item.bestOverBook?.toLowerCase()
+                      const normalizedBestUnderBook = SPORTSBOOK_ID_MAP[item.bestUnderBook?.toLowerCase()] || item.bestUnderBook?.toLowerCase()
 
                       const isOverBest = normalizedBookId === normalizedBestOverBook
                       const isUnderBest = normalizedBookId === normalizedBestUnderBook
 
                       return (
-                        <TableCell key={book.id} className="text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className={cn("text-slate-200", isOverBest && "text-emerald-400 font-medium")}>
-                              {renderClickableOdds(bookOdds?.over)}
+                        <TableCell key={`${item.player_id}-${book.id}`} className="text-center">
+                          <div className="flex flex-col gap-2">
+                            <div className={cn(
+                              "flex items-center justify-center px-2 py-1 rounded",
+                              isOverBest ? "bg-emerald-500/20" : "bg-slate-800/50"
+                            )}>
+                              {bookOdds?.over ? (
+                                <OddsDisplay 
+                                  odds={bookOdds.over.price} 
+                                  link={bookOdds.over.link} 
+                                  className={cn(
+                                    "text-sm",
+                                    isOverBest ? "text-emerald-400" : "text-slate-200"
+                                  )} 
+                                />
+                              ) : (
+                                <span className="text-sm text-slate-400">-</span>
+                              )}
                             </div>
-                            <div className={cn("text-slate-200", isUnderBest && "text-red-400 font-medium")}>
-                              {renderClickableOdds(bookOdds?.under)}
+                            <div className={cn(
+                              "flex items-center justify-center px-2 py-1 rounded",
+                              isUnderBest ? "bg-emerald-500/20" : "bg-slate-800/50"
+                            )}>
+                              {bookOdds?.under ? (
+                                <OddsDisplay 
+                                  odds={bookOdds.under.price} 
+                                  link={bookOdds.under.link} 
+                                  className={cn(
+                                    "text-sm",
+                                    isUnderBest ? "text-emerald-400" : "text-slate-200"
+                                  )} 
+                                />
+                              ) : (
+                                <span className="text-sm text-slate-400">-</span>
+                              )}
                             </div>
                           </div>
                         </TableCell>

@@ -21,31 +21,43 @@ import { prefetchPropComparison } from "@/lib/query-client"
 
 // Compact loading skeleton
 function PropComparisonTableSkeleton() {
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
   return (
     <div className="space-y-4">
       {/* Compact filters skeleton */}
-      <Card className="p-4 bg-slate-900/50 border-slate-800">
+      <Card
+        className={cn(
+          "p-4 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
+          isMobile && "-mx-4 border-x-0 rounded-none",
+        )}
+      >
         <div className="flex flex-wrap gap-2 mb-3">
           {Array(4)
             .fill(0)
             .map((_, i) => (
-              <Skeleton key={i} className="h-8 w-24 bg-slate-700" />
+              <Skeleton key={i} className="h-8 w-24 bg-slate-200 dark:bg-slate-700" />
             ))}
         </div>
         <div className="flex gap-2">
-          <Skeleton className="h-8 flex-1 bg-slate-700" />
-          <Skeleton className="h-8 w-20 bg-slate-700" />
+          <Skeleton className="h-8 flex-1 bg-slate-200 dark:bg-slate-700" />
+          <Skeleton className="h-8 w-20 bg-slate-200 dark:bg-slate-700" />
         </div>
       </Card>
 
       {/* Table skeleton */}
-      <Card className="p-4 bg-slate-900/50 border-slate-800">
+      <Card
+        className={cn(
+          "p-4 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
+          isMobile && "-mx-4 border-x-0 rounded-none",
+        )}
+      >
         <div className="space-y-3">
           <div className="grid grid-cols-7 gap-2">
             {Array(7)
               .fill(0)
               .map((_, i) => (
-                <Skeleton key={i} className="h-6 w-full bg-slate-700" />
+                <Skeleton key={i} className="h-6 w-full bg-slate-200 dark:bg-slate-700" />
               ))}
           </div>
           {Array(6)
@@ -55,7 +67,7 @@ function PropComparisonTableSkeleton() {
                 {Array(7)
                   .fill(0)
                   .map((_, j) => (
-                    <Skeleton key={j} className="h-10 w-full bg-slate-700" />
+                    <Skeleton key={j} className="h-10 w-full bg-slate-200 dark:bg-slate-700" />
                   ))}
               </div>
             ))}
@@ -255,15 +267,25 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
   }, [market, globalLine, selectedSportsbook, selectedLine, selectedGames, pathname, router, searchParams])
 
   return (
-    <div className="space-y-4">
+    <div
+      className={cn(
+        "space-y-4",
+        isMobile && "-mx-4", // Extend to screen edges on mobile
+      )}
+    >
       {/* Compact Filters and Controls */}
-      <Card className="p-4 bg-slate-900/50 border-slate-800">
+      <Card
+        className={cn(
+          "p-4 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
+          isMobile && "border-x-0 rounded-none", // Full width on mobile
+        )}
+      >
         <div className="space-y-3">
           {/* Top row - Results count and view controls */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-purple-400" />
-              <span className="text-sm font-medium text-white">
+              <TrendingUp className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <span className="text-sm font-medium text-slate-900 dark:text-white">
                 {filteredCount.toLocaleString()} of {totalCount.toLocaleString()} props
               </span>
             </div>
@@ -274,12 +296,12 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                 size="sm"
                 onClick={() => refetch()}
                 disabled={isLoading}
-                className="h-8 px-2 bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
+                className="h-8 px-2 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
               >
                 <RefreshCw className={cn("h-3 w-3", isLoading && "animate-spin")} />
               </Button>
 
-              <div className="flex items-center border border-slate-700 rounded-md p-0.5 bg-slate-800/50">
+              <div className="flex items-center border border-slate-300 dark:border-slate-700 rounded-md p-0.5 bg-slate-100/50 dark:bg-slate-800/50">
                 <Button
                   variant={viewMode === "table" ? "default" : "ghost"}
                   size="sm"
@@ -288,7 +310,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                     "h-6 px-2",
                     viewMode === "table"
                       ? "bg-purple-500 hover:bg-purple-600 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-slate-700",
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700",
                   )}
                 >
                   <List className="h-3 w-3" />
@@ -301,7 +323,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                     "h-6 px-2",
                     viewMode === "grid"
                       ? "bg-purple-500 hover:bg-purple-600 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-slate-700",
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700",
                   )}
                 >
                   <Grid3X3 className="h-3 w-3" />
@@ -351,7 +373,13 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
 
       {/* Error state */}
       {isError && (
-        <Alert variant="destructive" className="bg-red-900/20 border-red-800 text-red-400">
+        <Alert
+          variant="destructive"
+          className={cn(
+            "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400",
+            isMobile && "-mx-4 border-x-0 rounded-none",
+          )}
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>Error loading prop comparison data. Please try refreshing the page.</AlertDescription>
         </Alert>
@@ -359,14 +387,21 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
 
       {/* Empty state */}
       {!isLoading && !isError && filteredCount === 0 && (
-        <Card className="p-8 text-center bg-slate-900/50 border-slate-800">
+        <Card
+          className={cn(
+            "p-8 text-center bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
+            isMobile && "-mx-4 border-x-0 rounded-none",
+          )}
+        >
           <div className="space-y-3">
-            <div className="mx-auto w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-slate-400" />
+            <div className="mx-auto w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-slate-400 dark:text-slate-500" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-semibold text-white">No props found</h3>
-              <p className="text-sm text-slate-400">Try adjusting your filters to see more results</p>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">No props found</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Try adjusting your filters to see more results
+              </p>
             </div>
           </div>
         </Card>
@@ -387,9 +422,15 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
               bestOddsFilter={bestOddsFilter}
               evMethod={evMethod}
               globalLine={globalLine}
+              sport={sport}
             />
           ) : (
-            <Card className="p-6 bg-background/50 border-border">
+            <Card
+              className={cn(
+                "p-6 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
+                isMobile && "-mx-4 border-x-0 rounded-none px-4",
+              )}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sortedData.map((item) => (
                   <PropComparisonCardV2
@@ -400,6 +441,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                     evMethod={evMethod}
                     sortField={sortField}
                     sortDirection={sortDirection}
+                    sport={sport}
                   />
                 ))}
               </div>

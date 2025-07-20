@@ -23,6 +23,7 @@ export type MLBMarket =
   | "Hits + Runs + RBIs"
   | "Outs"
   | "Stolen Bases"
+  | "Runs"
 
 export type NFLMarket = 
   | "Passing Yards"
@@ -70,21 +71,25 @@ export const SPORT_CONFIGS: Record<SupportedSport, SportConfig> = {
     name: "MLB",
     isActive: true,
     markets: [
+      // Batter Markets
       { value: "Hits", label: "Hits" },
       { value: "Total Bases", label: "Total Bases" },
       { value: "Home Runs", label: "Home Runs" },
-      { value: "Strikeouts", label: "Strikeouts" },
-      { value: "Walks", label: "Walks" },
-      { value: "Batting Walks", label: "Batting Walks" },
-      { value: "RBIs", label: "RBIs" },
       { value: "Singles", label: "Singles" },
       { value: "Doubles", label: "Doubles" },
       { value: "Triples", label: "Triples" },
-      { value: "Earned Runs", label: "Earned Runs" },
-      { value: "Hits Allowed", label: "Hits Allowed" },
+      { value: "RBIs", label: "RBIs" },
+      { value: "Runs", label: "Runs" },
+      { value: "Batting Walks", label: "Batting Walks" },
       { value: "Hits + Runs + RBIs", label: "H+R+RBI" },
+      { value: "Stolen Bases", label: "Stolen Bases" },
+      
+      // Pitcher Markets
+      { value: "Strikeouts", label: "Strikeouts" },
       { value: "Outs", label: "Outs" },
-      { value: "Stolen Bases", label: "Stolen Bases" }
+      { value: "Hits Allowed", label: "Hits Allowed" },
+      { value: "Earned Runs", label: "Earned Runs" },
+      { value: "Walks", label: "Walks" }
     ],
     defaultMarket: "Hits",
     statTerminology: {

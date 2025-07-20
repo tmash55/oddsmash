@@ -2,33 +2,28 @@ export type BetType = 'standard' | 'player_prop';
 export type MarketType = 'spread' | 'moneyline' | 'total' | 'player_prop';
 
 export interface BetslipSelection {
-  id?: string;
+  id: string;
   betslip_id: string;
   event_id: string;
-  sport_key: string;           // API sport key (e.g. "baseball_mlb")
-  market_key: string;          // API market key(s) (e.g. "batter_home_runs,batter_home_runs_alternate")
-  market_display: string;      // Display name (e.g. "Home Runs")
-  market_type: string;         // e.g. "player_props"
-  bet_type: string;           // e.g. "straight"
-  selection: string;          // e.g. "Over 0.5"
-  player_name: string;        // e.g. "Brandon Nimmo"
-  player_id: number;          // e.g. 607043
-  player_team: string;        // e.g. "NYM"
-  line: number;              // e.g. 0.5
-  commence_time: string;      // ISO date string
-  home_team: string;         // e.g. "Baltimore Orioles"
-  away_team: string;         // e.g. "New York Mets"
-  odds_data: {
-    [sportsbook: string]: {
-      odds: number;          // American odds format
-      line: number;
-      link: string | null;
-      last_update: string;   // ISO date string
-    }
-  };
-  status?: string;
-  result?: string | null;
-  settled_at?: string | null;
+  sport_key: string;
+  market_key: string;
+  market_display?: string;
+  market_type: string;
+  bet_type: string;
+  selection: string;
+  player_name?: string;
+  player_id?: number;
+  player_team?: string;
+  line?: number;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  odds_data: Record<string, {
+    odds: number;
+    line?: number;
+    link?: string;
+    last_update: string;
+  }>;
   created_at?: string;
   updated_at?: string;
 }

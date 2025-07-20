@@ -1,176 +1,197 @@
-'use client';
-import React from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/libs/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/components/auth/auth-provider";
-import Image from "next/image";
+"use client"
 
-export default function SignUpForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
-  const { signInWithGoogle } = useAuth();
-  const supabase = createClient();
+import type React from "react"
+import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/libs/supabase/client"
+import { useToast } from "@/components/ui/use-toast"
+import { motion, AnimatePresence } from "framer-motion"
+import { Check, X, Mail, Lock, User, Eye, EyeOff } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/components/auth/auth-provider"
+import Image from "next/image"
+import { getRedirectUrl } from "@/lib/utils/auth"
 
-  // Check password match and strength whenever password fields change
+export default function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong">("weak")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
+  const { signInWithGoogle } = useAuth()
+  const supabase = createClient()
+
+  // Check password match
   useEffect(() => {
     if (password && confirmPassword) {
-      setPasswordsMatch(password === confirmPassword);
+      setPasswordsMatch(password === confirmPassword)
     } else {
-      setPasswordsMatch(null);
+      setPasswordsMatch(null)
+    }
+  }, [password, confirmPassword])
+
+  // Check password strength
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength("weak")
+      return
     }
 
-    // Check password strength
-    if (password) {
-      const hasUpper = /[A-Z]/.test(password);
-      const hasLower = /[a-z]/.test(password);
-      const hasNumbers = /\d/.test(password);
-      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-      const isLongEnough = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    const isLongEnough = password.length >= 8
 
-      const criteriaCount = [hasUpper, hasLower, hasNumbers, hasSpecial, isLongEnough].filter(Boolean).length;
-      
-      if (criteriaCount < 3) {
-        setPasswordStrength('weak');
-      } else if (criteriaCount < 5) {
-        setPasswordStrength('medium');
-      } else {
-        setPasswordStrength('strong');
-      }
-    } else {
-      setPasswordStrength(null);
-    }
-  }, [password, confirmPassword]);
+    const strength =
+      hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar && isLongEnough
+        ? "strong"
+        : hasUpperCase && hasLowerCase && (hasNumbers || hasSpecialChar) && isLongEnough
+          ? "medium"
+          : "weak"
+
+    setPasswordStrength(strength)
+  }, [password])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
     try {
+      // Basic validation
+      if (!email || !password || !firstName) {
+        throw new Error("Please fill in all fields")
+      }
+
       if (password !== confirmPassword) {
-        throw new Error("Passwords do not match");
+        throw new Error("Passwords do not match")
       }
 
-      if (passwordStrength === 'weak') {
-        throw new Error("Please choose a stronger password");
+      if (passwordStrength === "weak") {
+        throw new Error("Please choose a stronger password")
       }
 
+      // Check if email exists using RPC function
+      const { data: emailExists, error: emailError } = await supabase.rpc("email_exists", { check_email: email })
+
+      if (emailError) {
+        console.error("Error checking email:", emailError)
+        throw new Error("Error checking email availability")
+      }
+
+      if (emailExists) {
+        toast({
+          variant: "destructive",
+          title: "Account already exists",
+          description: "An account with this email already exists. Please sign in instead.",
+        })
+        return
+      }
+
+      // Create the account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          emailRedirectTo: getRedirectUrl(),
           data: {
             first_name: firstName,
-            full_name: firstName, // For compatibility
-          }
+          },
         },
-      });
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       if (data.user) {
-        // Store temporary user data for onboarding
-        sessionStorage.setItem('pendingUserData', JSON.stringify({
-          email,
-          firstName,
-          needsOnboarding: true
-        }));
+        // Store user data for onboarding
+        sessionStorage.setItem(
+          "pendingUserData",
+          JSON.stringify({
+            email,
+            firstName,
+            needsOnboarding: true,
+          }),
+        )
 
-        // Check if email verification is disabled (user will be immediately confirmed)
-        if (data.user.email_confirmed_at) {
-          // Email verification disabled - user is immediately authenticated
-          toast({
-            title: "Account created! 🎉",
-            description: "Welcome to OddSmash! Let's personalize your experience.",
-          });
-          
-          // Redirect directly to onboarding since user is authenticated
-          router.push("/onboarding");
+        // Check if email verification is required
+        if (data.session) {
+          // Email verification not required, redirect to onboarding
+          router.push("/onboarding")
         } else {
-          // Email verification enabled - user needs to verify email
+          // Email verification required
           toast({
-            title: "Account created! 🎉",
-            description: "Please check your email to verify your account, then return to complete your setup.",
-          });
-          
-          // Redirect to sign-in page with verification message
-          router.push("/sign-in?message=Please check your email to verify your account");
+            title: "Success!",
+            description: "Please check your email to confirm your account.",
+          })
+          router.push("/sign-in")
         }
       }
     } catch (error) {
+      console.error("Signup error:", error)
       toast({
         variant: "destructive",
         title: "Error creating account",
-        description: error instanceof Error ? error.message : "An error occurred",
-      });
+        description: error instanceof Error ? error.message : "An error occurred during signup",
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+    setIsGoogleLoading(true)
     try {
-      await signInWithGoogle();
+      await signInWithGoogle()
       // The auth provider will handle the redirect
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error with Google sign-in",
         description: error instanceof Error ? error.message : "An error occurred",
-      });
+      })
     } finally {
-      setIsGoogleLoading(false);
+      setIsGoogleLoading(false)
     }
-  };
+  }
 
   const getPasswordStrengthColor = () => {
     switch (passwordStrength) {
-      case 'weak': return 'text-red-500';
-      case 'medium': return 'text-yellow-500';
-      case 'strong': return 'text-green-500';
-      default: return 'text-gray-400';
+      case "weak":
+        return "text-red-500"
+      case "medium":
+        return "text-yellow-500"
+      case "strong":
+        return "text-green-500"
+      default:
+        return "text-gray-400"
     }
-  };
+  }
 
   const getPasswordStrengthText = () => {
     switch (passwordStrength) {
-      case 'weak': return 'Weak password';
-      case 'medium': return 'Medium strength';
-      case 'strong': return 'Strong password';
-      default: return '';
+      case "weak":
+        return "Weak password - use uppercase, lowercase, numbers, and special characters"
+      case "medium":
+        return "Medium strength - add special characters"
+      case "strong":
+        return "Strong password"
+      default:
+        return ""
     }
-  };
+  }
 
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-md mx-auto", className)} {...props}>
@@ -186,22 +207,22 @@ export default function SignUpForm({
             <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-blue-400/10 to-purple-500/10 rounded-full blur-2xl animate-pulse-medium"></div>
           </div>
 
-          <CardHeader className="text-center px-6 md:px-6 pt-8 md:pt-6 relative z-10">
+          <CardHeader className="text-center px-8 md:px-6 pt-12 md:pt-6 pb-8 md:pb-6 relative z-10">
             {/* Animated logo/icon */}
-            <motion.div 
-              className="flex justify-center mb-4"
+            <motion.div
+              className="flex justify-center mb-6"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-green-500/25 transition-all duration-300 p-2">
+                <div className="w-20 h-20 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-green-500/25 transition-all duration-300 p-3 md:p-2">
                   <Image
                     src="/icon.png"
                     alt="OddSmash Logo"
-                    width={40}
-                    height={40}
-                    className="object-contain"
+                    width={48}
+                    height={48}
+                    className="object-contain md:w-10 md:h-10"
                   />
                 </div>
                 {/* Subtle glow effect */}
@@ -214,24 +235,29 @@ export default function SignUpForm({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              <CardTitle className="text-2xl text-white dark:text-white text-gray-900 mb-2">Join OddSmash</CardTitle>
-              <CardDescription className="text-white/70 dark:text-white/70 text-gray-600">
+              <CardTitle className="text-3xl md:text-2xl text-white dark:text-white text-gray-900 mb-3 md:mb-2 font-bold">
+                Join OddSmash
+              </CardTitle>
+              <CardDescription className="text-white/70 dark:text-white/70 text-gray-600 text-base md:text-sm">
                 Get started with smarter sports betting insights
               </CardDescription>
             </motion.div>
           </CardHeader>
 
-          <CardContent className="space-y-6 px-6 md:px-6 pb-8 md:pb-6 relative z-10">
+          <CardContent className="space-y-8 md:space-y-6 px-8 md:px-6 pb-12 md:pb-6 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
             >
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6 md:space-y-4">
                 {/* First Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2">
-                    <User className="w-4 h-4" />
+                <div className="space-y-3 md:space-y-2">
+                  <Label
+                    htmlFor="firstName"
+                    className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2 text-base md:text-sm font-medium"
+                  >
+                    <User className="w-5 h-5 md:w-4 md:h-4" />
                     First Name
                   </Label>
                   <Input
@@ -242,14 +268,17 @@ export default function SignUpForm({
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                     disabled={isLoading || isGoogleLoading}
-                    className="bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50"
+                    className="h-14 md:h-10 text-base md:text-sm bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50 rounded-2xl md:rounded-md"
                   />
                 </div>
 
                 {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
+                <div className="space-y-3 md:space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2 text-base md:text-sm font-medium"
+                  >
+                    <Mail className="w-5 h-5 md:w-4 md:h-4" />
                     Email
                   </Label>
                   <Input
@@ -260,53 +289,59 @@ export default function SignUpForm({
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading || isGoogleLoading}
-                    className="bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50"
+                    className="h-14 md:h-10 text-base md:text-sm bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50 rounded-2xl md:rounded-md"
                   />
                 </div>
 
                 {/* Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
+                <div className="space-y-3 md:space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2 text-base md:text-sm font-medium"
+                  >
+                    <Lock className="w-5 h-5 md:w-4 md:h-4" />
                     Password
                   </Label>
                   <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create a strong password"
+                      placeholder="Create a secure password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={isLoading || isGoogleLoading}
-                      className="bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 pr-10 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50"
+                      className="h-14 md:h-10 text-base md:text-sm bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 pr-14 md:pr-10 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50 rounded-2xl md:rounded-md"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-4 md:px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={isLoading || isGoogleLoading}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
+                        <EyeOff className="h-5 w-5 md:h-4 md:w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
                       ) : (
-                        <Eye className="h-4 w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
+                        <Eye className="h-5 w-5 md:h-4 md:w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
                       )}
-                      <span className="sr-only">
-                        {showPassword ? "Hide password" : "Show password"}
-                      </span>
+                      <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                     </Button>
                   </div>
                   <AnimatePresence>
-                    {passwordStrength && (
+                    {password && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className={`text-xs ${getPasswordStrengthColor()}`}
+                        className={`text-sm md:text-xs flex items-center gap-1 ${getPasswordStrengthColor()}`}
                       >
+                        {passwordStrength === "strong" ? (
+                          <Check className="w-4 h-4 md:w-3 md:h-3" />
+                        ) : (
+                          <X className="w-4 h-4 md:w-3 md:h-3" />
+                        )}
                         {getPasswordStrengthText()}
                       </motion.div>
                     )}
@@ -314,11 +349,41 @@ export default function SignUpForm({
                 </div>
 
                 {/* Confirm Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Confirm Password
-                  </Label>
+                <div className="space-y-3 md:space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2 text-base md:text-sm font-medium"
+                    >
+                      <Lock className="w-5 h-5 md:w-4 md:h-4" />
+                      Confirm Password
+                    </Label>
+                    <AnimatePresence mode="wait">
+                      {passwordsMatch !== null && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className={cn(
+                            "flex items-center gap-1 text-sm md:text-xs",
+                            passwordsMatch ? "text-green-500" : "text-red-500",
+                          )}
+                        >
+                          {passwordsMatch ? (
+                            <>
+                              <Check className="w-4 h-4 md:w-3 md:h-3" />
+                              <span>Passwords match</span>
+                            </>
+                          ) : (
+                            <>
+                              <X className="w-4 h-4 md:w-3 md:h-3" />
+                              <span>Passwords don't match</span>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -328,60 +393,38 @@ export default function SignUpForm({
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       disabled={isLoading || isGoogleLoading}
-                      className="bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 pr-10 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50"
+                      className={cn(
+                        "h-14 md:h-10 text-base md:text-sm bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 pr-14 md:pr-10 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50 rounded-2xl md:rounded-md",
+                        passwordsMatch === false && "border-red-500/50 focus-visible:ring-red-500",
+                        passwordsMatch === true && "border-green-500/50 focus-visible:ring-green-500",
+                      )}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-4 md:px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       disabled={isLoading || isGoogleLoading}
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
+                        <EyeOff className="h-5 w-5 md:h-4 md:w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
                       ) : (
-                        <Eye className="h-4 w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
+                        <Eye className="h-5 w-5 md:h-4 md:w-4 text-gray-400 dark:text-gray-400 text-gray-600 hover:text-white dark:hover:text-white hover:text-gray-900 transition-colors duration-300" />
                       )}
-                      <span className="sr-only">
-                        {showConfirmPassword ? "Hide password" : "Show password"}
-                      </span>
+                      <span className="sr-only">{showConfirmPassword ? "Hide password" : "Show password"}</span>
                     </Button>
                   </div>
-                  <AnimatePresence>
-                    {passwordsMatch !== null && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className={`text-xs flex items-center gap-1 ${
-                          passwordsMatch ? "text-green-500" : "text-red-500"
-                        }`}
-                      >
-                        {passwordsMatch ? (
-                          <>
-                            <Check className="w-3 h-3" />
-                            Passwords match
-                          </>
-                        ) : (
-                          <>
-                            <X className="w-3 h-3" />
-                            Passwords don't match
-                          </>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-green-500/90 to-emerald-600/90 hover:from-green-600/90 hover:to-emerald-700/90 text-white shadow-lg hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-[1.02]"
-                  disabled={isLoading || isGoogleLoading || passwordsMatch === false || passwordStrength === 'weak'}
+                  className="w-full h-14 md:h-10 text-base md:text-sm font-semibold bg-gradient-to-r from-green-500/90 to-emerald-600/90 hover:from-green-600/90 hover:to-emerald-700/90 text-white shadow-lg hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] rounded-2xl md:rounded-md"
+                  disabled={isLoading || isGoogleLoading || passwordsMatch === false || passwordStrength === "weak"}
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 md:h-4 md:w-4 border-b-2 border-white"></div>
                       Creating account...
                     </div>
                   ) : (
@@ -398,7 +441,9 @@ export default function SignUpForm({
             >
               <div className="flex items-center gap-4">
                 <Separator className="flex-1 bg-white/10 dark:bg-white/10 bg-gray-300" />
-                <span className="text-xs font-normal text-gray-500 dark:text-gray-500 text-gray-400 uppercase">or continue with</span>
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-500 text-gray-400 uppercase">
+                  or continue with
+                </span>
                 <Separator className="flex-1 bg-white/10 dark:bg-white/10 bg-gray-300" />
               </div>
 
@@ -408,13 +453,13 @@ export default function SignUpForm({
                 variant="outline"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading || isLoading}
-                className="w-full mt-4 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-100 relative transition-all duration-300 transform hover:scale-[1.02]"
+                className="w-full h-14 md:h-10 text-base md:text-sm font-semibold mt-6 md:mt-4 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-100 relative transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] rounded-2xl md:rounded-md bg-transparent"
               >
                 {isGoogleLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-white border-gray-900"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 md:h-4 md:w-4 border-b-2 border-white dark:border-white border-gray-900"></div>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-4 md:h-4 mr-3 md:mr-2" viewBox="0 0 24 24">
                       <path
                         fill="currentColor"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -442,10 +487,13 @@ export default function SignUpForm({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="text-center text-sm text-gray-400 dark:text-gray-400 text-gray-600"
+              className="text-center text-base md:text-sm text-gray-400 dark:text-gray-400 text-gray-600"
             >
               Already have an account?{" "}
-              <Link href="/sign-in" className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 underline-offset-4 hover:underline font-medium transition-colors duration-300">
+              <Link
+                href="/sign-in"
+                className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 underline-offset-4 hover:underline font-medium transition-colors duration-300"
+              >
                 Sign in
               </Link>
             </motion.div>
@@ -453,5 +501,5 @@ export default function SignUpForm({
         </Card>
       </motion.div>
     </div>
-  );
-} 
+  )
+}

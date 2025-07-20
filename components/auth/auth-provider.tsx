@@ -5,6 +5,7 @@ import { createClient } from "@/libs/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import config from "@/config";
+import { getRedirectUrl } from "@/lib/utils/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
+        redirectTo: getRedirectUrl(),
       }
     });
     if (error) throw error;

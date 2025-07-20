@@ -44,6 +44,9 @@ import {
   TrendingUp,
   Settings,
   HelpCircle,
+  DollarSign,
+  BookOpen,
+  Target,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
@@ -188,7 +191,58 @@ export function Header() {
     return "User"
   }
 
-  // Generate player props items from active sports
+  // Public navigation items (when user is not signed in)
+  const publicNavigationItems = [
+    {
+      title: "Features",
+      href: "#features",
+      icon: <Star className="h-5 w-5 text-blue-600" />,
+      isActive: false,
+      description: "Discover our powerful tools",
+      children: [
+        {
+          title: "Player Props",
+          description: "Compare odds across all major sportsbooks",
+          href: "#features",
+          icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
+        },
+        {
+          title: "Hit Rate Analytics",
+          description: "Advanced player performance analytics",
+          href: "#features",
+          icon: <Activity className="h-4 w-4 text-green-600" />,
+        },
+        {
+          title: "Betslip Scanner",
+          description: "Scan and analyze your betslips instantly",
+          href: "#features",
+          icon: <Sparkles className="h-4 w-4 text-orange-600" />,
+        },
+        {
+          title: "Live Trackers",
+          description: "Real-time leaderboards and competitions",
+          href: "#features",
+          icon: <Crown className="h-4 w-4 text-yellow-600" />,
+        },
+      ],
+    },
+    {
+      title: "How It Works",
+      href: "#how-it-works",
+      icon: <BookOpen className="h-5 w-5 text-green-600" />,
+      isActive: false,
+      description: "Learn how to get started",
+    },
+    {
+      title: "Pricing",
+      href: "#pricing",
+      icon: <DollarSign className="h-5 w-5 text-purple-600" />,
+      isActive: false,
+      description: "Choose your plan",
+    },
+  ]
+
+  // Generate player props items from active sports (for authenticated users)
   const playerPropsItems = activeSports.map((sport) => {
     // Create description based on sport type
     let description = ""
@@ -209,12 +263,12 @@ export function Header() {
     return {
       title: sport.name,
       description,
-      href: `/${sportPath.toLowerCase()}/props/`,
+      href: `/${sportPath.toLowerCase()}/odds/player-props`,
       icon: <SportLogo sport={sport.id} size="xs" />,
     }
   })
 
-  // Hit rates items
+  // Hit rates items (for authenticated users)
   const hitRatesItems = [
     {
       title: "Hit Rates",
@@ -236,7 +290,7 @@ export function Header() {
     },
   ]
 
-  // Tracker items
+  // Tracker items (for authenticated users)
   const trackerItems = [
     {
       title: "KOTP Leaderboard",
@@ -258,8 +312,8 @@ export function Header() {
     },
   ]
 
-  // Navigation items for mobile menu
-  const navigationItems = [
+  // Authenticated navigation items
+  const authenticatedNavigationItems = [
     {
       title: "Home",
       href: "/",
@@ -271,7 +325,7 @@ export function Header() {
       title: "Player Props",
       href: "/mlb/props",
       icon: <BarChart3 className="h-5 w-5 text-blue-600" />,
-      isActive: pathname?.startsWith("/props"),
+      isActive: pathname?.includes("/odds/player-props"),
       description: "Compare odds across sports",
       children: playerPropsItems,
     },
@@ -304,6 +358,37 @@ export function Header() {
       isActive: pathname?.startsWith("/trackers"),
       description: "Live leaderboards",
       children: trackerItems,
+    },
+  ]
+
+  // Choose navigation items based on auth state
+  const navigationItems = user ? authenticatedNavigationItems : publicNavigationItems
+
+  // Public features for marketing dropdown
+  const publicFeatures = [
+    {
+      title: "Player Props Comparison",
+      description: "Compare odds across all major sportsbooks instantly",
+      href: "#features",
+      icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
+    },
+    {
+      title: "Hit Rate Analytics",
+      description: "Advanced player performance and trend analysis",
+      href: "#features",
+      icon: <Activity className="h-4 w-4 text-green-600" />,
+    },
+    {
+      title: "Betslip Scanner",
+      description: "Scan and analyze betslips with AI technology",
+      href: "#features",
+      icon: <Sparkles className="h-4 w-4 text-orange-600" />,
+    },
+    {
+      title: "Live Trackers",
+      description: "Real-time leaderboards and competition tracking",
+      href: "#features",
+      icon: <Crown className="h-4 w-4 text-yellow-600" />,
     },
   ]
 
@@ -385,244 +470,343 @@ export function Header() {
           <div className="flex justify-center">
             <NavigationMenu>
               <NavigationMenuList className="flex space-x-1">
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger
-                    className={cn(
-                      "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
-                      pathname?.startsWith("/props") && "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
-                    )}
-                  >
-                    <BarChart3 className="w-4 h-4 mr-1.5" />
-                    Props
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-[500px] p-4"
-                    >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
-                            <NavigationMenuLink asChild>
-                              <Link
-                                href="/mlb/props"
-                                className="block space-y-2 no-underline outline-none transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                    <BarChart3 className="w-4 h-4 text-white" />
-                                  </div>
-                                  <div className="font-semibold text-blue-900 dark:text-blue-100">Player Props Hub</div>
-                                </div>
-                                <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                  Compare player performance odds across all active sports
-                                </p>
-                              </Link>
-                            </NavigationMenuLink>
+                {user ? (
+                  // Authenticated Navigation
+                  <>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
+                          pathname?.startsWith("/props") &&
+                            "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
+                        )}
+                      >
+                        <BarChart3 className="w-4 h-4 mr-1.5" />
+                        Props
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-[500px] p-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
+                                <NavigationMenuLink asChild>
+                                  <Link
+                                    href="/mlb/odds/player-props"
+                                    className="block space-y-2 no-underline outline-none transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                        <BarChart3 className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="font-semibold text-blue-900 dark:text-blue-100">
+                                        Player Props Hub
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                      Compare player performance odds across all active sports
+                                    </p>
+                                  </Link>
+                                </NavigationMenuLink>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {playerPropsItems.slice(0, 4).map((item) => (
+                                <NavigationMenuLink key={item.title} asChild>
+                                  <Link
+                                    href={item.href}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                  >
+                                    {item.icon}
+                                    <div>
+                                      <div className="font-medium text-sm">{item.title}</div>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                    </div>
+                                  </Link>
+                                </NavigationMenuLink>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          {playerPropsItems.slice(0, 4).map((item) => (
-                            <NavigationMenuLink key={item.title} asChild>
-                              <Link
-                                href={item.href}
-                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                              >
-                                {item.icon}
-                                <div>
-                                  <div className="font-medium text-sm">{item.title}</div>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                </div>
-                              </Link>
-                            </NavigationMenuLink>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        </motion.div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger
-                    className={cn(
-                      "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 data-[state=open]:bg-green-50 dark:data-[state=open]:bg-green-950/50 text-sm",
-                      (pathname?.startsWith("/hit-rates") ||
-                        pathname?.startsWith("/hit-sheets") ||
-                        pathname?.startsWith("/data-duels")) &&
-                        "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
-                    )}
-                  >
-                    <Activity className="w-4 h-4 mr-1.5" />
-                    Analytics
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-[500px] p-4"
-                    >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border border-green-200/50 dark:border-green-800/50">
-                            <NavigationMenuLink asChild>
-                              <Link
-                                href="/hit-rates"
-                                className="block space-y-2 no-underline outline-none transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
-                                    <Activity className="w-4 h-4 text-white" />
-                                  </div>
-                                  <div className="font-semibold text-green-900 dark:text-green-100">Analytics Hub</div>
-                                </div>
-                                <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-                                  Advanced player analytics and trend data
-                                </p>
-                              </Link>
-                            </NavigationMenuLink>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 data-[state=open]:bg-green-50 dark:data-[state=open]:bg-green-950/50 text-sm",
+                          (pathname?.startsWith("/hit-rates") ||
+                            pathname?.startsWith("/hit-sheets") ||
+                            pathname?.startsWith("/data-duels")) &&
+                            "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
+                        )}
+                      >
+                        <Activity className="w-4 h-4 mr-1.5" />
+                        Analytics
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-[500px] p-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border border-green-200/50 dark:border-green-800/50">
+                                <NavigationMenuLink asChild>
+                                  <Link
+                                    href="/hit-rates"
+                                    className="block space-y-2 no-underline outline-none transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
+                                        <Activity className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="font-semibold text-green-900 dark:text-green-100">
+                                        Analytics Hub
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                                      Advanced player analytics and trend data
+                                    </p>
+                                  </Link>
+                                </NavigationMenuLink>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {hitRatesItems.map((item) => (
+                                <NavigationMenuLink key={item.title} asChild>
+                                  <Link
+                                    href={item.href}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                  >
+                                    {item.icon}
+                                    <div>
+                                      <div className="font-medium text-sm">{item.title}</div>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                    </div>
+                                  </Link>
+                                </NavigationMenuLink>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          {hitRatesItems.map((item) => (
-                            <NavigationMenuLink key={item.title} asChild>
-                              <Link
-                                href={item.href}
-                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                              >
-                                {item.icon}
-                                <div>
-                                  <div className="font-medium text-sm">{item.title}</div>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                </div>
-                              </Link>
-                            </NavigationMenuLink>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        </motion.div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <Link href="/parlay-builder" legacyBehavior passHref>
-                    <NavigationMenuLink
-                      className={cn(
-                        "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap",
-                        pathname?.startsWith("/parlay-builder") &&
-                          "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
-                      )}
-                    >
-                      <LineChart className="w-4 h-4 mr-1.5" />
-                      Parlay
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
+                    <NavigationMenuItem>
+                      <Link href="/parlay-builder" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            pathname?.startsWith("/parlay-builder") &&
+                              "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                          )}
+                        >
+                          <LineChart className="w-4 h-4 mr-1.5" />
+                          Parlay
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <Link href="/betslip-scanner" legacyBehavior passHref>
-                    <NavigationMenuLink
-                      className={cn(
-                        "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-orange-50 dark:hover:bg-orange-950/50 inline-flex items-center text-sm",
-                        pathname?.startsWith("/betslip-scanner") &&
-                          "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
-                      )}
-                    >
-                      <Sparkles className="w-4 h-4 mr-1.5" />
-                      Scanner
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
+                    <NavigationMenuItem>
+                      <Link href="/betslip-scanner" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-orange-50 dark:hover:bg-orange-950/50 inline-flex items-center text-sm",
+                            pathname?.startsWith("/betslip-scanner") &&
+                              "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
+                          )}
+                        >
+                          <Sparkles className="w-4 h-4 mr-1.5" />
+                          Scanner
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger
-                    className={cn(
-                      "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-950/50 data-[state=open]:bg-yellow-50 dark:data-[state=open]:bg-yellow-950/50 text-sm",
-                      pathname?.startsWith("/trackers") &&
-                        "bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300",
-                    )}
-                  >
-                    <Crown className="w-4 h-4 mr-1.5" />
-                    Trackers
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-[500px] p-4"
-                    >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
-                            <NavigationMenuLink asChild>
-                              <Link
-                                href="/trackers"
-                                className="block space-y-2 no-underline outline-none transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
-                                    <Crown className="w-4 h-4 text-white" />
-                                  </div>
-                                  <div className="font-semibold text-yellow-900 dark:text-yellow-100">
-                                    Stat Trackers
-                                  </div>
-                                </div>
-                                <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
-                                  Live leaderboards and competition tracking
-                                </p>
-                              </Link>
-                            </NavigationMenuLink>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-950/50 data-[state=open]:bg-yellow-50 dark:data-[state=open]:bg-yellow-950/50 text-sm",
+                          pathname?.startsWith("/trackers") &&
+                            "bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300",
+                        )}
+                      >
+                        <Crown className="w-4 h-4 mr-1.5" />
+                        Trackers
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-[500px] p-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
+                                <NavigationMenuLink asChild>
+                                  <Link
+                                    href="/trackers"
+                                    className="block space-y-2 no-underline outline-none transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
+                                        <Crown className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="font-semibold text-yellow-900 dark:text-yellow-100">
+                                        Stat Trackers
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
+                                      Live leaderboards and competition tracking
+                                    </p>
+                                  </Link>
+                                </NavigationMenuLink>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {trackerItems.map((item) => (
+                                <NavigationMenuLink key={item.title} asChild>
+                                  <Link
+                                    href={item.href}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                  >
+                                    {item.icon}
+                                    <div>
+                                      <div className="font-medium text-sm">{item.title}</div>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                    </div>
+                                  </Link>
+                                </NavigationMenuLink>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          {trackerItems.map((item) => (
-                            <NavigationMenuLink key={item.title} asChild>
-                              <Link
-                                href={item.href}
-                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                              >
-                                {item.icon}
-                                <div>
-                                  <div className="font-medium text-sm">{item.title}</div>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                </div>
-                              </Link>
-                            </NavigationMenuLink>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                        </motion.div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </>
+                ) : (
+                  // Public Navigation
+                  <>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
+                        )}
+                      >
+                        <Star className="w-4 h-4 mr-1.5" />
+                        Features
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-[500px] p-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
+                                <NavigationMenuLink asChild>
+                                  <Link
+                                    href="#features"
+                                    className="block space-y-2 no-underline outline-none transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                        <Target className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="font-semibold text-blue-900 dark:text-blue-100">All Features</div>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                      Discover all our powerful betting tools and analytics
+                                    </p>
+                                  </Link>
+                                </NavigationMenuLink>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {publicFeatures.map((item) => (
+                                <NavigationMenuLink key={item.title} asChild>
+                                  <Link
+                                    href={item.href}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                  >
+                                    {item.icon}
+                                    <div>
+                                      <div className="font-medium text-sm">{item.title}</div>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                    </div>
+                                  </Link>
+                                </NavigationMenuLink>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <Link href="#how-it-works" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                          )}
+                        >
+                          <BookOpen className="w-4 h-4 mr-1.5" />
+                          How It Works
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <Link href="#pricing" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
+                          )}
+                        >
+                          <DollarSign className="w-4 h-4 mr-1.5" />
+                          Pricing
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+                  </>
+                )}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
 
           {/* Right column - Cart and Account */}
           <div className="flex justify-end items-center space-x-3">
-            {/* Betslip Cart */}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push("/betslip")}
-                className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-300"
-              >
-                <Receipt className="h-5 w-5" />
-                {totalSelections > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
-                  >
-                    {totalSelections}
-                  </motion.span>
-                )}
-              </Button>
-            </motion.div>
+            {/* Betslip Cart - Only show for authenticated users */}
+            {user && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/betslip")}
+                  className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-300"
+                >
+                  <Receipt className="h-5 w-5" />
+                  {totalSelections > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
+                    >
+                      {totalSelections}
+                    </motion.span>
+                  )}
+                </Button>
+              </motion.div>
+            )}
 
             {/* User Account */}
             {user ? (
@@ -708,6 +892,16 @@ export function Header() {
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="rounded-xl px-4 h-10 font-medium bg-transparent"
+                  >
+                    <Link href="/sign-up">Get Started</Link>
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button variant="default" size="sm" asChild className="rounded-xl px-4 h-10 font-medium">
                     <Link href="/sign-in">Sign In</Link>
                   </Button>
@@ -753,7 +947,7 @@ export function Header() {
                         </div>
                       )}
                       <SheetTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-                        Navigation
+                        {user ? "Navigation" : "Menu"}
                       </SheetTitle>
                     </div>
                     <SheetClose asChild>
@@ -1107,24 +1301,26 @@ export function Header() {
               </SheetContent>
             </Sheet>
 
-            {/* Mobile Cart */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push("/betslip")}
-              className="relative h-11 w-11 rounded-xl active:scale-95 transition-transform duration-75"
-            >
-              <Receipt className="h-6 w-6" />
-              {totalSelections > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
-                >
-                  {totalSelections}
-                </motion.span>
-              )}
-            </Button>
+            {/* Mobile Cart - Only show for authenticated users */}
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push("/betslip")}
+                className="relative h-11 w-11 rounded-xl active:scale-95 transition-transform duration-75"
+              >
+                <Receipt className="h-6 w-6" />
+                {totalSelections > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
+                  >
+                    {totalSelections}
+                  </motion.span>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>

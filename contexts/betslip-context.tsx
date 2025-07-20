@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth/auth-provider"
 import { Betslip, BetslipSelection } from "@/types/betslip"
 import { createBetslipForUser, getBetslipsForUser, deleteBetslip as deleteBetslipFromDb, addSelectionToBetslip as addSelectionToDb, removeSelectionFromBetslip as removeSelectionFromDb, clearBetslip as clearBetslipFromDb, updateBetslipTitle as updateBetslipTitleFromDb, setBetslipAsDefault as setBetslipAsDefaultFromDb, replaceBetslipSelection as replaceBetslipSelectionFromDb } from "@/services/betslip"
+import { getExpiredSelections, ExpiredSelectionInfo } from "@/lib/betslip-cleanup-utils"
 import { calculateParlayOdds, americanToDecimal, decimalToAmerican, calculateSGPOdds, calculatePayout } from "@/lib/odds-utils"
 import { formatOdds } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
 import { SPORT_MARKETS, SportMarket } from "@/lib/constants/markets"
+import { toast } from "react-hot-toast"
 
 interface BetslipContextType {
   betslips: Betslip[]
@@ -35,6 +37,9 @@ interface BetslipContextType {
   getBetslipSelections: (betslipId: string) => BetslipSelection[]
   calculateParlayOddsForSportsbook: (selections: BetslipSelection[], sportsbook: string) => number | null
   formatOdds: (odds: number | null) => string
+  getExpiredSelections: (betslipId: string) => ExpiredSelectionInfo[]
+  removeExpiredSelections: (betslipId: string, selectionIds: string[]) => Promise<void>
+  removeAllExpiredSelections: (betslipId: string) => Promise<void>
 }
 
 // Routes where betslip should be visible
@@ -52,7 +57,6 @@ const BetslipContext = createContext<BetslipContextType | undefined>(undefined)
 export function BetslipProvider({ children }: { children: React.ReactNode }) {
   const [betslips, setBetslips] = useState<Betslip[]>([])
   const [activeBetslipId, setActiveBetslipId] = useState<string | null>(null)
-  const [isVisible, setIsVisible] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
@@ -62,26 +66,33 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
     if (authLoading) return
 
     const loadBetslips = async () => {
-      if (user) {
-        const userBetslips = await getBetslipsForUser(user.id)
-        setBetslips(userBetslips)
-        // Set first betslip as active if exists and none is active
-        if (userBetslips.length > 0 && !activeBetslipId) {
-          setActiveBetslipId(userBetslips[0].id)
-        } else if (userBetslips.length === 0) {
-          // Create initial betslip if none exists
-          const newBetslip = await createBetslipForUser(user.id)
-          if (newBetslip) {
-            setBetslips([{ ...newBetslip, selections: [] }])
-            setActiveBetslipId(newBetslip.id)
+      setIsLoading(true)
+      try {
+        if (user) {
+          const userBetslips = await getBetslipsForUser(user.id)
+          setBetslips(userBetslips)
+          
+          // Set first betslip as active if exists and none is active
+          if (userBetslips.length > 0 && !activeBetslipId) {
+            setActiveBetslipId(userBetslips[0].id)
+          } else if (userBetslips.length === 0) {
+            // Create initial betslip if none exists
+            const newBetslip = await createBetslipForUser(user.id, undefined, true)
+            if (newBetslip) {
+              setBetslips([{ ...newBetslip, selections: [] }])
+              setActiveBetslipId(newBetslip.id)
+            }
           }
+        } else {
+          // Clear betslips when user logs out
+          setBetslips([])
+          setActiveBetslipId(null)
         }
-      } else {
-        // Clear betslips when user logs out
-        setBetslips([])
-        setActiveBetslipId(null)
+      } catch (error) {
+        console.error("Error loading betslips:", error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     loadBetslips()
@@ -137,14 +148,12 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const removeSelection = async (selectionId: string) => {
-    if (!activeBetslipId) return
-
+  const removeSelection = async (selectionId: string, betslipId: string) => {
     const success = await removeSelectionFromDb(selectionId)
     if (success) {
       setBetslips(current => {
         return current.map(betslip => {
-          if (betslip.id === activeBetslipId) {
+          if (betslip.id === betslipId) {
             return {
               ...betslip,
               selections: betslip.selections.filter(s => s.id !== selectionId)
@@ -159,6 +168,12 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
   const createBetslip = async (title?: string, isDefault: boolean = false) => {
     if (!user) {
       console.error("No user logged in")
+      return null
+    }
+
+    // Check if we've hit the limit
+    if (betslips.length >= 5) {
+      toast.error("You can't have more than 5 betslips")
       return null
     }
 
@@ -199,10 +214,6 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
       console.error("Error clearing betslip:", error)
       throw error
     }
-  }
-
-  const toggleVisibility = () => {
-    setIsVisible(prev => !prev)
   }
 
   const updateBetslipTitle = async (betslipId: string, title: string) => {
@@ -451,6 +462,48 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const getExpiredSelectionsForBetslip = (betslipId: string): ExpiredSelectionInfo[] => {
+    const betslip = betslips.find(b => b.id === betslipId)
+    if (!betslip || !betslip.selections) return []
+    
+    return getExpiredSelections(betslip.selections, 30) // 30-minute grace period
+  }
+
+  const removeExpiredSelections = async (betslipId: string, selectionIds: string[]): Promise<void> => {
+    try {
+      // Remove selections from database
+      for (const selectionId of selectionIds) {
+        await removeSelectionFromDb(selectionId)
+      }
+
+      // Update local state
+      setBetslips(prev => prev.map(betslip => {
+        if (betslip.id === betslipId) {
+          return {
+            ...betslip,
+            selections: betslip.selections.filter(s => !selectionIds.includes(s.id))
+          }
+        }
+        return betslip
+      }))
+
+      toast.success(`Removed ${selectionIds.length} expired selection${selectionIds.length > 1 ? 's' : ''}`)
+    } catch (error) {
+      console.error('[BetslipContext] Error removing expired selections:', error)
+      toast.error('Failed to remove expired selections')
+      throw error
+    }
+  }
+
+  const removeAllExpiredSelections = async (betslipId: string): Promise<void> => {
+    const expiredSelections = getExpiredSelectionsForBetslip(betslipId)
+    const expiredIds = expiredSelections.map(info => info.selection.id)
+    
+    if (expiredIds.length > 0) {
+      await removeExpiredSelections(betslipId, expiredIds)
+    }
+  }
+
   return (
     <BetslipContext.Provider
       value={{
@@ -470,7 +523,10 @@ export function BetslipProvider({ children }: { children: React.ReactNode }) {
         calculateBetslipPayout,
         getBetslipSelections,
         calculateParlayOddsForSportsbook,
-        formatOdds
+        formatOdds,
+        getExpiredSelections: getExpiredSelectionsForBetslip,
+        removeExpiredSelections,
+        removeAllExpiredSelections
       }}
     >
       {children}

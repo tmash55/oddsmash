@@ -11,283 +11,268 @@ export interface SportMarkets {
   [key: string]: SportMarket[];
 }
 
+// Common market definitions for reuse
+const BASKETBALL_MARKETS: SportMarket[] = [
+  // Game-level markets
+  { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+  { value: "Spread", label: "Point Spread", apiKey: "spreads" },
+  { value: "Total", label: "Total Points", apiKey: "totals" },
+  
+  // Player props
+  {
+    value: "Points",
+    label: "Points",
+    apiKey: "player_points",
+    hasAlternates: true,
+    alternateKey: "player_points_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Rebounds",
+    label: "Rebounds",
+    apiKey: "player_rebounds",
+    hasAlternates: true,
+    alternateKey: "player_rebounds_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Assists",
+    label: "Assists",
+    apiKey: "player_assists",
+    hasAlternates: true,
+    alternateKey: "player_assists_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Threes",
+    label: "Threes",
+    apiKey: "player_threes",
+    hasAlternates: true,
+    alternateKey: "player_threes_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "PRA",
+    label: "Pts+Reb+Ast",
+    apiKey: "player_points_rebounds_assists",
+    hasAlternates: true,
+    alternateKey: "player_points_rebounds_assists_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Points_Rebounds",
+    label: "Pts+Reb",
+    apiKey: "player_points_rebounds",
+    hasAlternates: true,
+    alternateKey: "player_points_rebounds_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Points_Assists",
+    label: "Pts+Ast",
+    apiKey: "player_points_assists",
+    hasAlternates: true,
+    alternateKey: "player_points_assists_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Rebounds_Assists",
+    label: "Reb+Ast",
+    apiKey: "player_rebounds_assists",
+    hasAlternates: true,
+    alternateKey: "player_rebounds_assists_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Double_Double",
+    label: "Double Double",
+    apiKey: "player_double_double",
+  },
+  {
+    value: "Triple_Double",
+    label: "Triple Double",
+    apiKey: "player_triple_double",
+  },
+  {
+    value: "Blocks",
+    label: "Blocks",
+    apiKey: "player_blocks",
+    hasAlternates: true,
+    alternateKey: "player_blocks_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Steals",
+    label: "Steals",
+    apiKey: "player_steals",
+    hasAlternates: true,
+    alternateKey: "player_steals_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Blocks_steals",
+    label: "Blocks+Steals",
+    apiKey: "player_blocks_steals",
+  },
+  {
+    value: "Turnovers",
+    label: "Turnovers",
+    apiKey: "player_turnovers",
+    hasAlternates: true,
+    alternateKey: "player_turnovers_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "First_Team_Basket",
+    label: "Team First Point",
+    apiKey: "player_first_team_basket",
+  },
+  {
+    value: "First_Field_Goal",
+    label: "First Point",
+    apiKey: "player_first_basket",
+  },
+  {
+    value: "Player_Points_Q1",
+    label: "Points - 1st Quarter",
+    apiKey: "player_points_q1",
+  },
+  {
+    value: "Player_Assists_Q1",
+    label: "Assists- 1st Quarter",
+    apiKey: "player_assists_q1",
+  },
+  {
+    value: "Player_Rebounds_Q1",
+    label: "Rebounds - 1st Quarter",
+    apiKey: "player_rebounds_q1",
+  },
+];
+
+const FOOTBALL_MARKETS: SportMarket[] = [
+  // Game-level markets
+  { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
+  { value: "Spread", label: "Point Spread", apiKey: "spreads" },
+  { value: "Total", label: "Total Points", apiKey: "totals" },
+
+  // Player props
+  {
+    value: "Passing_Yards",
+    label: "Passing Yards",
+    apiKey: "player_passing_yards",
+    hasAlternates: true,
+    alternateKey: "player_passing_yards_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Rushing_Yards",
+    label: "Rushing Yards",
+    apiKey: "player_rushing_yards",
+    hasAlternates: true,
+    alternateKey: "player_rushing_yards_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Receiving_Yards",
+    label: "Receiving Yards",
+    apiKey: "player_receiving_yards",
+    hasAlternates: true,
+    alternateKey: "player_receiving_yards_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Passing_Touchdowns",
+    label: "Passing Touchdowns",
+    apiKey: "player_passing_touchdowns",
+    hasAlternates: true,
+    alternateKey: "player_passing_touchdowns_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Rushing_Touchdowns",
+    label: "Rushing Touchdowns",
+    apiKey: "player_rushing_touchdowns",
+    hasAlternates: true,
+    alternateKey: "player_rushing_touchdowns_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Receiving_Touchdowns",
+    label: "Receiving Touchdowns",
+    apiKey: "player_receiving_touchdowns",
+    hasAlternates: true,
+    alternateKey: "player_receiving_touchdowns_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Anytime_Touchdown",
+    label: "Anytime Touchdown",
+    apiKey: "player_anytime_touchdown",
+  },
+  {
+    value: "Receptions",
+    label: "Receptions",
+    apiKey: "player_receptions",
+    hasAlternates: true,
+    alternateKey: "player_receptions_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Completions",
+    label: "Completions",
+    apiKey: "player_completions",
+    hasAlternates: true,
+    alternateKey: "player_completions_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Pass_Attempts",
+    label: "Pass Attempts",
+    apiKey: "player_pass_attempts",
+    hasAlternates: true,
+    alternateKey: "player_pass_attempts_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Carries",
+    label: "Carries",
+    apiKey: "player_carries",
+    hasAlternates: true,
+    alternateKey: "player_carries_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Targets",
+    label: "Targets",
+    apiKey: "player_targets",
+    hasAlternates: true,
+    alternateKey: "player_targets_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Interceptions_Thrown",
+    label: "Interceptions Thrown",
+    apiKey: "player_interceptions_thrown",
+    hasAlternates: true,
+    alternateKey: "player_interceptions_thrown_alternate",
+    alwaysFetchAlternate: true,
+  },
+  {
+    value: "Sacks_Taken",
+    label: "Sacks Taken",
+    apiKey: "player_sacks_taken",
+    hasAlternates: true,
+    alternateKey: "player_sacks_taken_alternate",
+    alwaysFetchAlternate: true,
+  }
+];
+
 export const SPORT_MARKETS: SportMarkets = {
-  basketball_nba: [
-    // Game-level markets
-    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
-    { value: "Spread", label: "Point Spread", apiKey: "spreads" },
-    { value: "Total", label: "Total Points", apiKey: "totals" },
-    
-    // Player props
-    {
-      value: "Points",
-      label: "Points",
-      apiKey: "player_points",
-      hasAlternates: true,
-      alternateKey: "player_points_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Rebounds",
-      label: "Rebounds",
-      apiKey: "player_rebounds",
-      hasAlternates: true,
-      alternateKey: "player_rebounds_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Assists",
-      label: "Assists",
-      apiKey: "player_assists",
-      hasAlternates: true,
-      alternateKey: "player_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Threes",
-      label: "Threes",
-      apiKey: "player_threes",
-      hasAlternates: true,
-      alternateKey: "player_threes_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "PRA",
-      label: "Pts+Reb+Ast",
-      apiKey: "player_points_rebounds_assists",
-      hasAlternates: true,
-      alternateKey: "player_points_rebounds_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Points_Rebounds",
-      label: "Pts+Reb",
-      apiKey: "player_points_rebounds",
-      hasAlternates: true,
-      alternateKey: "player_points_rebounds_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Points_Assists",
-      label: "Pts+Ast",
-      apiKey: "player_points_assists",
-      hasAlternates: true,
-      alternateKey: "player_points_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Rebounds_Assists",
-      label: "Reb+Ast",
-      apiKey: "player_rebounds_assists",
-      hasAlternates: true,
-      alternateKey: "player_rebounds_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Double_Double",
-      label: "Double Double",
-      apiKey: "player_double_double",
-    },
-    {
-      value: "Triple_Double",
-      label: "Triple Double",
-      apiKey: "player_triple_double",
-    },
-
-    {
-      value: "Blocks",
-      label: "Blocks",
-      apiKey: "player_blocks",
-      hasAlternates: true,
-      alternateKey: "player_blocks_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Steals",
-      label: "Steals",
-      apiKey: "player_steals",
-      hasAlternates: true,
-      alternateKey: "player_steals_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Blocks_steals",
-      label: "Blocks+Steals",
-      apiKey: "player_blocks_steals",
-    },
-    {
-      value: "Turnovers",
-      label: "Turnovers",
-      apiKey: "player_turnovers",
-      hasAlternates: true,
-      alternateKey: "player_turnovers_alternate",
-      alwaysFetchAlternate: true,
-    },
-
-    {
-      value: "First_Team_Basket",
-      label: "Team First Point",
-      apiKey: "player_first_team_basket",
-    },
-    {
-      value: "First_Field_Goal",
-      label: "First Point",
-      apiKey: "player_first_basket",
-    },
-    {
-      value: "Player_Points_Q1",
-      label: "Points - 1st Quarter",
-      apiKey: "player_points_q1",
-    },
-    {
-      value: "Player_Assists_Q1",
-      label: "Assists- 1st Quarter",
-      apiKey: "player_assists_q1",
-    },
-    {
-      value: "Player_Rebounds_Q1",
-      label: "Rebounds - 1st Quarter",
-      apiKey: "player_rebounds_q1",
-    },
-  ],
-  basketball_ncaab: [
-    // Game-level markets
-    { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
-    { value: "Spread", label: "Point Spread", apiKey: "spreads" },
-    { value: "Total", label: "Total Points", apiKey: "totals" },
-    
-    // Player props
-    {
-      value: "Points",
-      label: "Points",
-      apiKey: "player_points",
-      hasAlternates: true,
-      alternateKey: "player_points_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Rebounds",
-      label: "Rebounds",
-      apiKey: "player_rebounds",
-      hasAlternates: true,
-      alternateKey: "player_rebounds_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Assists",
-      label: "Assists",
-      apiKey: "player_assists",
-      hasAlternates: true,
-      alternateKey: "player_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Threes",
-      label: "Threes",
-      apiKey: "player_threes",
-      hasAlternates: true,
-      alternateKey: "player_threes_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "PRA",
-      label: "Pts+Reb+Ast",
-      apiKey: "player_points_rebounds_assists",
-      hasAlternates: true,
-      alternateKey: "player_points_rebounds_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Points_Rebounds",
-      label: "Pts+Reb",
-      apiKey: "player_points_rebounds",
-      hasAlternates: true,
-      alternateKey: "player_points_rebounds_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Points_Assists",
-      label: "Pts+Ast",
-      apiKey: "player_points_assists",
-      hasAlternates: true,
-      alternateKey: "player_points_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Rebounds_Assists",
-      label: "Reb+Ast",
-      apiKey: "player_rebounds_assists",
-      hasAlternates: true,
-      alternateKey: "player_rebounds_assists_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Double_Double",
-      label: "Double Double",
-      apiKey: "player_double_double",
-    },
-    {
-      value: "Triple_Double",
-      label: "Triple Double",
-      apiKey: "player_triple_double",
-    },
-
-    {
-      value: "Blocks",
-      label: "Blocks",
-      apiKey: "player_blocks",
-      hasAlternates: true,
-      alternateKey: "player_blocks_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Steals",
-      label: "Steals",
-      apiKey: "player_steals",
-      hasAlternates: true,
-      alternateKey: "player_steals_alternate",
-      alwaysFetchAlternate: true,
-    },
-    {
-      value: "Blocks_steals",
-      label: "Blocks + Steals",
-      apiKey: "player_blocks_steals",
-    },
-    {
-      value: "Turnovers",
-      label: "Turnovers",
-      apiKey: "player_turnovers",
-      hasAlternates: true,
-      alternateKey: "player_turnovers_alternate",
-      alwaysFetchAlternate: true,
-    },
-
-    {
-      value: "First_Team_Basket",
-      label: "Team First Point",
-      apiKey: "player_first_team_basket",
-    },
-    {
-      value: "First_Field_Goal",
-      label: "First Point",
-      apiKey: "player_first_basket",
-    },
-    {
-      value: "Player_Points_Q1",
-      label: "Points - 1st Quarter",
-      apiKey: "player_points_q1",
-    },
-    {
-      value: "Player_Assists_Q1",
-      label: "Assists- 1st Quarter",
-      apiKey: "player_assits_q1",
-    },
-    {
-      value: "Player_Rebounds_Q1",
-      label: "Rebounds - 1st Quarter",
-      apiKey: "player_rebounds_q1",
-    },
-  ],
+  basketball_nba: BASKETBALL_MARKETS,
+  basketball_wnba: BASKETBALL_MARKETS,
+  basketball_ncaab: BASKETBALL_MARKETS,
+  football_nfl: FOOTBALL_MARKETS,
+  football_ncaaf: FOOTBALL_MARKETS,
   baseball_mlb: [
     // Game-level markets
     { value: "Moneyline", label: "Moneyline", apiKey: "h2h" },
@@ -328,7 +313,7 @@ export const SPORT_MARKETS: SportMarkets = {
       alternateKey: "batter_rbis_alternate",
       alwaysFetchAlternate: true,
     },
-    { value: "Runs", label: "Runs Scored", apiKey: "batter_runs" },
+    { value: "Runs", label: "Runs Scored", apiKey: "batter_runs_scored" },
     { value: "Walks", label: "Walks", apiKey: "batter_walks" },
     { value: "Singles", label: "Singles", apiKey: "batter_singles" },
     { value: "Doubles", label: "Doubles", apiKey: "batter_doubles" },
@@ -502,19 +487,68 @@ export const SUPPORTED_MARKETS: Record<string, string[]> = {
     'points', // Set as default
     'rebounds',
     'assists',
-    'three pointers made',
-    'points rebounds assists',
-    'points rebounds',
-    'points assists',
-    'rebounds assists',
+    'threes',
+    'pra',  // Points + Rebounds + Assists
+    'pr',   // Points + Rebounds
+    'pa',   // Points + Assists
+    'ra',   // Rebounds + Assists
     'blocks',
     'steals',
-    'blocks steals',
+    'bs',   // Blocks + Steals
     'turnovers',
-    'double double',
-    'triple double'
+    'double_double',
+    'triple_double'
+  ],
+  wnba: [
+    'points', // Set as default
+    'rebounds',
+    'assists',
+    'threes',
+    'pra',  // Points + Rebounds + Assists
+    'pr',   // Points + Rebounds
+    'pa',   // Points + Assists
+    'ra',   // Rebounds + Assists
+    'blocks',
+    'steals',
+    'bs',   // Blocks + Steals
+    'turnovers',
+    'double_double',
+    'triple_double'
+  ],
+  ncaab: [
+    'points', // Set as default
+    'rebounds',
+    'assists',
+    'threes',
+    'pra',  // Points + Rebounds + Assists
+    'pr',   // Points + Rebounds
+    'pa',   // Points + Assists
+    'ra',   // Rebounds + Assists
+    'blocks',
+    'steals',
+    'bs',   // Blocks + Steals
+    'turnovers',
+    'double_double',
+    'triple_double'
   ],
   nfl: [
+    'anytime touchdown', // Set as default
+    'passing yards',
+    'rushing yards',
+    'receiving yards',
+    'touchdowns',
+    'receptions',
+    'passing touchdowns',
+    'rushing touchdowns',
+    'receiving touchdowns',
+    'interceptions thrown',
+    'sacks taken',
+    'completions',
+    'attempts',
+    'carries',
+    'targets'
+  ],
+  ncaaf: [
     'anytime touchdown', // Set as default
     'passing yards',
     'rushing yards',
@@ -546,7 +580,7 @@ export const SUPPORTED_MARKETS: Record<string, string[]> = {
 };
 
 // Export supported sports array
-export const SUPPORTED_SPORTS = ['mlb', 'nba', 'nfl', 'nhl'] as const;
+export const SUPPORTED_SPORTS = ['mlb', 'nba', 'wnba', 'ncaab', 'nfl', 'ncaaf', 'nhl'] as const;
 
 // Helper function to format market labels with special cases
 export function formatMarketLabel(market: string): string {
@@ -554,6 +588,13 @@ export function formatMarketLabel(market: string): string {
   const specialCases: Record<string, string> = {
     'rbis': 'RBIs',
     'hits + runs + rbis': 'Hits + Runs + RBIs',
+    'pra': 'Points + Rebounds + Assists',
+    'pr': 'Points + Rebounds',
+    'pa': 'Points + Assists',
+    'ra': 'Rebounds + Assists',
+    'bs': 'Blocks + Steals',
+    'double_double': 'Double Double',
+    'triple_double': 'Triple Double'
   };
 
   if (specialCases[market]) {
@@ -583,8 +624,11 @@ export function getDefaultMarket(sport: string): string {
     case 'mlb':
       return 'home runs';
     case 'nba':
+    case 'wnba':
+    case 'ncaab':
       return 'points';
     case 'nfl':
+    case 'ncaaf':
       return 'anytime touchdown';
     case 'nhl':
       return 'anytime goal';

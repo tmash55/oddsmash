@@ -13,7 +13,6 @@ import {
   BarChart3,
   TrendingUp,
   Target,
-  Shield,
   Eye,
   EyeOff,
   Info,
@@ -59,74 +58,77 @@ export function QuickStatsCard({
   // Hit rate analysis for OddSmash Score calculation
   const hitRateAnalysis = selections.map(selection => {
     const hitRateData = getHitRateForSelection(selection)
-    console.log('🎯 ODDSMASH SCORE DEBUG - Selection:', {
-      playerName: selection.player_name,
-      market: selection.market,
-      hitRateData: hitRateData,
-      hasHitRateData: !!hitRateData,
-      l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
-      isAlternateLine: hitRateData?.is_alternate_line || false
-    })
     return {
       l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
+      l20HitRate: hitRateData?.l20_hit_rate || hitRateData?.last_20_hit_rate || 0,
+      seasonHitRate: hitRateData?.season_hit_rate || 0,
       isAlternateLine: hitRateData?.is_alternate_line || false
     }
   })
   
-  const avgHitRate = hitRateAnalysis.length > 0 
+  const avgL10HitRate = hitRateAnalysis.length > 0 
     ? hitRateAnalysis.reduce((sum, item) => sum + item.l10HitRate, 0) / hitRateAnalysis.length 
     : 0
   
-  const highConfidencePicks = hitRateAnalysis.filter(item => item.l10HitRate >= 70).length
-  const alternateLinesCount = hitRateAnalysis.filter(item => item.isAlternateLine).length
+  const avgL20HitRate = hitRateAnalysis.length > 0
+    ? hitRateAnalysis.reduce((sum, item) => sum + item.l20HitRate, 0) / hitRateAnalysis.length
+    : 0
+
+  const avgSeasonHitRate = hitRateAnalysis.length > 0
+    ? hitRateAnalysis.reduce((sum, item) => sum + item.seasonHitRate, 0) / hitRateAnalysis.length
+    : 0
   
-  console.log('🎯 ODDSMASH SCORE ANALYSIS:', {
-    hitRateAnalysis,
-    avgHitRate,
-    highConfidencePicks,
-    alternateLinesCount,
-    bestOdds,
-    originalAmericanOdds,
-    parlayResults: Object.keys(parlayResults).length
-  })
+  const highConfidencePicks = hitRateAnalysis.filter(item => 
+    item.l10HitRate >= 65 && item.l20HitRate >= 60 && item.seasonHitRate >= 55
+  ).length
   
   // Enhanced OddSmash Score calculation
   const totalBooks = Math.max(Object.keys(parlayResults).length, 1)
+  
+  // Value Edge Score (40 points max) - Increased weight for finding better odds
   let edgeScore = 0
   if (bestOdds && originalAmericanOdds && bestPayout > 0 && originalPayout > 0) {
     const edgePercent = ((bestPayout - originalPayout) / originalPayout) * 100
-    edgeScore = Math.min(Math.max(edgePercent * 1.5, 0), 35) // Up to 35 points for value edge
-  } else {
-    // Alternative scoring when no original odds available
-    edgeScore = Math.min((bestPayout / 100) * 4, 18) // Base scoring on absolute payout
+    edgeScore = Math.min(Math.max(edgePercent * 2, 0), 40) // Up to 40 points for value edge
   }
   
-  const marketBeatScore = (booksBeaten / totalBooks) * 20 // Up to 20 points
-  const hitRateScore = Math.min((avgHitRate / 100) * 25, 25) // Up to 25 points for hit rate
-  const confidenceBonus = Math.min(highConfidencePicks * 2, 10) // Up to 10 points (2 per high-confidence pick)
-  const alternateLineBonus = Math.min(alternateLinesCount * 1.5, 5) // Up to 5 points for alternate lines
-  const dataQualityScore = hitRateAnalysis.length > 0 ? 5 : 0 // 5 points for having hit rate data
+  // Market Beat Score (25 points max) - Rewards beating multiple books
+  const marketBeatScore = Math.min((booksBeaten / totalBooks) * 25, 25)
   
-  const rawScore = edgeScore + marketBeatScore + hitRateScore + confidenceBonus + alternateLineBonus + dataQualityScore
+  // Hit Rate Score (35 points max) - More nuanced hit rate scoring
+  const hitRateScore = hitRateAnalysis.length > 0 
+    ? Math.min(
+        (avgL10HitRate * 0.4) + // Recent performance weighted more
+        (avgL20HitRate * 0.35) +
+        (avgSeasonHitRate * 0.25),
+        35
+      )
+    : 0
+  
+  // Bonus points for consistently strong picks
+  const consistencyBonus = Math.min(highConfidencePicks * 3, 10) // Up to 10 bonus points
+  
+  const rawScore = edgeScore + marketBeatScore + hitRateScore + consistencyBonus
   const oddsmashScore = Math.round(Math.min(Math.max(rawScore, 0), 100))
   
   console.log('🎯 ODDSMASH SCORE BREAKDOWN:', {
     edgeScore: Math.round(edgeScore * 100) / 100,
     marketBeatScore: Math.round(marketBeatScore * 100) / 100,
     hitRateScore: Math.round(hitRateScore * 100) / 100,
-    confidenceBonus: Math.round(confidenceBonus * 100) / 100,
-    alternateLineBonus: Math.round(alternateLineBonus * 100) / 100,
-    dataQualityScore,
+    consistencyBonus: Math.round(consistencyBonus * 100) / 100,
     rawScore: Math.round(rawScore * 100) / 100,
     finalScore: oddsmashScore,
     inputs: {
-      avgHitRate,
+      avgL10HitRate,
+      avgL20HitRate,
+      avgSeasonHitRate,
       bestOdds,
       originalAmericanOdds,
       bestPayout,
       originalPayout,
       booksBeaten,
-      totalBooks
+      totalBooks,
+      highConfidencePicks
     }
   })
 
@@ -157,9 +159,9 @@ export function QuickStatsCard({
                   <div className="text-2xl font-bold">{oddsmashScore}/100</div>
                   <div className="text-xs font-medium opacity-90">OddSmash Score</div>
                   <div className="text-sm font-semibold mt-1 opacity-90">
-                    {oddsmashScore >= 80 ? 'Elite' :
+                    {oddsmashScore >= 75 ? 'Elite' :
                      oddsmashScore >= 60 ? 'Strong' :
-                     oddsmashScore >= 40 ? 'Good' : 'Fair'}
+                     oddsmashScore >= 45 ? 'Good' : 'Fair'}
                   </div>
                 </div>
                 <div className="absolute -right-2 -top-2 h-12 w-12 rounded-full bg-white/10"></div>
@@ -168,15 +170,13 @@ export function QuickStatsCard({
             <TooltipContent side="bottom" className="max-w-xs">
               <div className="space-y-2 text-xs">
                 <div className="font-semibold">Score Breakdown:</div>
-                <div>• Value Edge: {Math.round(edgeScore)}/35 pts</div>
-                <div>• Hit Rate: {Math.round(hitRateScore)}/25 pts</div>
-                <div>• Market Beat: {Math.round(marketBeatScore)}/20 pts</div>
-                <div>• High Confidence: {Math.round(confidenceBonus)}/10 pts</div>
-                <div>• Data Quality: {dataQualityScore}/5 pts</div>
-                {alternateLineBonus > 0 && <div>• Alt Lines: {Math.round(alternateLineBonus)}/5 pts</div>}
+                <div>• Value Edge: {Math.round(edgeScore)}/40 pts</div>
+                <div>• Hit Rate: {Math.round(hitRateScore)}/35 pts</div>
+                <div>• Market Beat: {Math.round(marketBeatScore)}/25 pts</div>
+                {consistencyBonus > 0 && <div>• Consistency Bonus: {Math.round(consistencyBonus)} pts</div>}
                 <div className="pt-1 border-t border-gray-200 dark:border-gray-600">
-                  <div className="font-medium">Total: {Math.round(edgeScore + hitRateScore + marketBeatScore + confidenceBonus + dataQualityScore + alternateLineBonus)}/100</div>
-                  <div className="mt-1 text-gray-500">Higher scores indicate better value and stronger data backing</div>
+                  <div className="font-medium">Total: {oddsmashScore}/100</div>
+                  <div className="mt-1 text-gray-500">Higher scores indicate better value and stronger historical performance</div>
                 </div>
               </div>
             </TooltipContent>
@@ -285,38 +285,7 @@ export function QuickStatsCard({
               {booksBeaten}/{Object.keys(parlayResults).length}
             </Badge>
           </div>
-          <div className="flex items-center justify-between py-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 cursor-help">
-                  <Shield className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Scan Confidence</span>
-                  <Info className="h-3 w-3 text-gray-500 opacity-60" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                <div className="space-y-1 text-xs">
-                  <div className="font-semibold">Scan Confidence:</div>
-                  <div>• AI accuracy in reading your betslip image</div>
-                  <div>• Higher percentage means more reliable data</div>
-                  <div>• Based on text clarity and recognition quality</div>
-                  <div className="pt-1 border-t border-gray-200 dark:border-gray-600">
-                    <div className="text-gray-500">80%+ is considered highly accurate</div>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-            <Badge 
-              variant="outline" 
-              className={`font-semibold ${
-                betslip.scan_confidence >= 0.8 
-                  ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
-                  : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400"
-              }`}
-            >
-              {Math.round(betslip.scan_confidence * 100)}%
-            </Badge>
-          </div>
+
           <div className="flex items-center justify-between py-2">
             <Tooltip>
               <TooltipTrigger asChild>

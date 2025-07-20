@@ -38,10 +38,11 @@ interface BetslipSelectionProps {
       link?: string;
       last_update: string;
     }>;
-  }
+  };
+  betslipId: string;
 }
 
-export function BetslipSelection({ selection }: BetslipSelectionProps) {
+export function BetslipSelection({ selection, betslipId }: BetslipSelectionProps) {
   const { removeSelection } = useBetslip()
   const [showOddsComparison, setShowOddsComparison] = useState(false)
 
@@ -149,7 +150,7 @@ export function BetslipSelection({ selection }: BetslipSelectionProps) {
           variant="ghost"
           size="icon"
           className="absolute right-1 top-1 h-6 w-6"
-          onClick={() => removeSelection(selection.id)}
+          onClick={() => removeSelection(selection.id, betslipId)}
         >
           <Icons.close className="h-3 w-3" />
         </Button>
@@ -187,8 +188,8 @@ export function BetslipSelection({ selection }: BetslipSelectionProps) {
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  {sortedSportsbooks.map(({ book, odds, link, sportsbook }) => (
+                <DropdownMenuContent align="end" className="w-48">
+                  {sortedSportsbooks.map(({ book, odds, sportsbook }) => (
                     <DropdownMenuItem key={book} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {sportsbook && (
@@ -203,15 +204,9 @@ export function BetslipSelection({ selection }: BetslipSelectionProps) {
                         )}
                         <span className="text-sm">{sportsbook?.name}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className={cn(
-                          "text-sm font-medium",
-                          book === bestOdds?.book && "text-primary"
-                        )}>
-                          {formatOdds(odds)}
-                        </span>
-                        {link && <Zap className="h-3 w-3 text-primary" />}
-                      </div>
+                      <span className="font-mono text-sm">
+                        {formatOdds(odds)}
+                      </span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -219,14 +214,6 @@ export function BetslipSelection({ selection }: BetslipSelectionProps) {
             </div>
           </div>
 
-          {/* Player Name */}
-          <div className="flex items-center text-sm">
-            <span className="font-medium truncate">
-              {selection.player_name}
-            </span>
-          </div>
-
-          {/* Teams and Time */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80">
             <span>{formatTeamName(selection.away_team)}</span>
             <span>@</span>

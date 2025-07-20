@@ -1,15 +1,13 @@
 "use client"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ChevronDown, BarChart3, TrendingUp, ExternalLink, AlertTriangle } from "lucide-react"
+import { ChevronDown, BarChart3, TrendingUp, ExternalLink, AlertTriangle, Target } from "lucide-react"
 import { OddsComparisonDropdown } from "./odds-comparison-dropdown"
 import { HitRatePerformanceModal } from "./hit-rate-performance-modal"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 interface SelectionCardProps {
   selection: any
@@ -44,27 +42,27 @@ export function SelectionCard({
 }: SelectionCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const bestSportsbookOdds = bestSportsbook && selection.current_odds?.bookmakers?.[bestSportsbook]
-  
+
   // Improved odds display logic - avoid showing raw text like "CASH OUT"
   const getDisplayOdds = () => {
     if (bestSportsbookOdds?.price) {
       return bestSportsbookOdds.price
     }
-    
+
     // If original odds is a number or properly formatted odds, use it
-    if (typeof selection.original_odds === 'number') {
+    if (typeof selection.original_odds === "number") {
       return selection.original_odds
     }
-    
+
     // If original odds is a string that looks like odds (+/-), use it
-    if (typeof selection.original_odds === 'string' && /^[+-]\d+$/.test(selection.original_odds)) {
+    if (typeof selection.original_odds === "string" && /^[+-]\d+$/.test(selection.original_odds)) {
       return selection.original_odds
     }
-    
+
     // Otherwise, show that odds aren't available
     return "N/A"
   }
-  
+
   const displayOdds = getDisplayOdds()
 
   const getHitRateColor = (rate: number) => {
@@ -86,7 +84,7 @@ export function SelectionCard({
     return hitRate
   }
 
-  // Helper function to get display season hit rate - no need to flip since data is already processed  
+  // Helper function to get display season hit rate - no need to flip since data is already processed
   const getDisplaySeasonHitRate = (seasonHitRate: number | null, betType: string) => {
     // Hit rate data is already processed for bet type in getHitRateForSelection
     // No need to flip again here
@@ -94,283 +92,307 @@ export function SelectionCard({
   }
 
   // Ensure we have a valid bet type
-  const effectiveBetType = selection.bet_type || 'over'
-  
-  console.log('SelectionCard render:', {
+  const effectiveBetType = selection.bet_type || "over"
+
+  console.log("SelectionCard render:", {
     playerName: selection.player_name,
     betType: selection.bet_type,
     effectiveBetType,
     line: selection.line,
-    hitRateData: hitRateData ? { last_10_hit_rate: hitRateData.last_10_hit_rate } : null
+    hitRateData: hitRateData ? { last_10_hit_rate: hitRateData.last_10_hit_rate } : null,
   })
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
-        {/* Main Content - Mobile Optimized */}
-        <div className="p-3 sm:p-4">
-          {/* Mobile Layout - Condensed */}
-          <div className="block sm:hidden">
-            {/* Header Row - Compact */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate mb-1">
-                  {selection.player_name || "Unknown Player"}
-                </h3>
-                <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {selection.line !== null && selection.line !== undefined ? (
-                    selection.market === 'Spread' ? (
-                      `${selection.line > 0 ? '+' : ''}${selection.line} `
-                    ) : selection.bet_type === 'under' ? (
-                      `Under ${selection.line} ` 
-                    ) : (
-                      `${Math.ceil(selection.line)}+ `
-                    )
-                  ) : ""}
-                  {getMarketLabel(selection.market)}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {selection.away_team} @ {selection.home_team}
-                </div>
-              </div>
-
-              {/* Odds & Sportsbook - Mobile */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {formatOddsClean(displayOdds)}
-                  </div>
-                  {bestSportsbookOdds && bestSportsbook && (
-                    <div className="flex items-center gap-1 justify-end">
-                      <img
-                        src={getSportsbookInfo(bestSportsbook).logo || "/placeholder.svg"}
-                        alt={getSportsbookInfo(bestSportsbook).name}
-                        className="h-4 w-4 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                      />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {getSportsbookInfo(bestSportsbook).name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {hasAnyOdds && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSelectionDropdown(selection.id)}
-                    className="h-6 w-6 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    <ChevronDown
-                      className={`h-3 w-3 text-gray-400 transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
+      <TooltipProvider>
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+          {/* Main Content - Enhanced Mobile Layout */}
+          <div className="p-4 sm:p-5 lg:p-6">
+            {/* Mobile Layout - Improved Hierarchy */}
+            <div className="block lg:hidden">
+              {/* Player Header - More Prominent */}
+              <div className="mb-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <AvatarImage
+                      src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${selection.player_id}/headshot/67/current`}
+                      alt={selection.player_name}
+                      className="object-cover"
                     />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Hit Rate Row - Mobile */}
-            {hitRateData && (
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-3">
-                  <div className="text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">L10: </span>
-                    <span className={`font-semibold ${getHitRateColor(hitRateData.last_10_hit_rate || 0)}`}>
-                      {hitRateData.last_10_hit_rate?.toFixed(0) || 0}%
-                    </span>
-                  </div>
-                  {hitRateData.avg_stat_per_game && (
-                    <div className="text-xs">
-                      <span className="text-gray-500 dark:text-gray-400">Avg: </span>
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">
-                        {hitRateData.avg_stat_per_game}
-                      </span>
+                    <AvatarFallback className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      {selection.player_name?.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight mb-1">
+                      {selection.player_name || "Unknown Player"}
+                    </h3>
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {selection.line !== null && selection.line !== undefined
+                        ? selection.market === "Spread"
+                          ? `${selection.line > 0 ? "+" : ""}${selection.line} `
+                          : selection.bet_type === "under"
+                            ? `Under ${selection.line} `
+                            : `${Math.ceil(selection.line)}+ `
+                        : ""}
+                      {getMarketLabel(selection.market)}
                     </div>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsModalOpen(true)}
-                  className="h-6 px-2 text-xs"
-                >
-                  <BarChart3 className="h-3 w-3 mr-1" />
-                  Stats
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Layout - Original */}
-          <div className="hidden sm:block">
-            {/* Header Row */}
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
-                    {selection.player_name || "Unknown Player"}
-                  </h3>
-                </div>
-
-                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  {selection.line !== null && selection.line !== undefined ? (
-                    selection.market === 'Spread' ? (
-                      // For spreads, show the actual spread value with +/- sign
-                      `${selection.line > 0 ? '+' : ''}${selection.line} `
-                    ) : selection.bet_type === 'under' ? (
-                      `Under ${selection.line} ` 
-                    ) : (
-                      `${Math.ceil(selection.line)}+ `
-                    )
-                  ) : ""}
-                  {getMarketLabel(selection.market)}
-                </div>
-
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {selection.away_team} @ {selection.home_team}
-                </div>
-              </div>
-
-              {/* Odds & Action */}
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatOddsClean(displayOdds)}</div>
-                  
-                  {/* Show warning when odds aren't available */}
-                  {displayOdds === "N/A" && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">
-                          Live odds not available for this line.
-                          <br />
-                          This may be an alternate line not offered by sportsbooks.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  
-                  {bestSportsbookOdds && bestSportsbook && (
-                    <img
-                      src={getSportsbookInfo(bestSportsbook).logo || "/placeholder.svg"}
-                      alt={getSportsbookInfo(bestSportsbook).name}
-                      className="h-6 w-6 object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                        if (fallback) fallback.style.display = "inline"
-                      }}
-                    />
-                  )}
-                  <span 
-                    className="text-xs text-gray-500 dark:text-gray-400 font-medium" 
-                    style={{ display: "none" }}
-                  >
-                    {bestSportsbookOdds && bestSportsbook && getSportsbookInfo(bestSportsbook).name}
-                  </span>
-                </div>
-
-                {hasAnyOdds && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSelectionDropdown(selection.id)}
-                    className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    <ChevronDown
-                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Enhanced Hit Rate Section */}
-            {hitRateData ? (
-              <div className="space-y-3">
-                {/* Compact Stats Row */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">L10:</span>
-                      <span className={`text-sm font-bold ${getHitRateColor(getDisplayHitRate(hitRateData.last_10_hit_rate, effectiveBetType))}`}>
-                        {getDisplayHitRate(hitRateData.last_10_hit_rate, effectiveBetType)}%
-                      </span>
-                    </div>
-                    <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Avg:</span>
-                      <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                        {hitRateData.avg_stat_per_game}
-                      </span>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {selection.away_team} @ {selection.home_team}
                     </div>
                   </div>
+                </div>
 
-                  {/* Books Badge */}
-                  {hasMultipleBooks && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <BarChart3 className="h-3 w-3 text-blue-500" />
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 h-5"
+                {/* Odds Section - More Prominent */}
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-600/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                        {formatOddsClean(displayOdds)}
+                      </div>
+                      {bestSportsbookOdds && bestSportsbook && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={getSportsbookInfo(bestSportsbook).logo || "/placeholder.svg"}
+                            alt={getSportsbookInfo(bestSportsbook).name}
+                            className="h-5 w-5 object-contain rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none"
+                            }}
+                          />
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                            {getSportsbookInfo(bestSportsbook).name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {hasAnyOdds && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSelectionDropdown(selection.id)}
+                        className="h-10 w-10 p-0 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0"
                       >
-                        {sortedOdds.length}
-                      </Badge>
-                    </div>
-                  )}
+                        <ChevronDown
+                          className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </Button>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                {/* Enhanced Action Row */}
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
-                  {/* More Prominent Performance Button */}
+              {/* Hit Rate Section - Enhanced Mobile */}
+              {hitRateData && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`p-3 rounded-xl border ${getHitRateBg(hitRateData.last_10_hit_rate || 0)}`}>
+                      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Last 10 Games</div>
+                      <div className={`text-lg font-bold ${getHitRateColor(hitRateData.last_10_hit_rate || 0)}`}>
+                        {hitRateData.last_10_hit_rate?.toFixed(0) || 0}%
+                      </div>
+                    </div>
+
+                    {hitRateData.avg_stat_per_game && (
+                      <div className="p-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          Season Average
+                        </div>
+                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                          {hitRateData.avg_stat_per_game}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 h-8 px-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-medium transition-all duration-200 hover:shadow-sm"
+                    className="w-full h-11 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-semibold"
                   >
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span className="text-xs">Performance</span>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    View Performance Details
                   </Button>
+                </div>
+              )}
+            </div>
 
-                  {/* Hit Rate Details Link */}
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-                  >
-                    <span>View Hit Rate Details</span>
-                    <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-200" />
-                  </button>
+            {/* Desktop Layout - Enhanced */}
+            <div className="hidden lg:block">
+              {/* Header Row - Improved */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  <Avatar className="h-12 w-12 border-2 border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <AvatarImage
+                      src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good,f_auto/v1/people/${selection.player_id}/headshot/67/current`}
+                      alt={selection.player_name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      {selection.player_name?.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
+                      {selection.player_name || "Unknown Player"}
+                    </h3>
+                    <div className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {selection.line !== null && selection.line !== undefined
+                        ? selection.market === "Spread"
+                          ? `${selection.line > 0 ? "+" : ""}${selection.line} `
+                          : selection.bet_type === "under"
+                            ? `Under ${selection.line} `
+                            : `${Math.ceil(selection.line)}+ `
+                        : ""}
+                      {getMarketLabel(selection.market)}
+                    </div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                      {selection.away_team} @ {selection.home_team}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Odds & Action - Enhanced */}
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                      {formatOddsClean(displayOdds)}
+                    </div>
+
+                    {/* Show warning when odds aren't available */}
+                    {displayOdds === "N/A" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center justify-end gap-1">
+                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">No live odds</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs max-w-48">
+                            Live odds not available for this line. This may be an alternate line not offered by
+                            sportsbooks.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {bestSportsbookOdds && bestSportsbook && (
+                      <div className="flex items-center gap-2 justify-end">
+                        <img
+                          src={getSportsbookInfo(bestSportsbook).logo || "/placeholder.svg"}
+                          alt={getSportsbookInfo(bestSportsbook).name}
+                          className="h-6 w-6 object-contain rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                          {getSportsbookInfo(bestSportsbook).name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {hasAnyOdds && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSelectionDropdown(selection.id)}
+                      className="h-12 w-12 p-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <ChevronDown
+                        className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-3 text-gray-400 dark:text-gray-500 text-xs border-t border-gray-100 dark:border-gray-800 mt-3">
-                No performance data available
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Odds Comparison Dropdown */}
-        <OddsComparisonDropdown
-          isExpanded={isExpanded}
-          hasAnyOdds={hasAnyOdds}
-          hasMultipleBooks={hasMultipleBooks}
-          sortedOdds={sortedOdds}
-          formatOddsClean={formatOddsClean}
-          handlePlaceBet={handlePlaceBet}
-          selectionId={selection.id}
-        />
-      </div>
+              {/* Enhanced Hit Rate Section - Desktop */}
+              {hitRateData ? (
+                <div className="space-y-4">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className={`p-4 rounded-xl border ${getHitRateBg(hitRateData.last_10_hit_rate || 0)}`}>
+                      <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Last 10 Games</div>
+                      <div className={`text-2xl font-bold ${getHitRateColor(hitRateData.last_10_hit_rate || 0)}`}>
+                        {hitRateData.last_10_hit_rate?.toFixed(0) || 0}%
+                      </div>
+                    </div>
+
+                    {hitRateData.avg_stat_per_game && (
+                      <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
+                        <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          Season Average
+                        </div>
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          {hitRateData.avg_stat_per_game}
+                        </div>
+                      </div>
+                    )}
+
+                    {hasMultipleBooks && (
+                      <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
+                        <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          Available Books
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sortedOdds.length}</div>
+                          <BarChart3 className="h-5 w-5 text-blue-500" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Row */}
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsModalOpen(true)}
+                      className="flex items-center gap-2 h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-semibold transition-all duration-200 hover:shadow-sm"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      Performance Analysis
+                    </Button>
+
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group font-medium"
+                    >
+                      <span>View Detailed Stats</span>
+                      <ExternalLink className="h-4 w-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-400 dark:text-slate-500 text-sm border-t border-slate-200 dark:border-slate-700 mt-4">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  No performance data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Odds Comparison Dropdown */}
+          <OddsComparisonDropdown
+            isExpanded={isExpanded}
+            hasAnyOdds={hasAnyOdds}
+            hasMultipleBooks={hasMultipleBooks}
+            sortedOdds={sortedOdds}
+            formatOddsClean={formatOddsClean}
+            handlePlaceBet={handlePlaceBet}
+            selectionId={selection.id}
+          />
+        </div>
+      </TooltipProvider>
 
       {/* Hit Rate Performance Modal */}
       <HitRatePerformanceModal

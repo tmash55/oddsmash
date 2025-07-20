@@ -87,7 +87,14 @@ export const sports: Sport[] = [
   {
     id: "basketball_nba",
     name: "NBA",
-    icon: "/images/sport-league/nba-logo.png",
+    icon: "/images/sport-league/nba-logo.svg",
+    active: false,
+    useImage: true,
+  },
+  {
+    id: "basketball_wnba",
+    name: "WNBA",
+    icon: "/images/sport-league/wnba-logo.svg", // Will use the SportIcon component
     active: true,
     useImage: true,
   },
@@ -101,16 +108,23 @@ export const sports: Sport[] = [
   {
     id: "icehockey_nhl",
     name: "NHL",
-    icon: "/images/sport-league/nhl-logo.png",
-    active: true,
+    icon: "/images/sport-league/nhl-logo.svg",
+    active: false,
     useImage: true,
   },
   {
     id: "americanfootball_nfl",
     name: "NFL",
-    icon: "/images/sport-league/nfl-logo.png",
-    active: false,
+    icon: "/images/sport-league/nfl-logo.svg",
+    active: true,
     useImage: true,
+  },
+  {
+    id: "americanfootball_ncaaf",
+    name: "NCAAF",
+    icon: "", // Will use the SportIcon component
+    active: false,
+    useImage: false,
   },
 ];
 
