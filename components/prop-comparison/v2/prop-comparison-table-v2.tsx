@@ -817,39 +817,39 @@ export function PropComparisonTableV2({
     <>
     <div
       className={cn(
-        "rounded-md border bg-slate-950/50 backdrop-blur-sm",
+        "rounded-md border bg-white/80 dark:bg-slate-950/50 backdrop-blur-sm border-gray-200 dark:border-slate-800",
         isMobile && "-mx-4 border-x-0 rounded-none",
       )}
     >
       <div className="relative h-[70vh] overflow-auto">
         <Table>
-          <TableHeader className="sticky top-0 z-30 bg-slate-950 border-b border-slate-800 shadow-lg">
-            <TableRow className="hover:bg-transparent border-slate-800">
+          <TableHeader className="sticky top-0 z-30 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 shadow-lg">
+            <TableRow className="hover:bg-transparent border-gray-200 dark:border-slate-800">
               {isMobile ? (
                 <>
-                  <TableHead className="w-[35%] bg-slate-950 text-slate-200 font-semibold sticky top-0">Player</TableHead>
-                  <TableHead className="w-[15%] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[35%] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">Player</TableHead>
+                  <TableHead className="w-[15%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     Line
                   </TableHead>
-                  <TableHead className="w-[30%] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[30%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     Odds
                   </TableHead>
-                  <TableHead className="w-[20%] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[20%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     EV%
                   </TableHead>
-                  <TableHead className="w-[10%] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[10%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     Act
                   </TableHead>
                 </>
               ) : (
                 <>
-                  <TableHead className="w-[300px] bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[300px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <div className="flex items-center justify-between gap-1">
                       <span>Player</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
                         onClick={() =>
                           onSortChange(
                             "name",
@@ -869,13 +869,13 @@ export function PropComparisonTableV2({
                       </Button>
                     </div>
                   </TableHead>
-                  <TableHead className="w-[80px] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[80px] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <div className="flex items-center justify-between gap-1">
                       <span>Line</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
                         onClick={() =>
                           onSortChange(
                             "line",
@@ -895,13 +895,13 @@ export function PropComparisonTableV2({
                       </Button>
                     </div>
                   </TableHead>
-                  <TableHead className="w-[120px] bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[120px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <div className="flex items-center justify-between gap-1">
                       <span>Best Odds</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
                         onClick={() =>
                           onSortChange(
                             "odds",
@@ -921,16 +921,16 @@ export function PropComparisonTableV2({
                       </Button>
                     </div>
                   </TableHead>
-                  <TableHead className="w-[100px] bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[100px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <span>Avg Odds</span>
                   </TableHead>
-                  <TableHead className="bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <div className="flex items-center justify-end gap-1">
                       <span>EV%</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
                         onClick={() =>
                           onSortChange("ev", sortField === "ev" ? (sortDirection === "asc" ? "desc" : "asc") : "desc")
                         }
@@ -948,7 +948,7 @@ export function PropComparisonTableV2({
                     </div>
                   </TableHead>
                   {activeSportsbooks.map((book) => (
-                    <TableHead key={`header-${book.id}`} className="text-center w-[80px] bg-slate-950 sticky top-0">
+                    <TableHead key={`header-${book.id}`} className="text-center w-[80px] bg-white dark:bg-slate-950 sticky top-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger>
@@ -963,7 +963,7 @@ export function PropComparisonTableV2({
                       </TooltipProvider>
                     </TableHead>
                   ))}
-                  <TableHead className="w-[60px] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
+                  <TableHead className="w-[60px] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     Actions
                   </TableHead>
                 </>
@@ -984,9 +984,9 @@ export function PropComparisonTableV2({
               const avgOdds = calculateAverageOdds(odds)
 
               return (
-                <TableRow key={item.player_id} className="border-slate-800 hover:bg-slate-900/50">
-                  {/* Player cell */}
-                  <TableCell className="text-slate-200">
+                <TableRow key={item.player_id} className="border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/50">
+                                      {/* Player cell */}
+                    <TableCell className="text-gray-900 dark:text-slate-200">
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar className={getSportSpecificStyles(sport).avatarSize}>
@@ -1013,8 +1013,8 @@ export function PropComparisonTableV2({
                         </div>
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-medium text-slate-200">{item.description}</span>
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="font-medium text-gray-900 dark:text-slate-200">{item.description}</span>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                           <span>{formatGameDateTime(item.commence_time, sport)}</span>
                           <div className="flex items-center gap-1">
                             {isHomeTeam ? (
@@ -1047,40 +1047,40 @@ export function PropComparisonTableV2({
                   </TableCell>
                     {/* Line cell */}
                     <TableCell className="text-center">
-                      <span className="font-medium text-slate-200">{item.activeLine}</span>
+                      <span className="font-medium text-gray-900 dark:text-slate-200">{item.activeLine}</span>
                     </TableCell>
                     {/* Best Odds cell */}
                     <TableCell>
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
+                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-slate-400">O</span>
+                              <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
                               {item.bestOverOdds ? (
                                 <OddsDisplay 
                                   odds={item.bestOverOdds.price} 
                                   link={item.bestOverOdds.link} 
-                                  className="text-sm text-slate-200 hover:underline" 
+                                  className="text-sm text-gray-900 dark:text-slate-200 hover:underline" 
                                 />
                               ) : (
-                                <span className="text-sm text-slate-400">-</span>
+                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
                               )}
                             </div>
                             {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
+                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-slate-400">U</span>
+                              <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
                               {item.bestUnderOdds ? (
                                 <OddsDisplay 
                                   odds={item.bestUnderOdds.price} 
                                   link={item.bestUnderOdds.link} 
-                                  className="text-sm text-slate-200 hover:underline" 
+                                  className="text-sm text-gray-900 dark:text-slate-200 hover:underline" 
                                 />
                               ) : (
-                                <span className="text-sm text-slate-400">-</span>
+                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
                               )}
                             </div>
                             {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
@@ -1091,16 +1091,16 @@ export function PropComparisonTableV2({
                     {/* Avg Odds cell */}
                     <TableCell>
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
+                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-400">O</span>
-                            <span className="text-sm text-slate-300">{avgOdds.over ? formatOdds(avgOdds.over) : "-"}</span>
+                            <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
+                            <span className="text-sm text-gray-700 dark:text-slate-300">{avgOdds.over ? formatOdds(avgOdds.over) : "-"}</span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
+                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-400">U</span>
-                            <span className="text-sm text-slate-300">{avgOdds.under ? formatOdds(avgOdds.under) : "-"}</span>
+                            <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
+                            <span className="text-sm text-gray-700 dark:text-slate-300">{avgOdds.under ? formatOdds(avgOdds.under) : "-"}</span>
                           </div>
                         </div>
                       </div>
@@ -1111,7 +1111,7 @@ export function PropComparisonTableV2({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger className="w-full">
-                              <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
+                              <div className="flex items-center justify-center px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                                 {renderEV(
                                   item.bestOverOdds?.price,
                                   avgOdds.over || null,
@@ -1131,7 +1131,7 @@ export function PropComparisonTableV2({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger className="w-full">
-                              <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
+                              <div className="flex items-center justify-center px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
                                 {renderEV(
                                   item.bestUnderOdds?.price,
                                   avgOdds.under || null,
@@ -1188,7 +1188,7 @@ export function PropComparisonTableV2({
                           <div className="flex flex-col gap-2">
                             <div className={cn(
                               "flex items-center justify-center px-2 py-1 rounded",
-                              isOverBest ? "bg-emerald-500/20" : "bg-slate-800/50"
+                              isOverBest ? "bg-emerald-500/20" : "bg-gray-100 dark:bg-slate-800/50"
                             )}>
                               {bookOdds?.over ? (
                                 <OddsDisplay 
@@ -1196,16 +1196,16 @@ export function PropComparisonTableV2({
                                   link={bookOdds.over.link} 
                                   className={cn(
                                     "text-sm",
-                                    isOverBest ? "text-emerald-400" : "text-slate-200"
+                                    isOverBest ? "text-emerald-400" : "text-gray-900 dark:text-slate-200"
                                   )} 
                                 />
                               ) : (
-                                <span className="text-sm text-slate-400">-</span>
+                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
                               )}
                             </div>
                             <div className={cn(
                               "flex items-center justify-center px-2 py-1 rounded",
-                              isUnderBest ? "bg-emerald-500/20" : "bg-slate-800/50"
+                              isUnderBest ? "bg-emerald-500/20" : "bg-gray-100 dark:bg-slate-800/50"
                             )}>
                               {bookOdds?.under ? (
                                 <OddsDisplay 
@@ -1213,11 +1213,11 @@ export function PropComparisonTableV2({
                                   link={bookOdds.under.link} 
                                   className={cn(
                                     "text-sm",
-                                    isUnderBest ? "text-emerald-400" : "text-slate-200"
+                                    isUnderBest ? "text-emerald-400" : "text-gray-900 dark:text-slate-200"
                                   )} 
                                 />
                               ) : (
-                                <span className="text-sm text-slate-400">-</span>
+                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
                               )}
                             </div>
                           </div>

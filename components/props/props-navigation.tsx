@@ -206,8 +206,8 @@ export function PropsNavigation({
                       "h-12 text-sm font-medium transition-all duration-200 active:scale-[0.98]",
                       // Dark theme
                       "dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800/70",
-                      // Light theme
-                      "bg-white border-slate-300 text-slate-900 hover:bg-slate-50",
+                      // Light theme - enhanced hover effects
+                      "bg-white border-slate-300 text-slate-900 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:shadow-md hover:border-slate-400",
                       "focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500",
                     )}
                   >
@@ -265,8 +265,8 @@ export function PropsNavigation({
                       "h-12 text-sm font-medium transition-all duration-200 active:scale-[0.98]",
                       // Dark theme
                       "dark:bg-slate-800/50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800/70",
-                      // Light theme
-                      "bg-white border-slate-300 text-slate-900 hover:bg-slate-50",
+                      // Light theme - enhanced hover effects
+                      "bg-white border-slate-300 text-slate-900 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:shadow-md hover:border-slate-400",
                       "focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500",
                     )}
                   >
@@ -369,11 +369,10 @@ export function PropsNavigation({
                         isActive
                           ? "text-white shadow-lg"
                           : cn(
-                              "hover:text-white",
                               // Dark theme inactive
-                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50",
-                              // Light theme inactive
-                              "text-slate-700 hover:bg-slate-100 border border-slate-200",
+                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50 dark:hover:text-white",
+                              // Light theme inactive - enhanced hover effects
+                              "text-slate-700 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:text-slate-900 hover:shadow-md hover:border-slate-300 border border-slate-200 hover:border-opacity-80",
                             ),
                       )}
                     >
@@ -424,11 +423,10 @@ export function PropsNavigation({
                         isActive
                           ? "text-white shadow-lg"
                           : cn(
-                              "hover:text-white",
                               // Dark theme inactive
-                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50",
-                              // Light theme inactive
-                              "text-slate-700 hover:bg-slate-100 border border-slate-200",
+                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50 dark:hover:text-white",
+                              // Light theme inactive - enhanced hover effects
+                              "text-slate-700 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:text-slate-900 hover:shadow-md hover:border-slate-300 border border-slate-200 hover:border-opacity-80",
                             ),
                       )}
                     >
