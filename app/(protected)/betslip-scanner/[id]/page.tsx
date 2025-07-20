@@ -64,6 +64,8 @@ export default async function ScannedBetslipPage({ params }: ScannedBetslipPageP
     notFound()
   }
 
+
+
   // Check access permissions
   const isOwner = user && betslip.user_id === user.id
   const isPublic = betslip.is_public === true
@@ -71,11 +73,11 @@ export default async function ScannedBetslipPage({ params }: ScannedBetslipPageP
   if (!isOwner && !isPublic) {
     // Private betslip and not the owner
     if (!user) {
-      // Redirect to sign-in for private betslips
-      redirect('/sign-in')
+      // Redirect to sign-in with return URL for private betslips
+      redirect(`/sign-in?redirectTo=${encodeURIComponent(`/betslip-scanner/${params.id}`)}`)
     }
     
-    console.log(`Access denied: User ${user.id} tried to access private betslip owned by ${betslip.user_id}`)
+    console.log(`Access denied: User tried to access private betslip they don't own`)
     notFound()
   }
 

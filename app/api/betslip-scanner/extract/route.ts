@@ -1221,6 +1221,9 @@ async function saveBetslipToDatabase(
   const supabase = createClient()
   
   try {
+    // Generate a default title for the scanned betslip
+    const defaultTitle = `${sportsbook} Betslip (${selections.length} pick${selections.length !== 1 ? 's' : ''})`
+
     // Insert the main betslip record
     const { data: betslip, error: betslipError } = await supabase
       .from('scanned_betslips')
@@ -1228,11 +1231,13 @@ async function saveBetslipToDatabase(
         user_id: userId,
         image_url: imageUrl,
         sportsbook: sportsbook,
+        title: defaultTitle,
         total_selections: selections.length,
         scan_confidence: scanConfidence,
         raw_ocr_text: rawOcrText,
         llm_response: llmResponse,
         status: 'active',
+        is_public: true, // Default to public for scanned betslips
         last_odds_refresh: oddsWereFetched ? new Date().toISOString() : null, // Set if we fetched odds
         hit_rates_data: hitRatesData || {}
       })

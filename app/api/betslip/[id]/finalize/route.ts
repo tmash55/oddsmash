@@ -55,7 +55,7 @@ export async function POST(
         finalized_at: new Date().toISOString(),
         last_odds_refresh: new Date().toISOString(),
         status: 'active',
-        is_public: false
+        is_public: true // Default to public for finalized betslips
       })
       .select()
       .single()

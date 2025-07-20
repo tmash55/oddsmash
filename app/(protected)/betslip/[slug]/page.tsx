@@ -107,6 +107,8 @@ export default async function BetslipPage({ params }: BetslipPageProps) {
       isScanned = false
       betslip = finalizedBetslip
       selections = finalizedBetslip.finalized_betslip_selections || []
+      
+
     }
   }
 
@@ -122,11 +124,11 @@ export default async function BetslipPage({ params }: BetslipPageProps) {
   if (!isOwner && !isPublic) {
     // Private betslip and not the owner
     if (!user) {
-      // Redirect to sign-in for private betslips
-      redirect('/sign-in')
+      // Redirect to sign-in with return URL for private betslips
+      redirect(`/sign-in?redirectTo=${encodeURIComponent(`/betslip/${params.slug}`)}`)
     }
     
-    console.log(`Access denied: User ${user.id} tried to access private betslip owned by ${betslip.user_id}`)
+    console.log(`Access denied: User tried to access private betslip they don't own`)
     notFound()
   }
 

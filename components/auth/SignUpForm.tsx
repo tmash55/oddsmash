@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/libs/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
@@ -24,12 +24,13 @@ export default function SignUpForm({ className, ...props }: React.ComponentProps
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [firstName, setFirstName] = useState("")
+
   const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null)
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong">("weak")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { signInWithGoogle } = useAuth()
   const supabase = createClient()
@@ -72,7 +73,7 @@ export default function SignUpForm({ className, ...props }: React.ComponentProps
 
     try {
       // Basic validation
-      if (!email || !password || !firstName) {
+      if (!email || !password) {
         throw new Error("Please fill in all fields")
       }
 
@@ -107,22 +108,22 @@ export default function SignUpForm({ className, ...props }: React.ComponentProps
         password,
         options: {
           emailRedirectTo: getRedirectUrl(),
-          data: {
-            first_name: firstName,
-          },
         },
       })
 
       if (error) throw error
 
       if (data.user) {
+        // Check for redirect URL
+        const redirectTo = searchParams.get("redirectTo")
+        
         // Store user data for onboarding
         sessionStorage.setItem(
           "pendingUserData",
           JSON.stringify({
             email,
-            firstName,
             needsOnboarding: true,
+            redirectTo: redirectTo, // Store redirect URL for after onboarding
           }),
         )
 
@@ -251,26 +252,7 @@ export default function SignUpForm({ className, ...props }: React.ComponentProps
               transition={{ delay: 0.4, duration: 0.5 }}
             >
               <form onSubmit={handleSubmit} className="space-y-6 md:space-y-4">
-                {/* First Name */}
-                <div className="space-y-3 md:space-y-2">
-                  <Label
-                    htmlFor="firstName"
-                    className="text-gray-200 dark:text-gray-200 text-gray-700 flex items-center gap-2 text-base md:text-sm font-medium"
-                  >
-                    <User className="w-5 h-5 md:w-4 md:h-4" />
-                    First Name
-                  </Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="Enter your first name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    disabled={isLoading || isGoogleLoading}
-                    className="h-14 md:h-10 text-base md:text-sm bg-white/5 dark:bg-white/5 bg-gray-100 border-white/10 dark:border-white/10 border-gray-300 text-white dark:text-white text-gray-900 placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-400 focus-visible:ring-green-500 transition-all duration-300 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-50 rounded-2xl md:rounded-md"
-                  />
-                </div>
+
 
                 {/* Email */}
                 <div className="space-y-3 md:space-y-2">

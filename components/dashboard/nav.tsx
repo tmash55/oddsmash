@@ -149,10 +149,10 @@ export function DashboardNav() {
                           {sport.features.map((feature) => (
                             <Link
                               key={feature.id}
-                              href={`/dashboard/${sport.id}/${feature.id}`}
+                              href={feature.id === 'hit-rates' ? `/${sport.id}/hit-rates?market=hits` : `/dashboard/${sport.id}/${feature.id}`}
                               className={cn(
                                 "block rounded-md px-4 py-2 text-sm transition-colors hover:bg-accent",
-                                pathname === `/dashboard/${sport.id}/${feature.id}` && "bg-accent"
+                                (pathname === `/dashboard/${sport.id}/${feature.id}` || (feature.id === 'hit-rates' && pathname.includes(`/${sport.id}/hit-rates`))) && "bg-accent"
                               )}
                             >
                               {feature.name}
@@ -201,10 +201,10 @@ export function DashboardNav() {
                       {sport.features.map((feature) => (
                         <Link
                           key={feature.id}
-                          href={`/dashboard/${sport.id}/${feature.id}`}
+                          href={feature.id === 'hit-rates' ? `/${sport.id}/hit-rates?market=hits` : `/dashboard/${sport.id}/${feature.id}`}
                           className={cn(
                             "block rounded-md px-4 py-2 text-sm transition-colors hover:bg-accent",
-                            pathname === `/dashboard/${sport.id}/${feature.id}` && "bg-accent"
+                            (pathname === `/dashboard/${sport.id}/${feature.id}` || (feature.id === 'hit-rates' && pathname.includes(`/${sport.id}/hit-rates`))) && "bg-accent"
                           )}
                           onClick={() => setIsMobileMenuOpen(false)}
                         >

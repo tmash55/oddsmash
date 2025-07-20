@@ -174,7 +174,69 @@ export function useUserPreferences() {
   };
 
   const completeOnboarding = async () => {
-    return await updatePreferences({ onboarding_completed: true });
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error("No authenticated user found");
+        return false;
+      }
+
+      // Try using the RPC function first
+      const { data, error } = await supabase.rpc('complete_user_onboarding');
+
+      if (error) {
+        console.error("RPC function failed, trying manual approach:", error);
+        console.error("Error details:", error.message, error.details, error.hint);
+        
+        // Fallback to manual approach
+        try {
+          // Update profiles table
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ 
+              onboarding_completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+
+          if (profileError) {
+            console.error("Error updating profiles:", profileError);
+          } else {
+            console.log("✅ Profiles table updated manually");
+          }
+
+          // Update user_preferences table using the original method
+          const success = await updatePreferences({ onboarding_completed: true });
+          
+          if (success) {
+            console.log("✅ Onboarding completed successfully using fallback method");
+            return true;
+          } else {
+            console.error("❌ Fallback method also failed");
+            return false;
+          }
+        } catch (fallbackError) {
+          console.error("Fallback method failed:", fallbackError);
+          return false;
+        }
+      }
+
+      console.log("✅ Onboarding completed successfully using RPC function");
+      console.log("RPC function returned:", data);
+      
+      // Update local preferences state
+      setPreferences(prev => ({
+        ...prev,
+        onboarding_completed: true
+      }));
+
+      return data; // Returns true if successful
+    } catch (error) {
+      console.error("Error in completeOnboarding:", error);
+      return false;
+    }
   };
 
   const toggleSportsbook = async (sportsbookId: string) => {

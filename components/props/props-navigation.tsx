@@ -354,7 +354,7 @@ export function PropsNavigation({
               <div className={cn("text-xs", "dark:text-slate-500 text-slate-500")}>{sports.length} leagues</div>
             </div>
             <ScrollArea className="w-full">
-              <div className="flex gap-2 pb-1">
+              <div className="flex gap-2 pb-1 px-1">
                 {sports.map((sport) => {
                   const isActive = currentSport === sport.id
                   return (
@@ -369,8 +369,8 @@ export function PropsNavigation({
                         isActive
                           ? "text-white shadow-lg"
                           : cn(
-                              // Dark theme inactive
-                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50 dark:hover:text-white",
+                              // Dark theme inactive - enhanced hover effects
+                              "dark:text-slate-300 dark:hover:bg-gradient-to-r dark:hover:from-slate-800/70 dark:hover:to-slate-700/50 dark:border-slate-700/50 dark:hover:text-white dark:hover:shadow-md dark:hover:border-slate-600",
                               // Light theme inactive - enhanced hover effects
                               "text-slate-700 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:text-slate-900 hover:shadow-md hover:border-slate-300 border border-slate-200 hover:border-opacity-80",
                             ),
@@ -408,7 +408,7 @@ export function PropsNavigation({
               <div className={cn("text-xs", "dark:text-slate-500 text-slate-500")}>{oddsCategories.length} types</div>
             </div>
             <ScrollArea className="w-full">
-              <div className="flex gap-2 pb-1">
+              <div className="flex gap-2 pb-1 px-1">
                 {oddsCategories.map((category) => {
                   const isActive = activeCategory === category.id
                   return (
@@ -423,8 +423,8 @@ export function PropsNavigation({
                         isActive
                           ? "text-white shadow-lg"
                           : cn(
-                              // Dark theme inactive
-                              "dark:text-slate-300 dark:hover:bg-slate-800/50 dark:border-slate-700/50 dark:hover:text-white",
+                              // Dark theme inactive - enhanced hover effects
+                              "dark:text-slate-300 dark:hover:bg-gradient-to-r dark:hover:from-slate-800/70 dark:hover:to-slate-700/50 dark:border-slate-700/50 dark:hover:text-white dark:hover:shadow-md dark:hover:border-slate-600",
                               // Light theme inactive - enhanced hover effects
                               "text-slate-700 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:text-slate-900 hover:shadow-md hover:border-slate-300 border border-slate-200 hover:border-opacity-80",
                             ),

@@ -247,7 +247,7 @@ export default function HitRateFiltersV4({
   // Get available markets based on sport
   const getAvailableMarkets = (): SportMarket[] => {
     const config = SPORT_CONFIGS[sport]
-    return config.markets.map((m) => m.value)
+    return config.markets.map((m) => m.value as SportMarket)
   }
 
   // Debounce search input

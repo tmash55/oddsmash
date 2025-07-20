@@ -47,6 +47,8 @@ export async function GET(
       )
     }
 
+
+
     // Check access permissions
     const isOwner = user && betslip.user_id === user.id
     const isPublic = betslip.is_public === true
@@ -126,11 +128,27 @@ export async function PATCH(
 
     // Parse request body
     const body = await request.json()
-    const { is_public } = body
+    const { is_public, title } = body
 
-    if (typeof is_public !== 'boolean') {
+    // Validate input
+    if (is_public !== undefined && typeof is_public !== 'boolean') {
       return NextResponse.json(
         { error: 'is_public must be a boolean value' },
+        { status: 400 }
+      )
+    }
+
+    if (title !== undefined && (typeof title !== 'string' || title.trim().length === 0)) {
+      return NextResponse.json(
+        { error: 'title must be a non-empty string' },
+        { status: 400 }
+      )
+    }
+
+    // Ensure at least one field is being updated
+    if (is_public === undefined && title === undefined) {
+      return NextResponse.json(
+        { error: 'At least one field (is_public or title) must be provided' },
         { status: 400 }
       )
     }
@@ -151,36 +169,53 @@ export async function PATCH(
 
     if (betslip.user_id !== user.id) {
       return NextResponse.json(
-        { error: 'Access denied - only the owner can update privacy settings' },
+        { error: 'Access denied - only the owner can update betslip settings' },
         { status: 403 }
       )
     }
 
-    // Update the privacy status
+    // Prepare update object with only the fields being updated
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    }
+
+    if (is_public !== undefined) {
+      updateData.is_public = is_public
+    }
+
+    if (title !== undefined) {
+      updateData.title = title.trim()
+    }
+
+    // Update the betslip
     const { error: updateError } = await supabase
       .from('scanned_betslips')
-      .update({ 
-        is_public,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', betslipId)
 
     if (updateError) {
-      console.error('Error updating betslip privacy:', updateError)
+      console.error('Error updating betslip:', updateError)
       return NextResponse.json(
-        { error: 'Failed to update privacy setting' },
+        { error: 'Failed to update betslip' },
         { status: 500 }
       )
     }
 
-    console.log(`✅ Updated betslip ${betslipId} privacy to ${is_public ? 'public' : 'private'}`)
+    const updateMessages = []
+    if (is_public !== undefined) {
+      updateMessages.push(`privacy to ${is_public ? 'public' : 'private'}`)
+    }
+    if (title !== undefined) {
+      updateMessages.push(`title to "${title.trim()}"`)
+    }
+
+    console.log(`✅ Updated betslip ${betslipId} ${updateMessages.join(' and ')}`)
 
     return NextResponse.json({
       success: true,
       data: {
         betslipId,
-        is_public,
-        updated_at: new Date().toISOString()
+        ...updateData
       }
     })
 

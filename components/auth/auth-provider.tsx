@@ -86,10 +86,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    // Check if there's a redirect URL in the current page's search params
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get('redirectTo');
+    
+    let redirectUrl = getRedirectUrl();
+    
+    // If there's a redirect URL, append it to the callback URL
+    if (redirectTo) {
+      redirectUrl += `?redirectTo=${encodeURIComponent(redirectTo)}`;
+    }
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getRedirectUrl(),
+        redirectTo: redirectUrl,
       }
     });
     if (error) throw error;

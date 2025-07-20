@@ -145,7 +145,12 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     try {
       // Mark onboarding as completed even when skipping
       if (isAuthenticated) {
-        await completeOnboarding()
+        const success = await completeOnboarding()
+        if (success) {
+          console.log("✅ Onboarding marked as skipped successfully")
+        } else {
+          console.error("❌ Failed to mark onboarding as skipped")
+        }
       }
     } catch (error) {
       console.error("Error saving skip status:", error)
@@ -305,7 +310,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
         <CardContent className="space-y-8 md:space-y-6 px-8 md:px-6 pb-12 md:pb-6">
           <Select value={selectedState} onValueChange={handleStateSelection}>
-            <SelectTrigger className="bg-white/5 border-white/20 text-white h-16 md:h-12 text-lg md:text-base rounded-2xl md:rounded-md">
+            <SelectTrigger className="bg-slate-100/5 border-slate-200/20 text-slate-900 dark:bg-slate-700/10 dark:border-slate-600/30 dark:text-slate-200 h-16 md:h-12 text-lg md:text-base rounded-2xl md:rounded-md">
               <SelectValue placeholder="Select your state" />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-white/10 max-h-60">
@@ -343,7 +348,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <Button
               variant="outline"
               onClick={() => setCurrentStep("welcome")}
-              className="flex-1 h-16 md:h-12 text-lg md:text-base border-white/20 text-white hover:bg-white/10 rounded-2xl md:rounded-md"
+              className="flex-1 h-16 md:h-12 text-lg md:text-base border-slate-200/20 text-slate-900 hover:bg-slate-100/10 dark:border-slate-600/30 dark:text-slate-200 dark:hover:bg-slate-700/20 rounded-2xl md:rounded-md"
             >
               Back
             </Button>
@@ -408,7 +413,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               variant="outline"
               size="default"
               onClick={handleSelectAll}
-              className="h-14 md:h-10 text-lg md:text-base border-white/20 text-white hover:bg-white/10 rounded-2xl md:rounded-md bg-transparent"
+              className="h-14 md:h-10 text-lg md:text-base border-slate-200/20 text-slate-900 hover:bg-slate-100/10 dark:border-slate-600/30 dark:text-slate-200 dark:hover:bg-slate-700/20 rounded-2xl md:rounded-md bg-transparent"
             >
               <Check className="w-5 h-5 md:w-4 md:h-4 mr-2" />
               Select All
@@ -417,7 +422,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               variant="outline"
               size="default"
               onClick={handleSelectNone}
-              className="h-14 md:h-10 text-lg md:text-base border-white/20 text-white hover:bg-white/10 rounded-2xl md:rounded-md bg-transparent"
+              className="h-14 md:h-10 text-lg md:text-base border-slate-200/20 text-slate-900 hover:bg-slate-100/10 dark:border-slate-600/30 dark:text-slate-200 dark:hover:bg-slate-700/20 rounded-2xl md:rounded-md bg-transparent"
             >
               <X className="w-5 h-5 md:w-4 md:h-4 mr-2" />
               Clear All
@@ -503,7 +508,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               variant="outline"
               size="lg"
               onClick={() => setCurrentStep("state")}
-              className="flex-1 h-16 md:h-12 text-lg md:text-base border-white/20 text-white hover:bg-white/10 rounded-2xl md:rounded-md"
+              className="flex-1 h-16 md:h-12 text-lg md:text-base border-slate-200/20 text-slate-900 hover:bg-slate-100/10 dark:border-slate-600/30 dark:text-slate-200 dark:hover:bg-slate-700/20 rounded-2xl md:rounded-md"
             >
               Back
             </Button>
@@ -623,21 +628,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
           </div>
 
-          {/* Pro upgrade hint */}
-          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl md:rounded-xl p-6 md:p-4">
-            <h3 className="font-semibold text-white mb-3 md:mb-2 text-lg md:text-base">🚀 Ready to unlock more?</h3>
-            <p className="text-base md:text-sm text-white/60 mb-4 md:mb-3">
-              Unlock full hit rate history, AI betslip scanning, and powerful filters to go deeper and win smarter.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 h-12 md:h-8 px-6 md:px-4 text-base md:text-sm rounded-2xl md:rounded-md bg-transparent"
-              onClick={() => router.push("/pricing")}
-            >
-              View Pro Features
-            </Button>
-          </div>
+
 
           {/* Single prominent CTA */}
           <div className="space-y-4 md:space-y-3">

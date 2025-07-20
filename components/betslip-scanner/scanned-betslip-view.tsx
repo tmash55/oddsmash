@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,11 +24,17 @@ import { sportsbooks } from "@/data/sportsbooks"
 import { calculateParlayOdds, formatOdds } from "@/lib/odds-utils"
 import { generateSportsbookUrl, type ParlayLeg } from "@/lib/sportsbook-links"
 import { SPORT_MARKETS } from "@/lib/constants/markets"
+import { 
+  calculateEnhancedOddSmashScore, 
+  prepareSelectionsForScoring,
+  type OddSmashScoreResult 
+} from "@/lib/oddsmash-score-calculator"
 
 // Import the new components
 import { BetslipHeader } from "./betslip-header"
 import { SelectionCard } from "./selection-card"
 import { OddsComparisonCard } from "./odds-comparison-card"
+import { EnhancedOddSmashScore } from "./enhanced-oddsmash-score"
 
 interface ScannedBetslipViewProps {
   betslip: any // TODO: Type this properly
@@ -286,6 +292,43 @@ export function ScannedBetslipView({
     }
   }
 
+  const handleUpdateTitle = async (newTitle: string) => {
+    if (!isOwner) {
+      toast.error("Only the owner can edit the title")
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/betslip-scanner/${betslip.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newTitle,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update title")
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        // Update the betslip object to reflect the new title
+        betslip.title = newTitle
+        toast.success("Title updated successfully!")
+      } else {
+        throw new Error(data.error || "Failed to update title")
+      }
+    } catch (error) {
+      console.error("Error updating title:", error)
+      toast.error("Failed to update title. Please try again.")
+      throw error // Re-throw to let the header component handle the error state
+    }
+  }
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
@@ -439,6 +482,34 @@ export function ScannedBetslipView({
   }
 
   const { parlayResults, bestSportsbook, bestOdds } = calculateParlayComparison()
+
+  // Memoize enhanced OddSmash score calculation
+  const enhancedScore = useMemo(() => {
+    if (currentSelections.length === 0 || !bestOdds) {
+      return null
+    }
+    
+    try {
+      const scoreInputs = prepareSelectionsForScoring(
+        currentSelections,
+        getHitRateForSelection,
+        parlayResults,
+        bestOdds
+      )
+      
+      return calculateEnhancedOddSmashScore(scoreInputs)
+    } catch (error) {
+      console.error("Error calculating enhanced OddSmash score:", error)
+      return null
+    }
+  }, [
+    currentSelections.length,
+    bestOdds,
+    // Use a stable representation of parlayResults
+    JSON.stringify(Object.keys(parlayResults).sort()),
+    // Create a stable key for the selections to detect changes
+    currentSelections.map(s => `${s.id}-${s.player_name}-${s.line}`).join(',')
+  ])
 
   // Get sportsbook info
   const getSportsbookInfo = (sportsbookId: string) => {
@@ -791,6 +862,7 @@ export function ScannedBetslipView({
           {/* Header Section */}
           <BetslipHeader
             betslip={betslip}
+            user={user}
             isOwner={isOwner}
             isPublicState={isPublicState}
             isRefreshing={isRefreshing}
@@ -800,6 +872,7 @@ export function ScannedBetslipView({
             formatTimeRemaining={formatTimeRemaining}
             handleRefreshOdds={handleRefreshOdds}
             handleTogglePrivacy={handleTogglePrivacy}
+            handleUpdateTitle={handleUpdateTitle}
             handleCopyLink={handleCopyLink}
             shareToTwitter={shareToTwitter}
             shareToReddit={shareToReddit}
@@ -842,81 +915,13 @@ export function ScannedBetslipView({
                 <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/10"></div>
               </div>
 
-              {/* OddSmash Score - Enhanced */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 text-white shadow-lg">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-5 w-5" />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1 cursor-help">
-                          <span className="text-sm font-semibold opacity-90">OddSmash Score</span>
-                          <div className="w-4 h-4 rounded-full border border-white/40 flex items-center justify-center">
-                            <span className="text-xs font-bold opacity-70">i</span>
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-64 text-sm">
-                        <p>
-                          Combines player hit rates (40%) with odds value (60%) to score your betslip from 0-100. Higher
-                          scores indicate better value and performance.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="text-3xl font-black mb-1">
-                    {(() => {
-                      // Quick score calculation for mobile
-                      const hitRateAnalysis = currentSelections.map((selection) => {
-                        const hitRateData = getHitRateForSelection(selection)
-                        return {
-                          l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
-                          isAlternateLine: hitRateData?.is_alternate_line || false,
-                        }
-                      })
-                      const avgHitRate =
-                        hitRateAnalysis.length > 0
-                          ? hitRateAnalysis.reduce((sum, item) => sum + item.l10HitRate, 0) / hitRateAnalysis.length
-                          : 0
-                      const booksBeaten = Object.values(parlayResults).filter(
-                        (result) => result.hasAllSelections && result.parlayOdds && result.parlayOdds < bestOdds,
-                      ).length
-                      const totalBooks = Math.max(Object.keys(parlayResults).length, 1)
-                      const quickScore = Math.round(avgHitRate * 0.4 + (booksBeaten / totalBooks) * 60)
-                      return `${Math.min(quickScore, 100)}/100`
-                    })()}
-                  </div>
-                  <div className="text-sm opacity-75 font-medium">
-                    {(() => {
-                      const score = Number.parseInt(
-                        (() => {
-                          const hitRateAnalysis = currentSelections.map((selection) => {
-                            const hitRateData = getHitRateForSelection(selection)
-                            return {
-                              l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
-                              isAlternateLine: hitRateData?.is_alternate_line || false,
-                            }
-                          })
-                          const avgHitRate =
-                            hitRateAnalysis.length > 0
-                              ? hitRateAnalysis.reduce((sum, item) => sum + item.l10HitRate, 0) / hitRateAnalysis.length
-                              : 0
-                          const booksBeaten = Object.values(parlayResults).filter(
-                            (result) => result.hasAllSelections && result.parlayOdds && result.parlayOdds < bestOdds,
-                          ).length
-                          const totalBooks = Math.max(Object.keys(parlayResults).length, 1)
-                          const quickScore = Math.round(avgHitRate * 0.4 + (booksBeaten / totalBooks) * 60)
-                          return `${Math.min(quickScore, 100)}`
-                        })().split("/")[0],
-                      )
-                      const quality = score >= 80 ? "Elite" : score >= 60 ? "Strong" : score >= 40 ? "Good" : "Fair"
-                      const emoji = score >= 80 ? "🟢" : score >= 60 ? "🟡" : score >= 40 ? "🟠" : "🔴"
-                      return `${emoji} ${quality}`
-                    })()}
-                  </div>
-                </div>
-                <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/10"></div>
-              </div>
+              {/* Enhanced OddSmash Score */}
+              {enhancedScore && (
+                <EnhancedOddSmashScore 
+                  scoreResult={enhancedScore} 
+                  isCompact={true}
+                />
+              )}
             </div>
 
             {/* Best Value Card - Mobile */}
@@ -1119,6 +1124,14 @@ export function ScannedBetslipView({
 
             {/* Right Column - Stats & Odds Comparison (1/3 width on desktop) */}
             <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+              {/* Enhanced OddSmash Score Card */}
+              {enhancedScore && (
+                <EnhancedOddSmashScore 
+                  scoreResult={enhancedScore} 
+                  isCompact={false}
+                />
+              )}
+              
               {/* Quick Stats Card */}
               <Card className="border-0 shadow-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
                 <CardHeader className="pb-4">
@@ -1150,66 +1163,7 @@ export function ScannedBetslipView({
                       (result) => result.hasAllSelections && result.parlayOdds && result.parlayOdds < bestOdds,
                     ).length
 
-                    // Hit rate analysis for OddSmash Score calculation
-                    const hitRateAnalysis = currentSelections.map((selection) => {
-                      const hitRateData = getHitRateForSelection(selection)
-                      console.log("🎯 INLINE ODDSMASH SCORE DEBUG - Selection:", {
-                        playerName: selection.player_name,
-                        market: selection.market,
-                        hitRateData: hitRateData,
-                        hasHitRateData: !!hitRateData,
-                        l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
-                        isAlternateLine: hitRateData?.is_alternate_line || false,
-                      })
-                      return {
-                        l10HitRate: hitRateData?.l10_hit_rate || hitRateData?.last_10_hit_rate || 0,
-                        isAlternateLine: hitRateData?.is_alternate_line || false,
-                      }
-                    })
-
-                    const avgHitRate =
-                      hitRateAnalysis.length > 0
-                        ? hitRateAnalysis.reduce((sum, item) => sum + item.l10HitRate, 0) / hitRateAnalysis.length
-                        : 0
-
-                    const highConfidencePicks = hitRateAnalysis.filter((item) => item.l10HitRate >= 70).length
-                    const alternateLinesCount = hitRateAnalysis.filter((item) => item.isAlternateLine).length
-
-                    console.log("🎯 INLINE ODDSMASH SCORE ANALYSIS:", {
-                      hitRateAnalysis,
-                      avgHitRate,
-                      highConfidencePicks,
-                      alternateLinesCount,
-                      bestOdds,
-                      originalAmericanOdds,
-                      parlayResults: Object.keys(parlayResults).length,
-                    })
-
-                    // Enhanced OddSmash Score calculation
-                    const totalBooks = Math.max(Object.keys(parlayResults).length, 1)
-                    let edgeScore = 0
-                    if (bestOdds && originalAmericanOdds && bestPayout > 0 && originalPayout > 0) {
-                      const edgePercent = ((bestPayout - originalPayout) / originalPayout) * 100
-                      edgeScore = Math.min(Math.max(edgePercent * 1.5, 0), 35) // Up to 35 points for value edge
-                    } else {
-                      // Alternative scoring when no original odds available
-                      edgeScore = Math.min((bestPayout / 100) * 4, 18) // Base scoring on absolute payout
-                    }
-
-                    const marketBeatScore = (booksBeaten / totalBooks) * 20 // Up to 20 points
-                    const hitRateScore = Math.min((avgHitRate / 100) * 25, 25) // Up to 25 points for hit rate
-                    const confidenceBonus = Math.min(highConfidencePicks * 2, 10) // Up to 10 points (2 per high-confidence pick)
-                    const alternateLineBonus = Math.min(alternateLinesCount * 1.5, 5) // Up to 5 points for alternate lines
-                    const dataQualityScore = hitRateAnalysis.length > 0 ? 5 : 0 // 5 points for having hit rate data
-
-                    const rawScore =
-                      edgeScore +
-                      marketBeatScore +
-                      hitRateScore +
-                      confidenceBonus +
-                      alternateLineBonus +
-                      dataQualityScore
-                    const oddsmashScore = Math.round(Math.min(Math.max(rawScore, 0), 100))
+                    // Enhanced analytics for display
 
                     return (
                       <>
@@ -1224,56 +1178,7 @@ export function ScannedBetslipView({
                             </div>
                             <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-white/10"></div>
                           </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-5 text-white cursor-help">
-                                <div className="relative z-10">
-                                  <div className="text-3xl font-bold">{oddsmashScore}/100</div>
-                                  <div className="text-sm font-medium opacity-90">OddSmash Score</div>
-                                  <div className="text-base font-semibold mt-2 opacity-90">
-                                    {oddsmashScore >= 80
-                                      ? "Elite"
-                                      : oddsmashScore >= 60
-                                        ? "Strong"
-                                        : oddsmashScore >= 40
-                                          ? "Good"
-                                          : "Fair"}
-                                  </div>
-                                </div>
-                                <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-white/10"></div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-xs">
-                              <div className="space-y-2 text-sm">
-                                <div className="font-semibold">Score Breakdown:</div>
-                                <div>• Value Edge: {Math.round(edgeScore)}/35 pts</div>
-                                <div>• Hit Rate: {Math.round(hitRateScore)}/25 pts</div>
-                                <div>• Market Beat: {Math.round(marketBeatScore)}/20 pts</div>
-                                <div>• High Confidence: {Math.round(confidenceBonus)}/10 pts</div>
-                                <div>• Data Quality: {dataQualityScore}/5 pts</div>
-                                {alternateLineBonus > 0 && (
-                                  <div>• Alt Lines: {Math.round(alternateLineBonus)}/5 pts</div>
-                                )}
-                                <div className="pt-1 border-t border-gray-200 dark:border-gray-600">
-                                  <div className="font-medium">
-                                    Total:{" "}
-                                    {Math.round(
-                                      edgeScore +
-                                        hitRateScore +
-                                        marketBeatScore +
-                                        confidenceBonus +
-                                        dataQualityScore +
-                                        alternateLineBonus,
-                                    )}
-                                    /100
-                                  </div>
-                                  <div className="mt-1 text-gray-500">
-                                    Higher scores indicate better value and stronger data backing
-                                  </div>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+
                         </div>
 
                         {/* Value Metrics */}
@@ -1388,38 +1293,7 @@ export function ScannedBetslipView({
                               {booksBeaten}/{Object.keys(parlayResults).length}
                             </Badge>
                           </div>
-                          <div className="flex items-center justify-between py-3">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-3 cursor-help">
-                                  <Shield className="h-5 w-5 text-slate-500" />
-                                  <span className="text-base text-slate-600 dark:text-slate-400">Scan Confidence</span>
-                                  <Info className="h-4 w-4 text-slate-500 opacity-60" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="left" className="max-w-xs">
-                                <div className="space-y-1 text-sm">
-                                  <div className="font-semibold">Scan Confidence:</div>
-                                  <div>• AI accuracy in reading your betslip image</div>
-                                  <div>• Higher percentage means more reliable data</div>
-                                  <div>• Based on text clarity and recognition quality</div>
-                                  <div className="pt-1 border-t border-gray-200 dark:border-gray-600">
-                                    <div className="text-gray-500">80%+ is considered highly accurate</div>
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Badge
-                              variant="outline"
-                              className={`font-semibold text-base px-3 py-1 ${
-                                betslip.scan_confidence >= 0.8
-                                  ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
-                                  : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400"
-                              }`}
-                            >
-                              {Math.round(betslip.scan_confidence * 100)}%
-                            </Badge>
-                          </div>
+
                           <div className="flex items-center justify-between py-3">
                             <Tooltip>
                               <TooltipTrigger asChild>

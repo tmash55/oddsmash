@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { SupportedSport, SPORT_CONFIGS, SportMarket } from "@/types/sports"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+
 import { 
   Pagination, 
   PaginationContent, 
@@ -16,7 +16,7 @@ import {
   PaginationEllipsis
 } from "@/components/ui/pagination"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import FeedbackButton from "@/components/shared/FeedbackButton"
+
 import { Card } from "@/components/ui/card"
 import HitRateTableV4 from "./hit-rate-table-v4"
 import HitRateFiltersV4 from "./hit-rate-filters-v4"
@@ -77,12 +77,36 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   const queryClient = useQueryClient()
   const isMobile = useMediaQuery("(max-width: 768px)")
   
-  // Get market from URL params with proper type casting
-  const urlMarket = pathname.split('/').pop()
-  const initialMarket: SportMarket = urlMarket ? decodeURIComponent(urlMarket) as SportMarket : 'Hits'
-  
-  // Memoize sportConfig to prevent unnecessary re-renders
+  // Memoize sportConfig to prevent unnecessary re-renders (moved up to use in market logic)
   const sportConfig = useMemo(() => SPORT_CONFIGS[sport], [sport])
+
+  // Get market from search params (for new protected route) or URL params (for legacy route)
+  const searchMarket = searchParams.get('market')
+  const urlMarket = pathname.split('/').pop()
+  
+  let initialMarket: SportMarket
+  if (searchMarket) {
+    // New protected route format: ?market=home+runs
+    const decodedSearchMarket = decodeURIComponent(searchMarket.replace(/\+/g, ' '))
+    // Find the correct case-sensitive market value from sport config
+    const marketConfig = sportConfig.markets.find(m => 
+      m.value.toLowerCase() === decodedSearchMarket.toLowerCase() ||
+      m.label.toLowerCase() === decodedSearchMarket.toLowerCase()
+    )
+    initialMarket = marketConfig?.value || sportConfig.defaultMarket
+  } else if (urlMarket && urlMarket !== 'hit-rates') {
+    // Legacy route format: /hit-rates/mlb/Home%20Runs
+    const decodedUrlMarket = decodeURIComponent(urlMarket)
+    // Find the correct case-sensitive market value from sport config
+    const marketConfig = sportConfig.markets.find(m => 
+      m.value.toLowerCase() === decodedUrlMarket.toLowerCase() ||
+      m.label.toLowerCase() === decodedUrlMarket.toLowerCase()
+    )
+    initialMarket = marketConfig?.value || sportConfig.defaultMarket
+  } else {
+    // Default fallback
+    initialMarket = sportConfig.defaultMarket
+  }
   
   // UI State - Proper view mode initialization
   const [currentPage, setCurrentPage] = useState(1)
@@ -104,6 +128,13 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   const [selectedGames, setSelectedGames] = useState<string[] | null>(null)
   const [showPastGames, setShowPastGames] = useState(false) // Changed to false to filter past games by default
   const [selectedTimeWindow, setSelectedTimeWindow] = useState<"5_games" | "10_games" | "20_games">("10_games")
+  
+  // Sync currentMarket with URL changes
+  useEffect(() => {
+    if (initialMarket !== currentMarket) {
+      setCurrentMarket(initialMarket)
+    }
+  }, [initialMarket, currentMarket])
   
   // Enhanced React Query implementation - now only fetches once per market
   const {
@@ -659,9 +690,17 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     setCustomTier(null)
     // No longer resetting selectedGames to preserve the game filter across market changes
     
-    // Update URL
-    const newPath = pathname.replace(/\/[^/]+$/, `/${encodeURIComponent(market)}`)
-    router.push(newPath)
+    // Update URL based on route format
+    if (pathname.includes('/(protected)/') || searchMarket) {
+      // New protected route format: use search params
+      const encodedMarket = encodeURIComponent(market).replace(/%20/g, '+')
+      const newUrl = `${pathname}?market=${encodedMarket}`
+      router.push(newUrl)
+    } else {
+      // Legacy route format: use URL params
+      const newPath = pathname.replace(/\/[^/]+$/, `/${encodeURIComponent(market)}`)
+      router.push(newPath)
+    }
   }
 
   const handleSearchChange = (query: string) => {
@@ -722,56 +761,10 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
 
 
 
-  // Render coming soon state for inactive sports
-  if (!sportConfig.isActive) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <h1 className="text-3xl font-bold">{sportConfig.name} Hit Rates</h1>
-          <Card className="p-8 max-w-lg w-full">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">{sportConfig.comingSoonMessage}</h2>
-              <p className="text-muted-foreground">
-                We&apos;re working hard to bring you comprehensive hit rate analysis for {sportConfig.name}.
-                Check back soon for updates!
-              </p>
-            </div>
-          </Card>
-        </div>
-      </div>
-    )
-  }
+  // Dashboard only renders for active sports now - coming soon is handled at page level
 
   return (
-    <main className={cn(
-      "container mx-auto",
-      isMobile ? "py-4 px-0" : "py-8 px-4"
-    )}>
-      <div className={cn(
-        "flex flex-col md:flex-row md:items-center justify-between gap-4",
-        isMobile ? "mb-4 px-4" : "mb-6"
-      )}>
-        <div>
-          <h1 className={cn(
-            "font-bold mb-2",
-            isMobile ? "text-2xl" : "text-3xl"
-          )}>
-            {sportConfig.name} {currentMarket}
-            <Badge variant="outline" className="ml-2 text-xs">V4</Badge>
-          </h1>
-          <p className={cn(
-            "text-muted-foreground/90 leading-relaxed max-w-[85ch]",
-            isMobile ? "text-sm" : "text-base"
-          )}>
-            Analyze {currentMarket.toLowerCase()} {sportConfig.statTerminology.hitRate.toLowerCase()} for {sportConfig.name} players.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <FeedbackButton toolName={`${sport}_hit_rates_v4`} />
-        </div>
-      </div>
-
+    <main className="w-full">
       {/* Filters */}
       <div className={cn(isMobile ? "mb-4" : "mb-6")}>
         <HitRateFiltersV4

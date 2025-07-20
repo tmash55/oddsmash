@@ -65,6 +65,9 @@ export default function SignInForm({ className, ...props }: React.ComponentProps
           description: "You have been signed in successfully.",
         })
 
+        // Check for redirect URL
+        const redirectTo = searchParams.get("redirectTo")
+
         // Redirect based on onboarding status
         if (!preferences?.onboarding_completed) {
           // Store user data for onboarding
@@ -74,11 +77,14 @@ export default function SignInForm({ className, ...props }: React.ComponentProps
               email: data.user.email,
               firstName: data.user.user_metadata?.first_name || "",
               needsOnboarding: true,
+              redirectTo: redirectTo, // Store redirect URL for after onboarding
             }),
           )
           router.push("/onboarding")
         } else {
-          router.push("/mlb/odds/player-props?market=home+runs")
+          // Use redirect URL if provided, otherwise default
+          const destination = redirectTo || "/mlb/odds/player-props?market=home+runs"
+          router.push(destination)
         }
         router.refresh()
       }

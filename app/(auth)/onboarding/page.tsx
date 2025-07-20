@@ -81,6 +81,26 @@ export default function OnboardingPage() {
   const handleOnboardingComplete = () => {
     console.log('Onboarding completed');
     setShouldShowOnboarding(false);
+    
+    // Check for stored redirect URL
+    const pendingData = sessionStorage.getItem('pendingUserData');
+    let redirectTo = null;
+    
+    if (pendingData) {
+      try {
+        const userData = JSON.parse(pendingData);
+        redirectTo = userData.redirectTo;
+        // Clear the pending data
+        sessionStorage.removeItem('pendingUserData');
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+      }
+    }
+    
+    // Redirect to the stored URL or default location
+    const destination = redirectTo || '/hit-rates';
+    console.log('Redirecting to:', destination);
+    router.push(destination);
   };
 
   if (loading || isCheckingOnboarding) {

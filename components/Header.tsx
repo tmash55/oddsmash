@@ -273,7 +273,7 @@ export function Header() {
     {
       title: "Hit Rates",
       description: "Track player prop hit rates and trends",
-      href: "/hit-rates",
+      href: "/mlb/hit-rates?market=hits",
       icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
     },
     {
@@ -331,9 +331,9 @@ export function Header() {
     },
     {
       title: "Analytics",
-      href: "/hit-rates",
+      href: "/mlb/hit-rates?market=hits",
       icon: <Activity className="h-5 w-5 text-green-600" />,
-      isActive: pathname?.startsWith("/hit-rates") || pathname?.startsWith("/hit-sheets"),
+      isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
       description: "Advanced player analytics",
       children: hitRatesItems,
     },
@@ -375,7 +375,7 @@ export function Header() {
     {
       title: "Hit Rate Analytics",
       description: "Advanced player performance and trend analysis",
-      href: "#features",
+      href: "/mlb/hit-rates?market=hits",
       icon: <Activity className="h-4 w-4 text-green-600" />,
     },
     {

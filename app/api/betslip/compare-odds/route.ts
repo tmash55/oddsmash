@@ -455,7 +455,8 @@ export async function POST(request: NextRequest) {
         notes: betslip.notes,
         total_selections: betslip.betslip_selections.length,
         sportsbook: primarySportsbook,
-        status: 'active'
+        status: 'active',
+        is_public: true // Default to public for finalized betslips
       })
       .select()
       .single()

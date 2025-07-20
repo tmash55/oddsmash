@@ -1,11 +1,14 @@
 "use client"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
-import { RefreshCw, Share2, Eye, EyeOff, Upload, Copy, MessageCircle, Scan, Clock } from "lucide-react"
+import { RefreshCw, Share2, Eye, EyeOff, Upload, Copy, MessageCircle, Scan, Clock, Edit2, Check, X, User } from "lucide-react"
 
 interface BetslipHeaderProps {
   betslip: any
+  user: any
   isOwner: boolean
   isPublicState: boolean
   isRefreshing: boolean
@@ -15,6 +18,7 @@ interface BetslipHeaderProps {
   formatTimeRemaining: (ms: number) => string
   handleRefreshOdds: () => void
   handleTogglePrivacy: () => void
+  handleUpdateTitle: (newTitle: string) => Promise<void>
   handleCopyLink: () => void
   shareToTwitter: () => void
   shareToReddit: () => void
@@ -22,6 +26,7 @@ interface BetslipHeaderProps {
 
 export function BetslipHeader({
   betslip,
+  user,
   isOwner,
   isPublicState,
   isRefreshing,
@@ -31,10 +36,38 @@ export function BetslipHeader({
   formatTimeRemaining,
   handleRefreshOdds,
   handleTogglePrivacy,
+  handleUpdateTitle,
   handleCopyLink,
   shareToTwitter,
   shareToReddit,
 }: BetslipHeaderProps) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editedTitle, setEditedTitle] = useState(betslip.title || "")
+  const [isUpdatingTitle, setIsUpdatingTitle] = useState(false)
+
+  const handleSaveTitle = async () => {
+    if (editedTitle.trim() === betslip.title) {
+      setIsEditingTitle(false)
+      return
+    }
+
+    setIsUpdatingTitle(true)
+    try {
+      await handleUpdateTitle(editedTitle.trim())
+      setIsEditingTitle(false)
+    } catch (error) {
+      console.error("Error updating title:", error)
+      // Reset to original title on error
+      setEditedTitle(betslip.title || "")
+    } finally {
+      setIsUpdatingTitle(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditedTitle(betslip.title || "")
+    setIsEditingTitle(false)
+  }
   return (
     <div className="mb-6">
       <TooltipProvider>
@@ -48,31 +81,91 @@ export function BetslipHeader({
                   <Scan className="h-6 w-6 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Betslip Analysis</h1>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Clock className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                      {betslip.updated_at
-                        ? (() => {
-                            const updateTime = new Date(betslip.updated_at)
-                            const now = new Date()
-                            const diffMs = now.getTime() - updateTime.getTime()
-                            const diffMins = Math.floor(diffMs / 60000)
-                            const diffHours = Math.floor(diffMs / 3600000)
-                            const diffDays = Math.floor(diffMs / 86400000)
+                  {/* Editable Title */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {isEditingTitle ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={editedTitle}
+                          onChange={(e) => setEditedTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveTitle()
+                            if (e.key === "Escape") handleCancelEdit()
+                          }}
+                          className="text-xl font-bold border-2 border-blue-500 focus:border-blue-600"
+                          autoFocus
+                          disabled={isUpdatingTitle}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleSaveTitle}
+                          disabled={isUpdatingTitle || !editedTitle.trim()}
+                          className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          disabled={isUpdatingTitle}
+                          className="h-8 w-8 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1">
+                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                          {betslip.title || "Untitled Betslip"}
+                        </h1>
+                        {isOwner && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setIsEditingTitle(true)}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                            if (diffMins < 1) return "Just updated"
-                            if (diffMins < 60) return `${diffMins}m ago`
-                            if (diffHours < 24) return `${diffHours}h ago`
-                            if (diffDays < 7) return `${diffDays}d ago`
+                  {/* Creator Info & Timestamp */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-slate-500" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                        Created by {isOwner ? "you" : "another user"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-slate-500" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                        {betslip.updated_at
+                          ? (() => {
+                              const updateTime = new Date(betslip.updated_at)
+                              const now = new Date()
+                              const diffMs = now.getTime() - updateTime.getTime()
+                              const diffMins = Math.floor(diffMs / 60000)
+                              const diffHours = Math.floor(diffMs / 3600000)
+                              const diffDays = Math.floor(diffMs / 86400000)
 
-                            return updateTime.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })
-                          })()
-                        : "Recently scanned"}
-                    </span>
+                              if (diffMins < 1) return "Just updated"
+                              if (diffMins < 60) return `${diffMins}m ago`
+                              if (diffHours < 24) return `${diffHours}h ago`
+                              if (diffDays < 7) return `${diffDays}d ago`
+
+                              return updateTime.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
+                            })()
+                          : "Recently scanned"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -182,7 +275,7 @@ export function BetslipHeader({
             </div>
 
             {/* Status Indicators - Only show if actively processing */}
-            {(isRefreshing || isUpdatingPrivacy) && (
+            {(isRefreshing || isUpdatingPrivacy || isUpdatingTitle) && (
               <div className="flex items-center gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 {isRefreshing && (
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
@@ -194,6 +287,12 @@ export function BetslipHeader({
                   <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                     <RefreshCw className="h-4 w-4 animate-spin" />
                     <span className="text-sm font-medium">Updating privacy...</span>
+                  </div>
+                )}
+                {isUpdatingTitle && (
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">Updating title...</span>
                   </div>
                 )}
               </div>

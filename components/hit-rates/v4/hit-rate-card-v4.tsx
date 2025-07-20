@@ -21,7 +21,7 @@ import { BetslipDialog } from "@/components/betting/betslip-dialog"
 import { getMarketApiKey, getMarketsForSport, type SportMarket } from "@/lib/constants/markets"
 
 // Helper function to get market-specific terminology
-const getMarketTerminology = (market: SportMarket) => {
+const getMarketTerminology = (market: string) => {
   const marketMap: Record<string, { singular: string; plural: string; label: "Line" }> = {
     "Hits": { singular: "Hit", plural: "Hits", label: "Line" },
     "Strikeouts": { singular: "Strikeout", plural: "Strikeouts", label: "Line" },
@@ -38,7 +38,7 @@ const getMarketTerminology = (market: SportMarket) => {
 }
 
 // Helper function to format tier options with market context
-const formatTierOption = (tier: number, market: SportMarket): string => {
+const formatTierOption = (tier: number, market: string): string => {
   const terminology = getMarketTerminology(market)
   
   if (tier === 1) {
@@ -60,6 +60,7 @@ const mapHitRateMarketToMarketValue = (hitRateMarket: string): string => {
     "Stolen Bases": "Stolen_Bases",
     "Strikeouts": "Strikeouts",
     "Walks": "Walks",
+    "Hits + Runs + RBIs": "Hits_Runs_RBIs",
     "Earned Runs": "Earned_Runs",
     "Hits Allowed": "Hits_Allowed",
     "Walks Allowed": "Walks_Allowed",
@@ -221,9 +222,9 @@ function InfoModal({
 }: { isOpen: boolean; onClose: () => void; profile: PlayerHitRateProfile; customTier: number | null }) {
   if (!isOpen) return null
 
-  const terminology = getMarketTerminology(profile.market as SportMarket)
+  const terminology = getMarketTerminology(profile.market)
   const thresholdText = customTier !== null 
-    ? formatTierOption(customTier, profile.market as SportMarket)
+    ? formatTierOption(customTier, profile.market)
     : `${profile.line} ${terminology.plural}`
 
   return (

@@ -90,7 +90,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
   const prepareSelectionWithOdds = (selection: BetslipSelectionInput): BetslipSelectionInput => {
     console.log("[BetslipDialog] Preparing selection with odds. Original selection:", selection)
     // Map sport key to API format with proper type checking
-    const getSportApiKey = (sportKey: string | undefined): string => {
+    const getSportApiKey = (sportKey: string): string => {
       if (!sportKey) return "baseball_mlb" // Default to MLB if no sport key provided
       
       const sportKeyMap: Record<string, string> = {
@@ -104,7 +104,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
       return sportKeyMap[sportKey.toLowerCase()] || sportKey
     }
 
-    const sportApiKey = getSportApiKey(selection.sport_key)
+    const sportApiKey = getSportApiKey(selection.sport_key || "baseball_mlb")
 
     // Get market config from our constants
     const marketConfig = SPORT_MARKETS[sportApiKey]?.find(

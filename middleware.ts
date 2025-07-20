@@ -2,7 +2,13 @@ import { type NextRequest } from "next/server";
 import { updateSession } from "@/libs/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // Update Supabase session and get response
+  const response = await updateSession(request);
+  
+  // Add the current pathname to headers for redirect functionality
+  response.headers.set('x-pathname', request.nextUrl.pathname + request.nextUrl.search);
+  
+  return response;
 }
 
 export const config = {
