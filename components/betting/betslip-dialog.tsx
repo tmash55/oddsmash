@@ -331,7 +331,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
   }
 
   const handleCreateBetslip = async (selection: BetslipSelectionInput) => {
-    if (betslips.length >= 5) {
+    if ((betslips?.length || 0) >= 5) {
       toast.error("You can't have more than 5 betslips")
       return
     }
@@ -419,7 +419,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
   }
 
   // Create default betslip if none exists
-  if (betslips.length === 0) {
+  if (!betslips || betslips.length === 0) {
     createBetslip("My Betslip", true).then((newBetslip) => {
       if (newBetslip) {
         // Prepare selection with all odds data
@@ -682,7 +682,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: betslips.length * 0.05 }}
+                  transition={{ delay: (betslips?.length || 0) * 0.05 }}
                 onClick={() => setShowNewBetslipDialog(true)}
                 className={cn(
                     "p-4 rounded-xl border-2 border-dashed border-muted-foreground/30",
@@ -729,7 +729,7 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
               </Label>
               <Input
                 id="title"
-                placeholder={`Betslip ${betslips.length + 1}`}
+                placeholder={`Betslip ${(betslips?.length || 0) + 1}`}
                 value={newBetslipTitle}
                 onChange={(e) => setNewBetslipTitle(e.target.value)}
                 className="h-12" // iOS-style height

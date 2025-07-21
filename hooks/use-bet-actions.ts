@@ -26,7 +26,7 @@ export function useBetActions() {
   // Helper function to check if a selection already exists in a betslip
   const selectionExists = (betslipId: string, selection: BetslipSelectionInput) => {
     console.log("Checking if selection exists in betslip:", { betslipId, selection })
-    const betslip = betslips.find(b => b.id === betslipId)
+    const betslip = betslips?.find(b => b.id === betslipId)
     if (!betslip) {
       console.log("Betslip not found:", betslipId)
       return false
@@ -44,7 +44,7 @@ export function useBetActions() {
 
   // Helper function to find conflicting selections (same player/market, different line)
   const findConflictingSelection = (betslipId: string, selection: BetslipSelectionInput) => {
-    const betslip = betslips.find(b => b.id === betslipId)
+    const betslip = betslips?.find(b => b.id === betslipId)
     if (!betslip) return null
 
     return betslip.selections.find(s => 
@@ -97,11 +97,11 @@ export function useBetActions() {
       return
     }
 
-    if (betslips.length === 0) {
+    if (!betslips || betslips.length === 0) {
       console.log("No betslips exist, creating default betslip")
       // Create default betslip if none exists
       await createBetslip("My Betslip", true)
-      const defaultBetslipId = betslips[0]?.id
+      const defaultBetslipId = betslips?.[0]?.id
       if (defaultBetslipId) {
         await addSelection(selection, defaultBetslipId)
         toast.success("Added to new betslip")
@@ -177,7 +177,7 @@ export function useBetActions() {
 
   const handleCreateBetslip = async (selection: BetslipSelectionInput) => {
     console.log("handleCreateBetslip called with selection:", selection)
-    if (betslips.length >= 5) {
+    if ((betslips?.length || 0) >= 5) {
       toast.error("You can't have more than 5 betslips")
       return
     }
