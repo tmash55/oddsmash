@@ -1,4 +1,6 @@
 // Shared utility for fetching hit rate data
+import { getBaseUrl } from './url-utils'
+
 export interface BetslipSelection {
   id?: string
   player_name?: string
@@ -43,9 +45,7 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
         // Try each market variation until we find a match
         for (const marketVariation of uniqueMarkets) {
           console.log(`   Trying market: "${marketVariation}"...`)
-          const baseUrl = typeof window !== 'undefined' 
-            ? window.location.origin 
-            : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+          const baseUrl = getBaseUrl()
             
           const response = await fetch(
             `${baseUrl}/api/player-hit-rate?playerName=${encodeURIComponent(selection.player_name)}&market=${encodeURIComponent(marketVariation)}`

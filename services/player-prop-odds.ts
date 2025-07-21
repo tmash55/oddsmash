@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/libs/supabase/server";
+import { getBaseUrl } from '@/lib/url-utils';
 
 export interface PlayerPropOdds {
   id: number;
@@ -144,7 +145,7 @@ export async function fetchBestOddsForHitRateProfiles(
           });
           
           // Use absolute URL for server-side fetch
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+          const baseUrl = getBaseUrl();
           const response = await fetch(`${baseUrl}/api/player-odds?${params}`);
           
           if (response.ok) {

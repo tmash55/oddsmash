@@ -68,7 +68,7 @@ const config = {
   },
   auth: {
     loginUrl: "/sign-in",
-    callbackUrl: "/mlb/odds/player-props?market=home+runs",
+    callbackUrl: "/mlb/odds/player-props?market=home+runs", // Default to MLB for now
   },
 } as ConfigProps;
 

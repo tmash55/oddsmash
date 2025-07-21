@@ -71,9 +71,8 @@ export async function generateMetadata({
       : "";
 
   // Generate absolute URL for the OG image
-  // Use VERCEL_URL in production, but fall back to localhost in development
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://oddsmash.io`
     : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const ogImageUrl = `${baseUrl}/api/og/share/${id}`;

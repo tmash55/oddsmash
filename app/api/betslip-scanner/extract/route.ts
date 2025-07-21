@@ -6,6 +6,7 @@ import { createClient } from '@/libs/supabase/server'
 import { sportsbooks } from '@/data/sportsbooks'
 import { calculateAllHitRatesForLine, shouldRecalculateForLine } from "@/lib/hit-rate-calculator"
 import { getGoogleCredentials, hasGoogleCredentials } from '@/lib/google-credentials-simple'
+import { getBaseUrl } from '@/lib/url-utils'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -2164,7 +2165,9 @@ async function fetchHitRatesForSelections(selections: BetSelection[]): Promise<R
           if (hitRateData) break // Stop if we found data
           
           for (const marketVariation of uniqueMarkets) {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/player-hit-rate?playerName=${encodeURIComponent(playerName)}&market=${encodeURIComponent(marketVariation)}`)
+            const baseUrl = getBaseUrl()
+          
+          const response = await fetch(`${baseUrl}/api/player-hit-rate?playerName=${encodeURIComponent(playerName)}&market=${encodeURIComponent(marketVariation)}`)
             
             if (response.ok) {
               const responseData = await response.json()
