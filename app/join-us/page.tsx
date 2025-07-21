@@ -7,6 +7,9 @@ import ScrollingBackground from './components/scrolling-background';
 import Link from 'next/link';
 import Image from 'next/image';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic'
+
 interface SuccessAnimationProps {
   onReset: () => void;
 }

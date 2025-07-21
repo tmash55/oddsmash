@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getEvents } from '@/lib/odds-api'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const sport = searchParams.get('sport')

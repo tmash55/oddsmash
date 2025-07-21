@@ -5,6 +5,9 @@ import { getMarketsForSport } from '@/lib/constants/markets';
 import { generateCacheKey, getCachedData, setCachedData, CACHE_TTL } from '@/lib/redis';
 import { sportsbooks } from '@/data/sportsbooks';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // Define the maximum concurrency for API calls
 const MAX_CONCURRENCY = 5;
 

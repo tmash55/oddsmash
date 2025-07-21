@@ -3,6 +3,9 @@ import { NextResponse } from "next/server"
 import { Market, TimeWindow } from "@/types/hit-rates"
 import { getHitRateProfilesByMarket } from "@/lib/redis"
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // Helper function for server-side sorting
 // TODO: For large datasets, consider:
 // 1. Pre-sorting and caching different sort orders in Redis

@@ -44,8 +44,6 @@ export async function GET(request: Request) {
       keyPattern = `odds:${sportKey}:*:${validatedParams.market.toLowerCase()}`;
     }
 
-    console.log('Searching with pattern:', keyPattern);
-
     // Use SCAN to get all matching keys
     let cursor = '0';
     const allKeys: string[] = [];
@@ -59,14 +57,10 @@ export async function GET(request: Request) {
       allKeys.push(...keys);
     } while (cursor !== '0');
 
-    console.log('Found keys:', allKeys);
-
     // Get all odds data for the matching keys
     const oddsData = allKeys.length > 0 
       ? await redis.mget<PlayerOdds[]>(...allKeys) 
       : [];
-
-    console.log('Found data count:', oddsData.filter(Boolean).length);
 
     // Filter by gameId if provided
     const filteredData = validatedParams.gameId

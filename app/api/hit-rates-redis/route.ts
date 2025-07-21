@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { redis } from "@/lib/redis"
 import { PlayerHitRateProfile } from "@/types/hit-rates"
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // Market name mapping - matches the display names to Redis keys
 const DISPLAY_TO_REDIS_MARKET_MAP: Record<string, string> = {
   "hits": "batter_hits",

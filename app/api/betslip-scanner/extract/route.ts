@@ -7,6 +7,9 @@ import { sportsbooks } from '@/data/sportsbooks'
 import { calculateAllHitRatesForLine, shouldRecalculateForLine } from "@/lib/hit-rate-calculator"
 import { getGoogleCredentials, hasGoogleCredentials } from '@/lib/google-credentials-simple'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 interface BetSelection {
   id: string
   player?: string

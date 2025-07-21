@@ -10,6 +10,9 @@ import { SUPPORTED_MARKETS } from "@/lib/constants/markets"
 import { PropsNavigation } from "@/components/props/props-navigation"
 import { usePathname } from "next/navigation"
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic'
+
 interface PropsPageProps {
   params: {
     sport: string

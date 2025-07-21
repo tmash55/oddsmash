@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/libs/supabase/client'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 
-export default function AuthCallbackPage() {
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic'
+
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -28,7 +31,6 @@ export default function AuthCallbackPage() {
 
         if (data.session) {
           const user = data.session.user
-          console.log('✅ Authentication successful:', user.email)
           
           // Check if this is a new user or existing user
           const { data: profile, error: profileError } = await supabase
@@ -49,10 +51,7 @@ export default function AuthCallbackPage() {
           // For new users, we could redirect to onboarding, but since we set 
           // onboarding_completed to true by default, we'll go straight to the app
           if (!profile) {
-            console.log('🆕 New user detected, welcome!')
             // Could add welcome logic here if needed
-          } else {
-            console.log('👋 Welcome back,', profile.name || user.email)
           }
 
           setStatus('success')
@@ -153,4 +152,28 @@ export default function AuthCallbackPage() {
       </motion.div>
     </div>
   )
-} 
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <div className="glassmorphic shadow-2xl backdrop-blur-sm rounded-xl border p-8 text-center">
+            <div className="flex justify-center mb-6">
+              <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-4">
+              Loading...
+            </h1>
+            <p className="text-white/70">
+              Please wait while we set up your authentication.
+            </p>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
+  )
+}

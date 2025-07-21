@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
 import { fetchPlayerPropOddsForPlayers } from '@/services/player-prop-odds'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // Market name mapping - matches the Python script's MARKET_NAME_MAP
 const DISPLAY_TO_API_MARKET_MAP: Record<string, string> = {
   "hits": "batter_hits",

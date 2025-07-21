@@ -6,6 +6,9 @@ import {
   filterCachedOddsBySelectedSportsbooks,
 } from "@/lib/redis";
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // Interface for the cached data structure
 interface CachedOddsData {
   events: any[];

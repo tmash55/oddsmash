@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import OnboardingFlow from '@/components/auth/OnboardingFlow';
 import { motion } from 'framer-motion';
 import { createClient } from '@/libs/supabase/client';
 
-export default function OnboardingPage() {
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic'
+
+function OnboardingContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,14 +26,11 @@ export default function OnboardingPage() {
           return;
         }
 
-        console.log('Onboarding page - User:', user.id);
-
         // Check for userData in URL params (from OAuth callback)
         const userDataParam = searchParams.get('userData');
         if (userDataParam) {
           try {
             const userData = JSON.parse(userDataParam);
-            console.log('Found userData in URL:', userData);
             sessionStorage.setItem('pendingUserData', JSON.stringify(userData));
             setShouldShowOnboarding(true);
             
@@ -49,14 +49,11 @@ export default function OnboardingPage() {
             .eq('id', user.id)
             .maybeSingle();
 
-          console.log('Database preferences check:', preferences, error);
-
           if (error) {
             console.error('Error checking preferences:', error);
             // If there's an error, assume they need onboarding
             setShouldShowOnboarding(true);
           } else if (!preferences?.onboarding_completed) {
-            console.log('User needs onboarding - no preferences or not completed');
             // Store user data for onboarding
             sessionStorage.setItem('pendingUserData', JSON.stringify({
               email: user.email,
@@ -66,7 +63,6 @@ export default function OnboardingPage() {
             }));
             setShouldShowOnboarding(true);
           } else {
-            console.log('User completed onboarding, redirecting to hit-rates');
             router.push('/hit-rates');
           }
         }
@@ -79,7 +75,6 @@ export default function OnboardingPage() {
   }, [user, loading, router, searchParams, supabase]);
 
   const handleOnboardingComplete = () => {
-    console.log('Onboarding completed');
     setShouldShowOnboarding(false);
     
     // Check for stored redirect URL
@@ -99,7 +94,6 @@ export default function OnboardingPage() {
     
     // Redirect to the stored URL or default location
     const destination = redirectTo || '/hit-rates';
-    console.log('Redirecting to:', destination);
     router.push(destination);
   };
 
@@ -134,5 +128,20 @@ export default function OnboardingPage() {
     >
       <OnboardingFlow onComplete={handleOnboardingComplete} />
     </motion.div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-white/60">Loading...</p>
+        </div>
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   );
 }
