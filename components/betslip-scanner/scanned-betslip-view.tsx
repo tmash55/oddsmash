@@ -1691,7 +1691,7 @@ export function ScannedBetslipView({
                                   <Info className="h-4 w-4 text-blue-600 opacity-60" />
                                 </div>
                                 <div className="space-y-3">
-                                  {topValueLegs.slice(0, 2).map((leg, index) => (
+                                  {topValueLegs.slice(0, 5).map((leg, index) => (
                                     <div key={index} className="flex justify-between items-start gap-3">
                                       <div className="flex-1 min-w-0">
                                         <div className="text-base font-medium text-blue-700 dark:text-blue-400 truncate">
@@ -1742,15 +1742,15 @@ export function ScannedBetslipView({
                                       ) : null}
                                     </div>
                                   ))}
-                                  {topValueLegs.length > 2 && (
+                                  {topValueLegs.length > 5 && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div className="text-sm text-blue-600 dark:text-blue-400 cursor-help border-b border-dashed border-blue-400 inline-block">
-                                          +{topValueLegs.length - 2} more picks analyzed
+                                          +{topValueLegs.length - 5} more picks analyzed
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>Upgrade to Pro for complete analysis</p>
+                                        <p>More Analysis Coming Soon</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   )}

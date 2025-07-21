@@ -321,7 +321,7 @@ export function ValueSnapshotCard({
                   <Info className="h-3 w-3 text-blue-600 opacity-60" />
                 </div>
                 <div className="space-y-2">
-                  {topValueLegs.slice(0, 2).map((leg, index) => (
+                  {topValueLegs.slice(0, 5).map((leg, index) => (
                     <div key={index} className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-blue-700 dark:text-blue-400 truncate">
@@ -363,15 +363,15 @@ export function ValueSnapshotCard({
                       ) : null}
                     </div>
                   ))}
-                  {topValueLegs.length > 2 && (
+                  {topValueLegs.length > 5 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="text-xs text-blue-600 dark:text-blue-400 cursor-help border-b border-dashed border-blue-400 inline-block">
-                          +{topValueLegs.length - 2} more picks analyzed
+                          +{topValueLegs.length - 5} more picks analyzed
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Upgrade to Pro for complete analysis</p>
+                        <p>More Analysis Coming Soon</p>
                       </TooltipContent>
                     </Tooltip>
                   )}
