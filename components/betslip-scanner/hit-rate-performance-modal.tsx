@@ -341,6 +341,14 @@ export function HitRatePerformanceModal({ isOpen, onClose, hitRateData, playerNa
 
   // Calculate stats for current filter
   const getCurrentFilterStats = () => {
+    // If this is an alternate line, recalculate the stats based on the actual line
+    if (hitRateData.is_alternate_line && gameData.length > 0) {
+      const hitsInCurrentFilter = gameData.filter((g) => g.isHit).length
+      const totalGamesInCurrentFilter = gameData.length
+      return totalGamesInCurrentFilter > 0 ? Math.round((hitsInCurrentFilter / totalGamesInCurrentFilter) * 100) : 0
+    }
+
+    // For non-alternate lines, use the original database values
     switch (gameFilter) {
       case "L5":
         return hitRateData.last_5_hit_rate || 0
@@ -356,6 +364,43 @@ export function HitRatePerformanceModal({ isOpen, onClose, hitRateData, playerNa
   const currentHitRate = getCurrentFilterStats()
   const hitsInPeriod = gameData.filter((g) => g.isHit).length
   const totalGamesInPeriod = gameData.length
+
+  // Get hit rate breakdown with proper recalculation for alternate lines
+  const getHitRateBreakdown = () => {
+    if (!hitRateData.is_alternate_line || !hasRealData) {
+      // For non-alternate lines, use original database values
+      return [
+        { label: "L5", value: hitRateData.last_5_hit_rate || 0 },
+        { label: "L10", value: hitRateData.last_10_hit_rate || 0 },
+        { label: "L20", value: hitRateData.last_20_hit_rate || 0 },
+      ]
+    }
+
+    // For alternate lines, recalculate each period
+    const line = hitRateData.line || 0.5
+    const recentGames = hitRateData.recent_games || []
+
+    const calculateHitRateForPeriod = (numGames: number) => {
+      const gamesToAnalyze = recentGames.slice(0, Math.min(numGames, recentGames.length))
+      if (gamesToAnalyze.length === 0) return 0
+
+      const hits = gamesToAnalyze.filter((game: any) => {
+        return hitRateData.bet_type === "under" 
+          ? game.value < line 
+          : game.value >= line
+      }).length
+
+      return Math.round((hits / gamesToAnalyze.length) * 100)
+    }
+
+    return [
+      { label: "L5", value: calculateHitRateForPeriod(5) },
+      { label: "L10", value: calculateHitRateForPeriod(10) },
+      { label: "L20", value: calculateHitRateForPeriod(20) },
+    ]
+  }
+
+  const hitRateBreakdown = getHitRateBreakdown()
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -480,9 +525,25 @@ export function HitRatePerformanceModal({ isOpen, onClose, hitRateData, playerNa
                   Season
                 </div>
                 <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
-                  {hitRateData.season_hit_rate !== null && hitRateData.season_hit_rate !== undefined
-                    ? `${hitRateData.season_hit_rate}%`
-                    : "N/A"}
+                  {(() => {
+                    if (hitRateData.is_alternate_line && hasRealData) {
+                      // For alternate lines, recalculate season rate
+                      const line = hitRateData.line || 0.5
+                      const recentGames = hitRateData.recent_games || []
+                      const hits = recentGames.filter((game: any) => {
+                        return hitRateData.bet_type === "under" 
+                          ? game.value < line 
+                          : game.value >= line
+                      }).length
+                      const seasonRate = recentGames.length > 0 ? Math.round((hits / recentGames.length) * 100) : 0
+                      return `${seasonRate}%`
+                    } else {
+                      // For non-alternate lines, use original database value
+                      return hitRateData.season_hit_rate !== null && hitRateData.season_hit_rate !== undefined
+                        ? `${hitRateData.season_hit_rate}%`
+                        : "N/A"
+                    }
+                  })()}
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                   {hitRateData.season_games_count || 0} games
@@ -573,11 +634,7 @@ export function HitRatePerformanceModal({ isOpen, onClose, hitRateData, playerNa
                 <h5 className="font-bold text-slate-900 dark:text-white">Hit Rate Breakdown</h5>
               </div>
               <div className="space-y-3">
-                {[
-                  { label: "L5", value: hitRateData.last_5_hit_rate || 0 },
-                  { label: "L10", value: hitRateData.last_10_hit_rate || 0 },
-                  { label: "L20", value: hitRateData.last_20_hit_rate || 0 },
-                ].map((stat, index) => (
+                {hitRateBreakdown.map((stat, index) => (
                   <div key={index} className="flex justify-between items-center py-2">
                     <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{stat.label}</span>
                     <span className={`font-bold text-lg ${getHitRateColor(stat.value)}`}>{stat.value}%</span>
@@ -587,9 +644,25 @@ export function HitRatePerformanceModal({ isOpen, onClose, hitRateData, playerNa
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Season</span>
                     <span className="font-bold text-lg text-slate-900 dark:text-white">
-                      {hitRateData.season_hit_rate !== null && hitRateData.season_hit_rate !== undefined
-                        ? `${hitRateData.season_hit_rate}%`
-                        : "N/A"}
+                      {(() => {
+                        if (hitRateData.is_alternate_line && hasRealData) {
+                          // For alternate lines, recalculate season rate
+                          const line = hitRateData.line || 0.5
+                          const recentGames = hitRateData.recent_games || []
+                          const hits = recentGames.filter((game: any) => {
+                            return hitRateData.bet_type === "under" 
+                              ? game.value < line 
+                              : game.value >= line
+                          }).length
+                          const seasonRate = recentGames.length > 0 ? Math.round((hits / recentGames.length) * 100) : 0
+                          return `${seasonRate}%`
+                        } else {
+                          // For non-alternate lines, use original database value
+                          return hitRateData.season_hit_rate !== null && hitRateData.season_hit_rate !== undefined
+                            ? `${hitRateData.season_hit_rate}%`
+                            : "N/A"
+                        }
+                      })()}
                     </span>
                   </div>
                 </div>

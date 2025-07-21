@@ -91,6 +91,51 @@ export function SelectionCard({
     return seasonHitRate
   }
 
+  // Recalculate hit rates for alternate lines if needed
+  const recalculatedHitRates = (() => {
+    if (!hitRateData || !hitRateData.is_alternate_line || !hitRateData.recent_games || !Array.isArray(hitRateData.recent_games)) {
+      // For non-alternate lines or missing data, use original values
+      return hitRateData || {}
+    }
+
+    // For alternate lines, recalculate based on the actual line
+    const line = selection.line || hitRateData.line || 0.5
+    const recentGames = hitRateData.recent_games
+
+    const calculateHitRateForGames = (games: any[], numGames: number) => {
+      const gamesToAnalyze = games.slice(0, Math.min(numGames, games.length))
+      if (gamesToAnalyze.length === 0) return 0
+
+      const hits = gamesToAnalyze.filter((game: any) => {
+        return selection.bet_type === "under" 
+          ? game.value < line 
+          : game.value >= line
+      }).length
+
+      return Math.round((hits / gamesToAnalyze.length) * 100)
+    }
+
+    console.log(`🔄 [SelectionCard] Recalculating hit rates for ${selection.player_name}:`, {
+      isAlternateLine: hitRateData.is_alternate_line,
+      line,
+      betType: selection.bet_type,
+      totalGames: recentGames.length,
+      originalL10: hitRateData.last_10_hit_rate
+    })
+
+    const recalculated = {
+      ...hitRateData,
+      last_5_hit_rate: calculateHitRateForGames(recentGames, 5),
+      last_10_hit_rate: calculateHitRateForGames(recentGames, 10),
+      last_20_hit_rate: calculateHitRateForGames(recentGames, 20),
+      season_hit_rate: calculateHitRateForGames(recentGames, recentGames.length)
+    }
+
+    console.log(`✅ [SelectionCard] Recalculated rates:`, recalculated)
+
+    return recalculated
+  })()
+
   // Ensure we have a valid bet type
   const effectiveBetType = selection.bet_type || "over"
 
@@ -189,20 +234,20 @@ export function SelectionCard({
               {hitRateData && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className={`p-3 rounded-xl border ${getHitRateBg(hitRateData.last_10_hit_rate || 0)}`}>
+                    <div className={`p-3 rounded-xl border ${getHitRateBg(recalculatedHitRates.last_10_hit_rate || 0)}`}>
                       <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Last 10 Games</div>
-                      <div className={`text-lg font-bold ${getHitRateColor(hitRateData.last_10_hit_rate || 0)}`}>
-                        {hitRateData.last_10_hit_rate?.toFixed(0) || 0}%
+                      <div className={`text-lg font-bold ${getHitRateColor(recalculatedHitRates.last_10_hit_rate || 0)}`}>
+                        {recalculatedHitRates.last_10_hit_rate?.toFixed(0) || 0}%
                       </div>
                     </div>
 
-                    {hitRateData.avg_stat_per_game && (
+                    {recalculatedHitRates.avg_stat_per_game && (
                       <div className="p-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
                         <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
                           Season Average
                         </div>
                         <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                          {hitRateData.avg_stat_per_game}
+                          {recalculatedHitRates.avg_stat_per_game}
                         </div>
                       </div>
                     )}
@@ -320,20 +365,20 @@ export function SelectionCard({
                 <div className="space-y-4">
                   {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-4">
-                    <div className={`p-4 rounded-xl border ${getHitRateBg(hitRateData.last_10_hit_rate || 0)}`}>
+                    <div className={`p-4 rounded-xl border ${getHitRateBg(recalculatedHitRates.last_10_hit_rate || 0)}`}>
                       <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Last 10 Games</div>
-                      <div className={`text-2xl font-bold ${getHitRateColor(hitRateData.last_10_hit_rate || 0)}`}>
-                        {hitRateData.last_10_hit_rate?.toFixed(0) || 0}%
+                      <div className={`text-2xl font-bold ${getHitRateColor(recalculatedHitRates.last_10_hit_rate || 0)}`}>
+                        {recalculatedHitRates.last_10_hit_rate?.toFixed(0) || 0}%
                       </div>
                     </div>
 
-                    {hitRateData.avg_stat_per_game && (
+                    {recalculatedHitRates.avg_stat_per_game && (
                       <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
                         <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
                           Season Average
                         </div>
                         <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                          {hitRateData.avg_stat_per_game}
+                          {recalculatedHitRates.avg_stat_per_game}
                         </div>
                       </div>
                     )}
@@ -399,9 +444,9 @@ export function SelectionCard({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         hitRateData={{
-          ...hitRateData,
+          ...recalculatedHitRates,
           bet_type: effectiveBetType,
-          line: selection.line || hitRateData?.line,
+          line: selection.line || recalculatedHitRates?.line,
         }}
         playerName={selection.player_name || "Unknown Player"}
       />

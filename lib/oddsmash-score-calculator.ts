@@ -275,27 +275,61 @@ export function calculateEnhancedOddSmashScore(
     let trendAnalysis = 2.5 // 0-5 (default neutral)
     
     if (hitRateData) {
-             // Get hit rates for different windows
-       const l5Rate = hitRateData.last_5_hit_rate || 0
-       const l10Rate = hitRateData.last_10_hit_rate || 0
-       const l20Rate = hitRateData.last_20_hit_rate || 0
+      // Get hit rates for different windows
+      const l5Rate = hitRateData.last_5_hit_rate || 0
+      const l10Rate = hitRateData.last_10_hit_rate || 0
+      const l20Rate = hitRateData.last_20_hit_rate || 0
       
-      console.log(`  Hit rates - L5: ${l5Rate}%, L10: ${l10Rate}%, L20: ${l20Rate}%`)
+      console.log(`  [OddsMash] Hit rates - L5: ${l5Rate}%, L10: ${l10Rate}%, L20: ${l20Rate}%`)
+      console.log(`  [OddsMash] Is alternate line: ${(hitRateData as any).is_alternate_line}`)
+      console.log(`  [OddsMash] Player: ${input.selection.player_name}, Line: ${input.selection.line}`)
+      
+      // FOR ALTERNATE LINES: Recalculate hit rates if needed
+      let actualL5Rate = l5Rate
+      let actualL10Rate = l10Rate  
+      let actualL20Rate = l20Rate
+      
+      if ((hitRateData as any).is_alternate_line && (hitRateData as any).recent_games && Array.isArray((hitRateData as any).recent_games)) {
+        console.log(`  [OddsMash] Recalculating hit rates for alternate line`)
+        
+        const line = input.selection.line || hitRateData.line || 0.5
+        const recentGames = (hitRateData as any).recent_games
+        const betType = input.selection.bet_type || "over"
+
+        const calculateHitRateForGames = (games: any[], numGames: number) => {
+          const gamesToAnalyze = games.slice(0, Math.min(numGames, games.length))
+          if (gamesToAnalyze.length === 0) return 0
+
+          const hits = gamesToAnalyze.filter((game: any) => {
+            return betType === "under" 
+              ? game.value < line 
+              : game.value >= line
+          }).length
+
+          return Math.round((hits / gamesToAnalyze.length) * 100)
+        }
+
+        actualL5Rate = calculateHitRateForGames(recentGames, 5)
+        actualL10Rate = calculateHitRateForGames(recentGames, 10)
+        actualL20Rate = calculateHitRateForGames(recentGames, 20)
+        
+        console.log(`  [OddsMash] Recalculated - L5: ${actualL5Rate}%, L10: ${actualL10Rate}%, L20: ${actualL20Rate}%`)
+      }
       
       // Recent Performance (25 points) - Weight L10 heavily as primary indicator
-      if (l10Rate > 0) {
-        recentPerformance = Math.min((l10Rate / 100) * 25, 25)
-        totalHitRates += l10Rate
+      if (actualL10Rate > 0) {
+        recentPerformance = Math.min((actualL10Rate / 100) * 25, 25)
+        totalHitRates += actualL10Rate
         validHitRateCount++
         
         // High confidence threshold: 70%+ hit rate
-        if (l10Rate >= 70) {
+        if (actualL10Rate >= 70) {
           highConfidencePicks++
         }
       }
       
       // Consistency Score (15 points) - Reward consistent performance across windows
-      const rates = [l5Rate, l10Rate, l20Rate].filter(rate => rate > 0)
+      const rates = [actualL5Rate, actualL10Rate, actualL20Rate].filter(rate => rate > 0)
       if (rates.length >= 2) {
         const variance = calculateHitRateVariance(rates)
         // Lower variance = higher consistency score
@@ -303,7 +337,7 @@ export function calculateEnhancedOddSmashScore(
       }
       
       // Trend Analysis (5 points) - Improving vs declining performance
-      trendAnalysis = calculateTrendScore(l5Rate, l10Rate, l20Rate)
+      trendAnalysis = calculateTrendScore(actualL5Rate, actualL10Rate, actualL20Rate)
       
              // Check for alternate line
        if ((hitRateData as any).is_alternate_line) {

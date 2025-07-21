@@ -9,6 +9,55 @@ interface HitRateDisplayProps {
 export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
   if (!hitRateData) return null
 
+  // Recalculate hit rates for alternate lines if needed
+  const recalculatedRates = (() => {
+    if (!hitRateData.is_alternate_line || !hitRateData.recent_games || !Array.isArray(hitRateData.recent_games)) {
+      // For non-alternate lines or missing data, use original values
+      return {
+        last_5_hit_rate: hitRateData.last_5_hit_rate || 0,
+        last_10_hit_rate: hitRateData.last_10_hit_rate || 0,
+        last_20_hit_rate: hitRateData.last_20_hit_rate || 0,
+        season_hit_rate: hitRateData.season_hit_rate || 0
+      }
+    }
+
+    // For alternate lines, recalculate based on the actual line
+    const line = hitRateData.line || 0.5
+    const recentGames = hitRateData.recent_games
+
+    const calculateHitRateForGames = (games: any[], numGames: number) => {
+      const gamesToAnalyze = games.slice(0, Math.min(numGames, games.length))
+      if (gamesToAnalyze.length === 0) return 0
+
+      const hits = gamesToAnalyze.filter((game: any) => {
+        return hitRateData.bet_type === "under" 
+          ? game.value < line 
+          : game.value >= line
+      }).length
+
+      return Math.round((hits / gamesToAnalyze.length) * 100)
+    }
+
+    console.log(`🔄 Recalculating hit rates for ${hitRateData.player_name}:`, {
+      isAlternateLine: hitRateData.is_alternate_line,
+      line,
+      betType: hitRateData.bet_type,
+      totalGames: recentGames.length,
+      originalL10: hitRateData.last_10_hit_rate
+    })
+
+    const recalculated = {
+      last_5_hit_rate: calculateHitRateForGames(recentGames, 5),
+      last_10_hit_rate: calculateHitRateForGames(recentGames, 10),
+      last_20_hit_rate: calculateHitRateForGames(recentGames, 20),
+      season_hit_rate: calculateHitRateForGames(recentGames, recentGames.length)
+    }
+
+    console.log(`✅ Recalculated rates:`, recalculated)
+
+    return recalculated
+  })()
+
   const getHitRateColor = (rate: number) => {
     if (rate >= 70) return "emerald"
     if (rate >= 50) return "amber"
@@ -28,16 +77,16 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
         <div className="grid grid-cols-2 gap-2">
           {/* Last 10 Hit Rate - Mobile */}
           <div
-            className={`bg-gradient-to-br from-${getHitRateColor(hitRateData.last_10_hit_rate)}-50 to-${getHitRateColor(hitRateData.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(hitRateData.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 border border-${getHitRateColor(hitRateData.last_10_hit_rate)}-200 dark:border-${getHitRateColor(hitRateData.last_10_hit_rate)}-800 rounded-xl p-3 shadow-sm`}
+            className={`bg-gradient-to-br from-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-50 to-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-900/30 border border-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-200 dark:border-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-800 rounded-xl p-3 shadow-sm`}
           >
             <div className="flex items-center gap-2 mb-1">
-              {getHitRateIcon(hitRateData.last_10_hit_rate)}
+              {getHitRateIcon(recalculatedRates.last_10_hit_rate)}
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">L10</span>
             </div>
             <div
-              className={`text-lg font-bold text-${getHitRateColor(hitRateData.last_10_hit_rate)}-700 dark:text-${getHitRateColor(hitRateData.last_10_hit_rate)}-400`}
+              className={`text-lg font-bold text-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-700 dark:text-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-400`}
             >
-              {hitRateData.last_10_hit_rate}%
+              {recalculatedRates.last_10_hit_rate}%
             </div>
           </div>
 
@@ -47,7 +96,7 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
               <BarChart3 className="h-3 w-3" />
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Season</span>
             </div>
-            <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{hitRateData.season_hit_rate}%</div>
+            <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{recalculatedRates.season_hit_rate}%</div>
           </div>
         </div>
 
@@ -70,20 +119,20 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
         <div className="grid grid-cols-3 gap-4">
           {/* Last 10 Hit Rate - Desktop */}
           <div
-            className={`bg-gradient-to-br from-${getHitRateColor(hitRateData.last_10_hit_rate)}-50 to-${getHitRateColor(hitRateData.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(hitRateData.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 border border-${getHitRateColor(hitRateData.last_10_hit_rate)}-200 dark:border-${getHitRateColor(hitRateData.last_10_hit_rate)}-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200`}
+            className={`bg-gradient-to-br from-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-50 to-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-100/50 dark:from-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-950/20 dark:to-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-900/30 border border-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-200 dark:border-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200`}
           >
             <div className="flex items-center gap-3 mb-2">
               <div
-                className={`p-2 bg-${getHitRateColor(hitRateData.last_10_hit_rate)}-100 dark:bg-${getHitRateColor(hitRateData.last_10_hit_rate)}-900/30 rounded-lg`}
+                className={`p-2 bg-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-100 dark:bg-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-900/30 rounded-lg`}
               >
-                {getHitRateIcon(hitRateData.last_10_hit_rate)}
+                {getHitRateIcon(recalculatedRates.last_10_hit_rate)}
               </div>
               <div>
                 <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Last 10 Games</div>
                 <div
-                  className={`text-2xl font-bold text-${getHitRateColor(hitRateData.last_10_hit_rate)}-700 dark:text-${getHitRateColor(hitRateData.last_10_hit_rate)}-400`}
+                  className={`text-2xl font-bold text-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-700 dark:text-${getHitRateColor(recalculatedRates.last_10_hit_rate)}-400`}
                 >
-                  {hitRateData.last_10_hit_rate}%
+                  {recalculatedRates.last_10_hit_rate}%
                 </div>
               </div>
             </div>
@@ -98,7 +147,7 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
               <div>
                 <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Season</div>
                 <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                  {hitRateData.season_hit_rate}%
+                  {recalculatedRates.season_hit_rate}%
                 </div>
               </div>
             </div>
@@ -155,25 +204,25 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">Last 5:</span>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {hitRateData.last_5_hit_rate}%
+                        {recalculatedRates.last_5_hit_rate}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">Last 10:</span>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {hitRateData.last_10_hit_rate}%
+                        {recalculatedRates.last_10_hit_rate}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">Last 20:</span>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {hitRateData.last_20_hit_rate}%
+                        {recalculatedRates.last_20_hit_rate}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">Season:</span>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {hitRateData.season_hit_rate}%
+                        {recalculatedRates.season_hit_rate}%
                       </span>
                     </div>
                   </div>
