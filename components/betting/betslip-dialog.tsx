@@ -20,7 +20,7 @@ import { sportsbooks } from "@/data/sportsbooks"
 interface BetslipDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at">
+  selection: Omit<BetslipSelection, "id" | "betslip_id" | "created_at" | "updated_at"> | null
 }
 
 interface ConflictingSelection {
@@ -89,6 +89,12 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
   // Helper function to ensure we have all available odds data
   const prepareSelectionWithOdds = (selection: BetslipSelectionInput): BetslipSelectionInput => {
     console.log("[BetslipDialog] Preparing selection with odds. Original selection:", selection)
+    
+    // Add null check
+    if (!selection) {
+      throw new Error("Selection cannot be null")
+    }
+    
     // Map sport key to API format with proper type checking
     const getSportApiKey = (sportKey: string): string => {
       if (!sportKey) return "baseball_mlb" // Default to MLB if no sport key provided
@@ -404,6 +410,11 @@ export function BetslipDialog({ open, onOpenChange, selection }: BetslipDialogPr
   // Check for authentication before showing dialog
   if (!user) {
     setShowAuthModal(true)
+    return null
+  }
+
+  // Check if selection is null
+  if (!selection) {
     return null
   }
 

@@ -76,7 +76,7 @@ function HitRatesPageContent({ params, searchParams }: HitRatesPageProps) {
             <TrendingUp className="h-12 w-12 text-orange-600 dark:text-orange-400 mx-auto" />
           </div>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
-            We're working hard to bring you comprehensive hit rate analysis for {sportConfig.name}.
+            We&apos;re working hard to bring you comprehensive hit rate analysis for {sportConfig.name}.
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-500 max-w-md">
             Check back soon for player statistics, hit rate trends, and advanced analytics!
