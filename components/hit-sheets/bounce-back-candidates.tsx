@@ -277,7 +277,7 @@ export default function BounceBackCandidates({ data, onParamsChange, params }: B
               market={row.out_market}
               line={row.out_line}
               customTier={null}
-              allOdds={row.out_odds_json}
+              fallback_odds={row.out_odds_json}
               directLink={bestOddsData.over_link}
               compact={true}
             /></div>

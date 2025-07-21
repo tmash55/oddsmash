@@ -108,9 +108,12 @@ function findBestOdds(lines: Record<string, any>, betType: "over" | "under") {
   // For each line (e.g., "1.5", "2.5", etc.)
   for (const [line, bookmakers] of Object.entries(lines)) {
     // For each sportsbook
-    for (const [sportsbook, odds] of Object.entries(bookmakers)) {
-      const currentOdds = odds[betType];
-      if (!currentOdds) continue;
+    for (const [sportsbook, odds] of Object.entries(bookmakers as Record<string, any>)) {
+      // Type guard to ensure odds has the expected structure
+      if (typeof odds !== 'object' || odds === null) continue;
+      
+      const currentOdds = (odds as Record<string, any>)[betType];
+      if (!currentOdds || typeof currentOdds !== 'object' || !currentOdds.price) continue;
 
       if (!bestOdds || currentOdds.price > bestOdds) {
         bestOdds = currentOdds.price;

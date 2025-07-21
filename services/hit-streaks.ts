@@ -8,14 +8,25 @@ export async function fetchHitStreaks(sport?: string): Promise<HitStreakPlayer[]
     // For now, return mock data
     return [
       {
+        id: 1,
         player_id: 123,
-        player_name: "Mock Player 1",
+        full_name: "Mock Player 1",
         team_name: "Mock Team",
-        current_streak: 5,
-        streak_details: {
-          hits: [1, 2, 1, 1, 2],
-          dates: ["2024-03-01", "2024-03-02", "2024-03-03", "2024-03-04", "2024-03-05"]
-        }
+        team_abbreviation: "MCK",
+        streak_length: 5,
+        streak_end: new Date().toISOString(),
+        total_home_runs: 3,
+        is_playing_today: true,
+        hit_odds_json: {
+          draftkings: { odds: 120, over_link: "https://example.com" },
+          fanduel: { odds: 115, over_link: "https://example.com" }
+        },
+        away_team_name: "Away Team",
+        home_team_name: "Home Team",
+        commence_time: new Date().toISOString(),
+        market: "Hits",
+        line: 1.5,
+        updated_at: new Date().toISOString()
       }
     ]
   } catch (error) {

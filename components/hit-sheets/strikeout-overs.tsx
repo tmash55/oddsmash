@@ -292,7 +292,7 @@ export default function StrikeoutOvers({ data, onParamsChange, params }: Strikeo
             market={row.out_market}
             line={parseFloat(row.out_line_used)}
             customTier={null}
-            allOdds={row.out_odds_json}
+            fallback_odds={row.out_odds_json}
             directLink={bestOddsData.over_link}
             compact={true}
           /></div>

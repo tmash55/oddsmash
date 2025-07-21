@@ -19,7 +19,7 @@ export default function HitSheetsPage({ params }: HitSheetsPageProps) {
   return (
     <div className="w-full min-h-screen bg-background">
       <div className="mt-2 sm:mt-4 md:mt-8">
-        <HitSheetsDashboard sport={sport} />
+        <HitSheetsDashboard />
       </div>
     </div>
   )

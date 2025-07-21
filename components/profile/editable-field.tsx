@@ -41,9 +41,9 @@ export function EditableField({
   saving,
 }: EditableFieldProps) {
   const isEditing = editingField === field
-  const displayValue =
-    type === "select" && options && typeof options === "object"
-      ? options[value as keyof typeof options] || value
+  const displayValue: string =
+    type === "select" && options && typeof options === "object" && !Array.isArray(options)
+      ? (options[value as keyof typeof options] as string) || value
       : value
 
   return (
@@ -110,17 +110,19 @@ export function EditableField({
                 <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
-                {typeof options === "object"
+                {Array.isArray(options)
+                  ? options.map((option: string) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))
+                  : typeof options === "object" && options !== null
                   ? Object.entries(options).map(([key, displayName]) => (
                       <SelectItem key={key} value={key}>
                         {displayName} {key !== displayName && `(${key})`}
                       </SelectItem>
                     ))
-                  : options?.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
+                  : null}
               </SelectContent>
             </Select>
           ) : (
