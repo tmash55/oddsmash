@@ -928,6 +928,27 @@ function normalizeTeamName(teamName: string): string {
     
   // Handle common MLB team abbreviations and variations
   const teamMappings: Record<string, string> = {
+    // Kansas City Royals variations
+    'kc royals': 'kansas city royals',
+    'kansas city royals': 'kansas city royals',
+    'kansas city': 'kansas city royals',
+    'royals': 'kansas city royals',
+    'kc': 'kansas city royals',
+    
+    // Chicago Cubs variations
+    'chi cubs': 'chicago cubs',
+    'chicago cubs': 'chicago cubs',
+    'cubs': 'chicago cubs',
+    'chi': 'chicago cubs',
+    'chc': 'chicago cubs',
+    
+    // Chicago White Sox variations
+    'chi white sox': 'chicago white sox',
+    'chicago white sox': 'chicago white sox',
+    'white sox': 'chicago white sox',
+    'cws': 'chicago white sox',
+    'chw': 'chicago white sox',
+    
     // Texas Rangers variations
     'tex rangers': 'texas rangers',
     'tex': 'texas rangers',
@@ -952,11 +973,42 @@ function normalizeTeamName(teamName: string): string {
     'new york yankees': 'new york yankees',
     'yankees': 'new york yankees',
     
+    // New York Mets variations
+    'ny mets': 'new york mets',
+    'nym': 'new york mets',
+    'new york mets': 'new york mets',
+    'mets': 'new york mets',
+    
+    // Los Angeles Dodgers variations
+    'la dodgers': 'los angeles dodgers',
+    'lad': 'los angeles dodgers',
+    'los angeles dodgers': 'los angeles dodgers',
+    'dodgers': 'los angeles dodgers',
+    
+    // Los Angeles Angels variations
+    'la angels': 'los angeles angels',
+    'laa': 'los angeles angels',
+    'los angeles angels': 'los angeles angels',
+    'angels': 'los angeles angels',
+    
+    // San Francisco Giants variations
+    'sf giants': 'san francisco giants',
+    'san francisco giants': 'san francisco giants',
+    'giants': 'san francisco giants',
+    
+    // Oakland Athletics variations
+    'oak athletics': 'oakland athletics',
+    'oakland athletics': 'oakland athletics',
+    'athletics': 'oakland athletics',
+    'as': 'oakland athletics',
+    'oak': 'oakland athletics',
+    
     // Arizona Diamondbacks variations
     'ari diamondbacks': 'arizona diamondbacks',
     'ari': 'arizona diamondbacks',
     'arizona': 'arizona diamondbacks',
     'diamondbacks': 'arizona diamondbacks',
+    'dbacks': 'arizona diamondbacks',
     
     // Colorado Rockies variations
     'col rockies': 'colorado rockies',
@@ -970,12 +1022,6 @@ function normalizeTeamName(teamName: string): string {
     'houston': 'houston astros',
     'astros': 'houston astros',
     
-    // Los Angeles Angels variations
-    'la angels': 'los angeles angels',
-    'laa': 'los angeles angels',
-    'los angeles angels': 'los angeles angels',
-    'angels': 'los angeles angels',
-    
     // Milwaukee Brewers variations
     'mil brewers': 'milwaukee brewers',
     'mil': 'milwaukee brewers',
@@ -988,18 +1034,98 @@ function normalizeTeamName(teamName: string): string {
     'minnesota': 'minnesota twins',
     'twins': 'minnesota twins',
     
-    // Common variations
-    'cle guardians': 'cleveland guardians',
-    'cleveland': 'cleveland guardians',
-    'sf giants': 'san francisco giants',
-    'san francisco': 'san francisco giants',
+    // Seattle Mariners variations
+    'sea mariners': 'seattle mariners',
+    'sea': 'seattle mariners',
+    'seattle': 'seattle mariners',
+    'mariners': 'seattle mariners',
+    
+    // Tampa Bay Rays variations
     'tb rays': 'tampa bay rays',
+    'tampa bay rays': 'tampa bay rays',
+    'rays': 'tampa bay rays',
     'tampa bay': 'tampa bay rays',
-    'ny mets': 'new york mets',
+    
+    // Boston Red Sox variations
+    'bos red sox': 'boston red sox',
+    'boston red sox': 'boston red sox',
+    'red sox': 'boston red sox',
+    'redsox': 'boston red sox',
+    'bos': 'boston red sox',
+    
+    // Toronto Blue Jays variations
+    'tor blue jays': 'toronto blue jays',
+    'toronto blue jays': 'toronto blue jays',
+    'blue jays': 'toronto blue jays',
+    'bluejays': 'toronto blue jays',
+    'tor': 'toronto blue jays',
+    'jays': 'toronto blue jays',
+    
+    // Cleveland Guardians variations
+    'cle guardians': 'cleveland guardians',
+    'cleveland guardians': 'cleveland guardians',
+    'guardians': 'cleveland guardians',
+    'cleveland': 'cleveland guardians',
+    'cle': 'cleveland guardians',
+    
+    // Detroit Tigers variations
+    'det tigers': 'detroit tigers',
+    'detroit tigers': 'detroit tigers',
+    'tigers': 'detroit tigers',
+    'detroit': 'detroit tigers',
+    'det': 'detroit tigers',
+    
+    // Atlanta Braves variations
     'atl braves': 'atlanta braves',
+    'atlanta braves': 'atlanta braves',
+    'braves': 'atlanta braves',
     'atlanta': 'atlanta braves',
+    'atl': 'atlanta braves',
+    
+    // Washington Nationals variations
     'was nationals': 'washington nationals',
-    'washington': 'washington nationals'
+    'washington nationals': 'washington nationals',
+    'nationals': 'washington nationals',
+    'washington': 'washington nationals',
+    'was': 'washington nationals',
+    'nats': 'washington nationals',
+    
+    // Philadelphia Phillies variations
+    'phi phillies': 'philadelphia phillies',
+    'philadelphia phillies': 'philadelphia phillies',
+    'phillies': 'philadelphia phillies',
+    'philadelphia': 'philadelphia phillies',
+    'phi': 'philadelphia phillies',
+    'phils': 'philadelphia phillies',
+    
+    // Miami Marlins variations
+    'mia marlins': 'miami marlins',
+    'miami marlins': 'miami marlins',
+    'marlins': 'miami marlins',
+    'miami': 'miami marlins',
+    'mia': 'miami marlins',
+    
+    // St. Louis Cardinals variations
+    'stl cardinals': 'st louis cardinals',
+    'st louis cardinals': 'st louis cardinals',
+    'cardinals': 'st louis cardinals',
+    'st louis': 'st louis cardinals',
+    'stl': 'st louis cardinals',
+    'cards': 'st louis cardinals',
+    
+    // Cincinnati Reds variations
+    'cin reds': 'cincinnati reds',
+    'cincinnati reds': 'cincinnati reds',
+    'reds': 'cincinnati reds',
+    'cincinnati': 'cincinnati reds',
+    'cin': 'cincinnati reds',
+    
+    // San Diego Padres variations
+    'sd padres': 'san diego padres',
+    'san diego padres': 'san diego padres',
+    'padres': 'san diego padres',
+    'san diego': 'san diego padres',
+    'sd': 'san diego padres'
   }
   
   // Check if we have a direct mapping
@@ -1010,29 +1136,60 @@ function normalizeTeamName(teamName: string): string {
   return normalized
 }
 
-// Helper function to calculate team name similarity
+// Helper function to calculate team name similarity with enhanced scoring
 function calculateTeamSimilarity(name1: string, name2: string): number {
   const norm1 = normalizeTeamName(name1)
   const norm2 = normalizeTeamName(name2)
   
-  // Exact match
+  // Exact match after normalization
   if (norm1 === norm2) return 1.0
   
-  // Check if one contains the other
-  if (norm1.includes(norm2) || norm2.includes(norm1)) return 0.9
-  
-  // Check for partial matches with common team names
-  const words1 = norm1.split(' ')
-  const words2 = norm2.split(' ')
-  const commonWords = words1.filter(word => words2.includes(word) && word.length > 2) // Only count meaningful words
-  
-  if (commonWords.length === 0) return 0
-  
-  // Higher score for matching team names
-  if (commonWords.some(word => ['rangers', 'pirates', 'orioles', 'yankees', 'diamondbacks', 'rockies', 'astros', 'angels', 'brewers', 'twins'].includes(word))) {
+  // Check for exact substring matches (one contains the other)
+  if (norm1.includes(norm2) || norm2.includes(norm1)) {
+    // Higher score if the shorter name is a significant portion of the longer
+    const minLength = Math.min(norm1.length, norm2.length)
+    const maxLength = Math.max(norm1.length, norm2.length)
+    const ratio = minLength / maxLength
+    
+    // If the ratio is good (>= 0.5), give high score
+    if (ratio >= 0.5) return 0.95
     return 0.8
   }
   
+  // Check for partial matches with common team names/cities
+  const words1 = norm1.split(' ')
+  const words2 = norm2.split(' ')
+  const commonWords = words1.filter(word => words2.includes(word) && word.length > 2)
+  
+  if (commonWords.length === 0) return 0
+  
+  // Enhanced scoring for specific matches
+  const importantWords = [
+    // Team names
+    'royals', 'cubs', 'white sox', 'yankees', 'dodgers', 'giants', 'athletics', 
+    'diamondbacks', 'rockies', 'astros', 'brewers', 'twins', 'mariners', 'rays',
+    'red sox', 'blue jays', 'guardians', 'tigers', 'braves', 'nationals', 
+    'phillies', 'marlins', 'cardinals', 'reds', 'padres', 'pirates', 'orioles',
+    'angels', 'mets',
+    // Cities that uniquely identify teams
+    'kansas city', 'chicago', 'new york', 'los angeles', 'san francisco',
+    'oakland', 'arizona', 'colorado', 'houston', 'milwaukee', 'minnesota',
+    'seattle', 'tampa bay', 'boston', 'toronto', 'cleveland', 'detroit',
+    'atlanta', 'washington', 'philadelphia', 'miami', 'cincinnati', 'san diego',
+    'pittsburgh', 'baltimore', 'texas', 'st louis'
+  ]
+  
+  // Check if we have important word matches
+  const hasImportantMatch = commonWords.some(word => 
+    importantWords.some(important => important.includes(word) || word.includes(important))
+  )
+  
+  if (hasImportantMatch) {
+    // High score for important word matches
+    return 0.9
+  }
+  
+  // Regular partial match scoring
   return commonWords.length / Math.max(words1.length, words2.length)
 }
 
@@ -1044,6 +1201,7 @@ function findMatchingGame(games: Record<string, GameData>, awayTeam?: string, ho
   }
   
   console.log(`🔍 Looking for game: "${awayTeam}" @ "${homeTeam}"`)
+  console.log(`📊 Normalizing teams: "${awayTeam}" -> "${normalizeTeamName(awayTeam)}", "${homeTeam}" -> "${normalizeTeamName(homeTeam)}"`)
   
   let bestMatch: { game: GameData; score: number; config: string } | null = null
   
@@ -1067,9 +1225,10 @@ function findMatchingGame(games: Record<string, GameData>, awayTeam?: string, ho
       
       console.log(`   🎯 ${config.name}: "${game.away_team.name}" vs "${game.home_team.name}" = ${score.toFixed(2)} (away: ${config.awayScore.toFixed(2)}, home: ${config.homeScore.toFixed(2)})`)
       
-      // Require a minimum similarity threshold
-      if (score >= 0.6 && (!bestMatch || score > bestMatch.score)) {
+      // Lowered threshold from 0.6 to 0.5 for better matching
+      if (score >= 0.5 && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { game, score, config: config.name }
+        console.log(`      ⭐ New best match! Score: ${score.toFixed(2)}`)
       }
     }
   }
@@ -1079,7 +1238,8 @@ function findMatchingGame(games: Record<string, GameData>, awayTeam?: string, ho
     return bestMatch.game
   }
   
-  console.log(`❌ No suitable game match found (all scores below 0.6 threshold)`)
+  console.log(`❌ No suitable game match found (all scores below 0.5 threshold)`)
+  console.log(`📝 Available games: ${Object.values(games).map(g => `${g.away_team.name} @ ${g.home_team.name}`).join(', ')}`)
   return null
 }
 
@@ -1750,12 +1910,33 @@ async function fetchOddsForSelection(
     console.log(`📞 API Call: ${oddsUrl}?${params.toString()}`)
     console.log(`📊 Fetching markets: ${marketsToFetch.join(', ')}`)
     
-    const oddsResponse = await fetch(`${oddsUrl}?${params.toString()}`)
+    // Small additional delay to prevent rate limiting on rapid requests
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    let oddsResponse = await fetch(`${oddsUrl}?${params.toString()}`)
+
+    // Handle 429 rate limit errors with retry logic
+    if (oddsResponse.status === 429) {
+      console.warn(`⚠️ Rate limit hit for ${selection.player}, waiting 2 seconds and retrying...`)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      oddsResponse = await fetch(`${oddsUrl}?${params.toString()}`)
+      
+      // If still rate limited after retry, wait longer and try once more
+      if (oddsResponse.status === 429) {
+        console.warn(`⚠️ Rate limit hit again for ${selection.player}, waiting 5 seconds and final retry...`)
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        oddsResponse = await fetch(`${oddsUrl}?${params.toString()}`)
+      }
+    }
 
     if (!oddsResponse.ok) {
-      console.error(`❌ Failed to fetch odds for ${selection.gameId}: ${oddsResponse.status}`)
+      const errorMessage = oddsResponse.status === 429 
+        ? `Rate limit exceeded after retries: ${oddsResponse.status}`
+        : `API error: ${oddsResponse.status}`
+      
+      console.error(`❌ Failed to fetch odds for ${selection.gameId}: ${errorMessage}`)
       return {
-        error: `API error: ${oddsResponse.status}`,
+        error: errorMessage,
         metadata: {
           matches_found: 0,
           total_bookmakers: 0,
@@ -1766,7 +1947,7 @@ async function fetchOddsForSelection(
           bet_type_searched: selection.betType,
           market_searched: selection.marketApiKey,
           last_updated: new Date().toISOString(),
-          error: `API error: ${oddsResponse.status}`
+          error: errorMessage
         }
       }
     }
@@ -2168,11 +2349,17 @@ export async function POST(request: NextRequest) {
     
     console.log(`📚 Using ${activeSportsbooks.length} active sportsbooks: ${activeSportsbooks.join(', ')}`)
 
-    // Parallel execution of odds fetching and hit rates fetching
-    console.log(`🚀 Starting parallel odds and hit rates fetching...`)
+    // Parallel execution of odds fetching and hit rates fetching with staggered delays
+    console.log(`🚀 Starting staggered odds and hit rates fetching...`)
     
-    const oddsPromises = processedSelections.map(async (selection) => {
+    const oddsPromises = processedSelections.map(async (selection, index) => {
       try {
+        // Add staggered delay to prevent rate limiting (200ms between requests)
+        const delay = index * 200 // 200ms delay between each request
+        if (delay > 0) {
+          console.log(`⏱️ Waiting ${delay}ms before fetching odds for ${selection.player}`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
         // Skip odds fetching if no event ID (game not matched) or no API key
         if (!selection.gameId || !apiKey || activeSportsbooks.length === 0) {
           const errorReason = !selection.gameId ? 'No event ID available - game not matched' : 'No odds API configured'
@@ -2246,7 +2433,7 @@ export async function POST(request: NextRequest) {
       hitRatesPromise
     ])
 
-    console.log(`🚀 Parallel processing complete!`)
+    console.log(`🚀 Staggered processing complete!`)
     console.log(`✅ Odds fetched for ${selectionsWithOdds.length} selections`)
     console.log(`✅ Hit rates fetched for ${Object.keys(hitRatesData).length} players`)
 

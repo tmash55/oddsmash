@@ -284,8 +284,8 @@ export function Header() {
     },
     {
       title: "Data Duels",
-      description: "Game-by-game matchup analysis with player hit rates and odds",
-      href: "/mlb/data-duels",
+      description: "Coming Soon",
+      href: "#",
       icon: <Activity className="h-4 w-4 text-purple-600" />,
     },
   ]
@@ -350,6 +350,13 @@ export function Header() {
       icon: <Sparkles className="h-5 w-5 text-orange-600" />,
       isActive: pathname?.startsWith("/betslip-scanner"),
       description: "Scan and analyze betslips",
+    },
+    {
+      title: "History",
+      href: "/history",
+      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
+      isActive: pathname?.startsWith("/history"),
+      description: "View your betslip history",
     },
     {
       title: "Trackers",
@@ -866,6 +873,12 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/history" className="cursor-pointer p-3 rounded-lg">
+                      <Receipt className="mr-3 h-4 w-4" />
+                      <span>Slip History</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/notifications" className="cursor-pointer p-3 rounded-lg">
                       <Bell className="mr-3 h-4 w-4" />
                       <span>Notifications</span>
@@ -1220,6 +1233,30 @@ export function Header() {
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 }}
+                        >
+                          <SheetClose asChild>
+                            <Link
+                              href="/history"
+                              className="flex items-center justify-between p-4 rounded-2xl text-base font-medium transition-all duration-200 hover:bg-muted/50 border-2 border-transparent hover:border-border/50 active:scale-[0.98] active:bg-muted/80"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/50">
+                                  <Receipt className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div className="text-left">
+                                  <div className="font-semibold">Slip History</div>
+                                  <div className="text-xs text-muted-foreground mt-0.5">View your betslips</div>
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                            </Link>
+                          </SheetClose>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.4 }}
                         >
                           <button
                             onClick={() => {
