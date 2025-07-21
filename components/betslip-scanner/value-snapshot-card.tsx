@@ -68,8 +68,17 @@ export function ValueSnapshotCard({
   }
   
   const originalAmericanOdds = originalTotalOdds >= 2 ? Math.round((originalTotalOdds - 1) * 100) : Math.round(-100 / (originalTotalOdds - 1))
-  const originalPayoutOn100 = originalAmericanOdds > 0 ? originalAmericanOdds / 100 * 100 : 100 / Math.abs(originalAmericanOdds) * 100
-  const bestPayoutOn100 = bestOdds ? (bestOdds > 0 ? bestOdds / 100 * 100 : 100 / Math.abs(bestOdds) * 100) : 0
+  
+  // Calculate profit (winnings) on $100 bet for American odds
+  const originalPayoutOn100 = originalAmericanOdds > 0 
+    ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+    : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
+  
+  const bestPayoutOn100 = bestOdds ? (
+    bestOdds > 0 
+      ? bestOdds  // For +odds, you win the odds amount on $100
+      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
+  ) : 0
   const potentialGain = bestPayoutOn100 - originalPayoutOn100
   
   // Enhanced value leg analysis
@@ -155,7 +164,10 @@ export function ValueSnapshotCard({
         .filter(result => result.hasAllSelections && result.parlayOdds)
         .map(result => result.parlayOdds!)
         .reduce((acc, odds) => {
-          const payout = odds > 0 ? odds / 100 * 100 : 100 / Math.abs(odds) * 100
+          // Calculate profit (winnings) on $100 bet for American odds
+          const payout = odds > 0 
+            ? odds  // For +odds, you win the odds amount on $100
+            : (100 * 100) / Math.abs(odds)  // For -odds, you win (100 * stake) / |odds|
           return { min: Math.min(acc.min, payout), max: Math.max(acc.max, payout) }
         }, { min: Infinity, max: -Infinity })
     : null
@@ -195,7 +207,7 @@ export function ValueSnapshotCard({
                 <div className="rounded-full bg-white/20 p-1">
                   <PieChart className="h-3 w-3" />
                 </div>
-                <span className="text-sm font-medium opacity-90">Best Available Payout</span>
+                <span className="text-sm font-medium opacity-90">$100 Bet Wins</span>
               </div>
               <div className="text-2xl font-bold mb-1">${bestPayoutOn100.toFixed(0)}</div>
               <div className="text-xs opacity-80">

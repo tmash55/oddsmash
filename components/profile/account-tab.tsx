@@ -107,12 +107,7 @@ export function AccountTab({
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>
-              <Button
-                size="sm"
-                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full p-0 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg"
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
+              
             </div>
 
             <div className="flex-1 text-center sm:text-left">

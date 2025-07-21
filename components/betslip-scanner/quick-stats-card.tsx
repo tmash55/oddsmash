@@ -47,8 +47,16 @@ export function QuickStatsCard({
     return acc * (odds > 0 ? odds / 100 + 1 : 100 / Math.abs(odds) + 1)
   }, 1)
   const originalAmericanOdds = originalTotalOdds >= 2 ? Math.round((originalTotalOdds - 1) * 100) : Math.round(-100 / (originalTotalOdds - 1))
-  const originalPayout = originalAmericanOdds > 0 ? originalAmericanOdds / 100 * 100 : 100 / Math.abs(originalAmericanOdds) * 100
-  const bestPayout = bestOdds ? (bestOdds > 0 ? bestOdds / 100 * 100 : 100 / Math.abs(bestOdds) * 100) : 0
+  // Calculate profit (winnings) on $100 bet for American odds
+  const originalPayout = originalAmericanOdds > 0 
+    ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+    : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
+  
+  const bestPayout = bestOdds ? (
+    bestOdds > 0 
+      ? bestOdds  // For +odds, you win the odds amount on $100
+      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
+  ) : 0
   const valueEdge = bestOdds && originalAmericanOdds ? ((bestPayout - originalPayout) / originalPayout) * 100 : 0
   const winDelta = bestPayout - originalPayout
   const booksBeaten = Object.values(parlayResults).filter(result => 

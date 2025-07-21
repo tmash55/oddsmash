@@ -108,12 +108,14 @@ export function OddsComparisonCard({
               const sportsbookInfo = getSportsbookInfo(bestSportsbookId)
               const currentOdds = bestResult.parlayOdds!
 
-              // Calculate percentage improvement over original
-              const currentPayout = currentOdds > 0 ? (currentOdds / 100) * 100 : (100 / Math.abs(currentOdds)) * 100
-              const originalPayout =
-                originalAmericanOdds > 0
-                  ? (originalAmericanOdds / 100) * 100
-                  : (100 / Math.abs(originalAmericanOdds)) * 100
+              // Calculate percentage improvement over original (profit on $100 bet)
+              const currentPayout = currentOdds > 0 
+                ? currentOdds  // For +odds, you win the odds amount on $100
+                : (100 * 100) / Math.abs(currentOdds)  // For -odds, you win (100 * stake) / |odds|
+              
+              const originalPayout = originalAmericanOdds > 0
+                ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+                : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
               const percentageImprovement = ((currentPayout - originalPayout) / originalPayout) * 100
 
               return (
@@ -425,13 +427,14 @@ export function OddsComparisonCard({
                   const sportsbookInfo = getSportsbookInfo(sportsbookId)
                   const currentOdds = result.parlayOdds!
 
-                  // Calculate percentage improvement over original
-                  const currentPayout =
-                    currentOdds > 0 ? (currentOdds / 100) * 100 : (100 / Math.abs(currentOdds)) * 100
-                  const originalPayout =
-                    originalAmericanOdds > 0
-                      ? (originalAmericanOdds / 100) * 100
-                      : (100 / Math.abs(originalAmericanOdds)) * 100
+                  // Calculate percentage improvement over original (profit on $100 bet)
+                  const currentPayout = currentOdds > 0 
+                    ? currentOdds  // For +odds, you win the odds amount on $100
+                    : (100 * 100) / Math.abs(currentOdds)  // For -odds, you win (100 * stake) / |odds|
+                  
+                  const originalPayout = originalAmericanOdds > 0
+                    ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+                    : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
                   const percentageImprovement = ((currentPayout - originalPayout) / originalPayout) * 100
 
                   // Calculate bar width (relative to best odds)

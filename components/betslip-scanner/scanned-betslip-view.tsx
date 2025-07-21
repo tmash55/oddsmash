@@ -960,9 +960,10 @@ export function ScannedBetslipView({
                   </div>
                   <div className="text-lg font-black text-green-800 dark:text-green-200">
                     $
-                    {(100 * (bestOdds > 0 ? bestOdds / 100 : 100 / Math.abs(bestOdds) - 1))
-                      .toFixed(0)
-                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    {(bestOdds > 0 
+                      ? bestOdds  // For +odds, you win the odds amount on $100
+                      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
+                    ).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                   </div>
                 </div>
 
@@ -1058,9 +1059,10 @@ export function ScannedBetslipView({
                             </div>
                             <div className="text-xl font-black text-green-800 dark:text-green-200">
                               $
-                              {(100 * (bestOdds > 0 ? bestOdds / 100 : 100 / Math.abs(bestOdds) - 1))
-                                .toFixed(0)
-                                .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                              {(bestOdds > 0 
+                                ? bestOdds  // For +odds, you win the odds amount on $100
+                                : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
+                              ).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                             </div>
                           </div>
                         </div>
@@ -1151,11 +1153,15 @@ export function ScannedBetslipView({
                       originalTotalOdds >= 2
                         ? Math.round((originalTotalOdds - 1) * 100)
                         : Math.round(-100 / (originalTotalOdds - 1))
+                    // Calculate profit (winnings) on $100 bet for American odds
                     const originalPayout =
                       originalAmericanOdds > 0
-                        ? (originalAmericanOdds / 100) * 100
-                        : (100 / Math.abs(originalAmericanOdds)) * 100
-                    const bestPayout = bestOdds > 0 ? (bestOdds / 100) * 100 : (100 / Math.abs(bestOdds)) * 100
+                        ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+                        : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
+                    
+                    const bestPayout = bestOdds > 0 
+                      ? bestOdds  // For +odds, you win the odds amount on $100
+                      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
                     const valueEdge =
                       bestOdds && originalAmericanOdds ? ((bestPayout - originalPayout) / originalPayout) * 100 : 0
                     const winDelta = bestPayout - originalPayout
@@ -1384,11 +1390,15 @@ export function ScannedBetslipView({
                       originalTotalOdds >= 2
                         ? Math.round((originalTotalOdds - 1) * 100)
                         : Math.round(-100 / (originalTotalOdds - 1))
+                    // Calculate profit (winnings) on $100 bet for American odds
                     const originalPayoutOn100 =
                       originalAmericanOdds > 0
-                        ? (originalAmericanOdds / 100) * 100
-                        : (100 / Math.abs(originalAmericanOdds)) * 100
-                    const bestPayoutOn100 = bestOdds > 0 ? (bestOdds / 100) * 100 : (100 / Math.abs(bestOdds)) * 100
+                        ? originalAmericanOdds  // For +odds, you win the odds amount on $100
+                        : (100 * 100) / Math.abs(originalAmericanOdds)  // For -odds, you win (100 * stake) / |odds|
+                    
+                    const bestPayoutOn100 = bestOdds > 0 
+                      ? bestOdds  // For +odds, you win the odds amount on $100
+                      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
                     const potentialGain = bestPayoutOn100 - originalPayoutOn100
 
                     // Enhanced value leg analysis
@@ -1512,7 +1522,10 @@ export function ScannedBetslipView({
                             .map((result) => result.parlayOdds!)
                             .reduce(
                               (acc, odds) => {
-                                const payout = odds > 0 ? (odds / 100) * 100 : (100 / Math.abs(odds)) * 100
+                                // Calculate profit (winnings) on $100 bet for American odds
+                                const payout = odds > 0 
+                                  ? odds  // For +odds, you win the odds amount on $100
+                                  : (100 * 100) / Math.abs(odds)  // For -odds, you win (100 * stake) / |odds|
                                 return { min: Math.min(acc.min, payout), max: Math.max(acc.max, payout) }
                               },
                               { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
@@ -1549,7 +1562,7 @@ export function ScannedBetslipView({
                                 <div className="rounded-full bg-white/20 p-2">
                                   <PieChart className="h-4 w-4" />
                                 </div>
-                                <span className="text-base font-medium opacity-90">Best Available Payout</span>
+                                <span className="text-base font-medium opacity-90">$100 Bet Wins</span>
                               </div>
                               <div className="text-3xl font-bold mb-2">
                                 ${bestPayoutOn100.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
