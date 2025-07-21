@@ -63,7 +63,7 @@ function OnboardingContent() {
             }));
             setShouldShowOnboarding(true);
           } else {
-            router.push('/hit-rates');
+            router.push('/mlb/odds/player-props?market=home+runs');
           }
         }
         
