@@ -230,7 +230,7 @@ export function BetslipPageHeader({ stats, isCreating, onCreateBetslip, canCreat
                   asChild
                   className="h-12 px-6 border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 bg-transparent"
                 >
-                  <a href="/mlb/props">
+                  <a href="/mlb/odds/player-props">
                     <Target className="h-5 w-5 mr-2" />
                     Browse Props
                   </a>

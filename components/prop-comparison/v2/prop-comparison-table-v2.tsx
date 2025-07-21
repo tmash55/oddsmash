@@ -324,7 +324,7 @@ export function PropComparisonTableV2({
   bestOddsFilter,
   evMethod = "market-average",
   globalLine,
-  sport = "baseball_mlb" // Default to MLB
+  sport // Remove default - sport should always be provided
 }: PropComparisonTableV2Props) {
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -340,7 +340,30 @@ export function PropComparisonTableV2({
     const activeLine = globalLine && item.lines?.[globalLine] ? globalLine : Object.keys(item.lines || {})[0]
     const lineOdds = item.lines?.[activeLine] || {}
 
-    return createBetslipSelection({
+    // Debug logging for WNBA vs MLB comparison
+    console.log(`[PropComparison] Creating betslip selection:`, {
+      sport,
+      player: item.description,
+      market: item.market,
+      type,
+      activeLine,
+      globalLine,
+      allAvailableLines: Object.keys(item.lines || {}),
+      primaryLine: item.primary_line,
+      hasOddsData: Object.keys(lineOdds).length > 0,
+      event_id: item.event_id,
+      team: item.team,
+      home_team: item.home_team,
+      away_team: item.away_team,
+      lineSelectionLogic: {
+        globalLineExists: !!(globalLine && item.lines?.[globalLine]),
+        usingGlobalLine: !!(globalLine && item.lines?.[globalLine]),
+        firstAvailableLine: Object.keys(item.lines || {})[0],
+        finalActiveLine: activeLine
+      }
+    })
+
+    const selection = createBetslipSelection({
       event_id: item.event_id,
       sport_key: sport,
       market: item.market,
@@ -355,6 +378,18 @@ export function PropComparisonTableV2({
       away_team: item.away_team || "",
       odds_data: lineOdds
     });
+
+    // Debug the output
+    console.log(`[PropComparison] Created selection:`, {
+      sport_key: selection.sport_key,
+      market_key: selection.market_key,
+      market_display: selection.market_display,
+      selection: selection.selection,
+      bet_type: selection.bet_type,
+      hasOddsData: Object.keys(selection.odds_data).length > 0
+    })
+
+    return selection
   }
 
   // Function to handle adding to betslip

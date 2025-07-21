@@ -482,7 +482,7 @@ export function PropComparisonCardV2({
   }, [data.lines, selectedLine])
 
   // Get player info and other required data
-  const playerHeadshotUrl = getPlayerHeadshotUrl(data.player_id.toString(), "mlb")
+  const playerHeadshotUrl = getPlayerHeadshotUrl(data.player_id.toString(), sport)
   const availableLines = Object.keys(data.lines).sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b))
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
 
