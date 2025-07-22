@@ -40,112 +40,67 @@ import { createBetslipSelection } from "@/lib/betslip-utils";
 
 // Format odds to always show + for positive odds
 function formatOdds(odds: number): string {
-  return odds > 0 ? `+${odds}` : odds.toString()
+  return odds >= 0 ? `+${odds}` : odds.toString();
 }
 
 // Convert American odds to decimal
 function americanToDecimal(americanOdds: number): number {
-  if (americanOdds === 0) return 1
-  return americanOdds > 0 ? americanOdds / 100 + 1 : 100 / Math.abs(americanOdds) + 1
-}
-
-// Calculate implied probability from American odds
-function calculateImpliedProbability(odds: number): number {
-  return odds > 0 ? 100 / (odds + 100) : Math.abs(odds) / (Math.abs(odds) + 100)
-}
-
-// Calculate profit per unit from American odds
-function calculateProfitPerUnit(odds: number): number {
-  return odds > 0 ? odds / 100 : 100 / Math.abs(odds)
-}
-
-// Helper functions for EV calculation
-function getTop3Odds(odds: Record<string, BookmakerOdds>, type: "over" | "under"): number[] {
-  return Object.values(odds)
-    .filter((bookOdds) => (type === "over" ? bookOdds.over?.price : bookOdds.under?.price))
-    .map((bookOdds) => (type === "over" ? bookOdds.over!.price : bookOdds.under!.price))
-    .sort((a, b) =>
-      type === "over"
-        ? b - a // Highest odds for over
-        : Math.abs(a) - Math.abs(b),
-    ) // Lowest absolute value for under
-    .slice(0, 3)
-}
-
-function calculateNoVigEV(
-  bestOdds: number,
-  odds: Record<string, BookmakerOdds>,
-  type: "over" | "under",
-): number | null {
-  // Get top 3 odds for both sides
-  const top3Over = getTop3Odds(odds, "over")
-  const top3Under = getTop3Odds(odds, "under")
-
-  if (top3Over.length < 3 || top3Under.length < 3) return null
-
-  // Calculate average implied probabilities
-  const avgOverProb = top3Over.map(calculateImpliedProbability).reduce((a, b) => a + b, 0) / 3
-  const avgUnderProb = top3Under.map(calculateImpliedProbability).reduce((a, b) => a + b, 0) / 3
-
-  // Remove vig
-  const vigTotal = avgOverProb + avgUnderProb
-  const noVigOverProb = avgOverProb / vigTotal
-  const noVigUnderProb = avgUnderProb / vigTotal
-
-  // Calculate fair probability based on bet type
-  const fairProb = type === "over" ? noVigOverProb : noVigUnderProb
-
-  // Calculate payout multiplier
-  const payoutMultiplier = bestOdds > 0 ? bestOdds / 100 : 100 / Math.abs(bestOdds)
-
-  // Calculate EV
-  const ev = (fairProb * (1 + payoutMultiplier) - 1) * 100
-
-  return ev
-}
-
-// Convert decimal odds to implied probability
-function decimalToProbability(decimal: number): number {
-  return 1 / decimal
-}
-
-// Calculate EV percentage using best odds and average odds
-function calculateEVPercentage(bestOdds: number, avgOdds: number): number | null {
-  if (!bestOdds || !avgOdds) return null
-
-  const bestDecimal = americanToDecimal(bestOdds)
-  const avgDecimal = americanToDecimal(avgOdds)
-
-  if (!bestDecimal || !avgDecimal) return null
-
-  const trueProb = decimalToProbability(avgDecimal)
-  const ev = (trueProb * bestDecimal - 1) * 100
-
-  return Math.round(ev * 10) / 10 // Round to 1 decimal
-}
-
-// Calculate average odds, excluding null/undefined values
-function calculateAverageOdds(odds: Record<string, BookmakerOdds>) {
-  let overDecimalSum = 0
-  let overCount = 0
-  let underDecimalSum = 0
-  let underCount = 0
-
-  Object.values(odds).forEach((bookOdds) => {
-    if (bookOdds?.over?.price) {
-      overDecimalSum += americanToDecimal(bookOdds.over.price)
-      overCount++
-    }
-    if (bookOdds?.under?.price) {
-      underDecimalSum += americanToDecimal(bookOdds.under.price)
-      underCount++
-    }
-  })
-
-  return {
-    over: overCount > 0 ? decimalToAmerican(overDecimalSum / overCount) : null,
-    under: underCount > 0 ? decimalToAmerican(underDecimalSum / underCount) : null,
+  if (americanOdds >= 0) {
+    return (americanOdds / 100) + 1;
   }
+  return (100 / Math.abs(americanOdds)) + 1;
+}
+
+// Function to get Value% from pre-calculated metrics
+function getValuePercent(item: PlayerOdds, activeLine: string, type: "over" | "under"): number | null {
+  // Only use pre-calculated metrics from Redis
+  const metrics = item.metrics?.[activeLine]?.[type];
+  return metrics?.value_pct !== undefined ? Math.round(metrics.value_pct * 10) / 10 : null;
+}
+
+// Function to get average odds from pre-calculated metrics
+function getAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): number | null {
+  return item.metrics?.[activeLine]?.[type]?.avg_price ?? null;
+}
+
+// Function to render average odds cell with both over/under
+function renderAverageOddsCell(item: PlayerOdds, activeLine: string): ReactElement {
+  const overAvgOdds = getAverageOdds(item, activeLine, "over");
+  const underAvgOdds = getAverageOdds(item, activeLine, "under");
+
+  return (
+    <td className="px-2 py-2">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
+            <span className="text-sm text-gray-700 dark:text-slate-300">
+              {overAvgOdds ? formatOdds(Math.round(overAvgOdds)) : "-"}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
+            <span className="text-sm text-gray-700 dark:text-slate-300">
+              {underAvgOdds ? formatOdds(Math.round(underAvgOdds)) : "-"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </td>
+  );
+}
+
+// Update helper function to get max EV using only pre-calculated metrics
+function getMaxEV(item: ProcessedPlayerOdds): number {
+  // Only use pre-calculated metrics
+  const metrics = item.metrics?.[item.activeLine];
+  if (!metrics) return 0;
+
+  const overValue = metrics.over?.value_pct || 0;
+  const underValue = metrics.under?.value_pct || 0;
+  return Math.max(overValue, underValue);
 }
 
 interface ProcessedPlayerOdds extends PlayerOdds {
@@ -169,82 +124,113 @@ function renderClickableOdds(
   return <OddsDisplay odds={odds.price} link={odds.link} className="text-sm" />
 }
 
-// Update the renderEV function to include both average and fair odds in tooltip
+// Update the renderEV function with consistent width
 function renderEV(
-  bestOdds: number | null | undefined,
-  avgOdds: number | null | undefined,
-  marketOverOdds: number | null | undefined,
-  marketUnderOdds: number | null | undefined,
-  method: "market-average" | "no-vig" = "market-average",
-  odds: Record<string, BookmakerOdds>,
+  item: PlayerOdds,
+  activeLine: string,
   type: "over" | "under",
 ): ReactElement | null {
-  if (!bestOdds)
+  // Get Value% from pre-calculated metrics only
+  const valuePercent = getValuePercent(item, activeLine, type);
+  
+  const containerClasses = "flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50 min-w-[80px]";
+  const contentClasses = "flex items-center gap-1 w-full justify-center";
+  
+  if (!valuePercent || valuePercent <= 0) {
     return (
-      <div className="min-w-[30px] text-center">
-        <span className="text-gray-500">-</span>
+      <div className={containerClasses}>
+        <div className={contentClasses}>
+          <span className="text-gray-500 w-full text-center">-</span>
+        </div>
       </div>
-    )
-
-  let ev: number | null = null
-  let fairOdds: number | null = null
-
-  if (method === "market-average") {
-    if (!avgOdds)
-      return (
-        <div className="min-w-[30px] text-center">
-          <span className="text-gray-500">-</span>
-        </div>
-      )
-    ev = calculateEVPercentage(bestOdds, avgOdds)
-    fairOdds = avgOdds
-  } else {
-    ev = calculateNoVigEV(bestOdds, odds, type)
-    if (!ev)
-      return (
-        <div className="min-w-[30px] text-center">
-          <span className="text-gray-500">-</span>
-        </div>
-      )
-
-    // Calculate fair odds
-    const top3Over = getTop3Odds(odds, "over")
-    const top3Under = getTop3Odds(odds, "under")
-
-    if (top3Over.length >= 3 && top3Under.length >= 3) {
-      const avgOverProb = top3Over.map(calculateImpliedProbability).reduce((a, b) => a + b, 0) / 3
-      const avgUnderProb = top3Under.map(calculateImpliedProbability).reduce((a, b) => a + b, 0) / 3
-      const vigTotal = avgOverProb + avgUnderProb
-      const noVigProb = type === "over" ? avgOverProb / vigTotal : avgUnderProb / vigTotal
-      fairOdds = decimalToAmerican(1 / noVigProb)
-    }
+    );
   }
 
-  // Only show positive EV
-  if (!ev || ev <= 0)
+  // Get metrics for tooltip
+  const metrics = item.metrics?.[activeLine]?.[type];
+  if (!metrics) {
     return (
-      <div className="min-w-[30px] text-center">
-        <span className="text-gray-500">-</span>
+      <div className={containerClasses}>
+        <div className={contentClasses}>
+          <span className="text-gray-500 w-full text-center">-</span>
+        </div>
       </div>
-    )
+    );
+  }
 
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>
-          <div className="min-w-[30px] text-center">
-            <span className="text-green-500">+{ev.toFixed(1)}%</span>
+        <TooltipTrigger asChild>
+          <div className={containerClasses}>
+            <div className={contentClasses}>
+              <span className={`text-sm font-medium ${valuePercent > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                +{valuePercent.toFixed(1)}%
+              </span>
+            </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent className="max-w-xs">
           <div className="space-y-1">
-            <p>Your odds: {formatOdds(bestOdds)}</p>
-            {fairOdds && <p>Fair odds: {formatOdds(fairOdds)}</p>}
+            <p className="font-semibold">Value Analysis</p>
+            <p>Best: {formatOdds(metrics.best_price)}</p>
+            <p>Average: {formatOdds(Math.round(metrics.avg_price))}</p>
+            <p>Value: +{valuePercent.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500">Market Average Method</p>
           </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
+  );
+}
+
+// Update the average odds cell with consistent width
+function renderAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): ReactElement | null {
+  const avgOdds = getAverageOdds(item, activeLine, type);
+  
+  const containerClasses = "flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50 min-w-[80px]";
+  const contentClasses = "flex items-center gap-1 w-full justify-center";
+  
+  if (!avgOdds) {
+    return (
+      <div className={containerClasses}>
+        <div className={contentClasses}>
+          <span className="text-gray-500 w-full text-center">-</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Round to nearest whole number
+  const roundedOdds = Math.round(avgOdds);
+
+  return (
+    <div className={containerClasses}>
+      <div className={contentClasses}>
+        <span className="text-gray-600 dark:text-gray-300">
+          {formatOdds(roundedOdds)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Update the table cell to show both over/under values with consistent styling
+function renderValueCell(item: PlayerOdds, activeLine: string): ReactElement {
+  return (
+    <td className="px-2 py-2">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500 dark:text-slate-400 w-4">O</span>
+          {renderEV(item, activeLine, "over")}
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500 dark:text-slate-400 w-4">U</span>
+          {renderEV(item, activeLine, "under")}
+        </div>
+      </div>
+    </td>
+  );
 }
 
 // Helper function to format odds list for tooltip
@@ -271,47 +257,12 @@ function getFairOddsExplanation(odds: Record<string, BookmakerOdds>, type: "over
   return `Based on ${validBooks.length} books${hasPinnacle ? " (including Pinnacle with 10x weight)" : ""}`
 }
 
-// Add helper function to calculate max EV
-function getMaxEV(
-  item: ProcessedPlayerOdds,
-  evMethod: "market-average" | "no-vig",
-  avgOdds: { over: number | null; under: number | null },
-): number {
-  const odds = item.lines[item.activeLine]
-
-  // Calculate over EV
-  let overEV: number | null = null
-  if (item.bestOverOdds?.price) {
-    if (evMethod === "market-average") {
-      overEV = avgOdds.over ? calculateEVPercentage(item.bestOverOdds.price, avgOdds.over) : null
-    } else {
-      overEV = calculateNoVigEV(item.bestOverOdds.price, odds, "over")
-    }
-  }
-
-  // Calculate under EV
-  let underEV: number | null = null
-  if (item.bestUnderOdds?.price) {
-    if (evMethod === "market-average") {
-      underEV = avgOdds.under ? calculateEVPercentage(item.bestUnderOdds.price, avgOdds.under) : null
-    } else {
-      underEV = calculateNoVigEV(item.bestUnderOdds.price, odds, "under")
-    }
-  }
-
-  // Return the maximum positive EV, or -Infinity if no positive EVs
-  const maxEV = Math.max(overEV || Number.NEGATIVE_INFINITY, underEV || Number.NEGATIVE_INFINITY)
-
-  return maxEV > 0 ? maxEV : Number.NEGATIVE_INFINITY
-}
-
 interface PropComparisonTableV2Props {
   data: PlayerOdds[]
   sortField: "odds" | "line" | "edge" | "name" | "ev"
   sortDirection: "asc" | "desc"
   onSortChange: (field: "odds" | "line" | "edge" | "name" | "ev", direction: "asc" | "desc") => void
   bestOddsFilter: BestOddsFilter | null
-  evMethod: "market-average" | "no-vig"
   globalLine: string | null
   sport: string
 }
@@ -322,9 +273,8 @@ export function PropComparisonTableV2({
   sortDirection,
   onSortChange,
   bestOddsFilter,
-  evMethod = "market-average",
   globalLine,
-  sport // Remove default - sport should always be provided
+  sport
 }: PropComparisonTableV2Props) {
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -497,10 +447,13 @@ export function PropComparisonTableV2({
 
   // Update the mobile row renderer
   const renderMobileRow = (item: ProcessedPlayerOdds) => {
-    const odds = item.lines[item.activeLine]
-    const teamAbbr = getStandardAbbreviation(item.team, sport)
-    const isExpanded = expandedRows.has(item.player_id.toString())
-    const avgOdds = calculateAverageOdds(odds)
+    const odds = item.lines[item.activeLine];
+    const teamAbbr = getStandardAbbreviation(item.team, sport);
+    const isExpanded = expandedRows.has(item.player_id.toString());
+    
+    // Get average odds from metrics
+    const overAvgOdds = getAverageOdds(item, item.activeLine, "over");
+    const underAvgOdds = getAverageOdds(item, item.activeLine, "under");
 
     return (
       <>
@@ -562,12 +515,8 @@ export function PropComparisonTableV2({
                   <TooltipTrigger className="w-full">
                     <div className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
                       {renderEV(
-                        item.bestOverOdds?.price,
-                        avgOdds.over || null,
-                        item.bestOverOdds?.price || null,
-                        item.bestUnderOdds?.price || null,
-                        evMethod,
-                        item.lines[item.activeLine],
+                        item,
+                        item.activeLine,
                         "over",
                       )}
                     </div>
@@ -582,12 +531,8 @@ export function PropComparisonTableV2({
                   <TooltipTrigger className="w-full">
                     <div className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
                       {renderEV(
-                        item.bestUnderOdds?.price,
-                        avgOdds.under || null,
-                        item.bestOverOdds?.price || null,
-                        item.bestUnderOdds?.price || null,
-                        evMethod,
-                        item.lines[item.activeLine],
+                        item,
+                        item.activeLine,
                         "under",
                       )}
                     </div>
@@ -780,73 +725,53 @@ export function PropComparisonTableV2({
     )
   }
 
-  // Sort and filter the processed data
+  // Update the sorting logic to use metrics
   const sortedData = useMemo(() => {
-    // First filter the data based on bestOddsFilter
-    let filteredData = [...processedData]
-
-    if (bestOddsFilter) {
-      filteredData = filteredData.filter((item) => {
-        const lineOdds = item.lines[item.activeLine] || {}
-        const bookOdds = lineOdds[bestOddsFilter.sportsbook]
-
-        if (!bookOdds) return false
-
-        // For over bets, check if this book has the best over odds
-        if (bestOddsFilter.type === "over") {
-          return (
-            bookOdds.over &&
-            bookOdds.over.price === item.bestOverPrice &&
-            item.bestOverBook === bestOddsFilter.sportsbook
-          )
-        }
-
-        // For under bets, check if this book has the best under odds
-        if (bestOddsFilter.type === "under") {
-          return (
-            bookOdds.under &&
-            bookOdds.under.price === item.bestUnderPrice &&
-            item.bestUnderBook === bestOddsFilter.sportsbook
-          )
-        }
-
-        return false
-      })
-    }
-
-    // Then sort the filtered data
-    return filteredData.sort((a, b) => {
+    return [...processedData].sort((a, b) => {
       if (sortField === "name") {
         return sortDirection === "asc"
           ? a.description.localeCompare(b.description)
-          : b.description.localeCompare(a.description)
+          : b.description.localeCompare(a.description);
       }
-
+      
       if (sortField === "line") {
+        const aLine = parseFloat(a.activeLine);
+        const bLine = parseFloat(b.activeLine);
         return sortDirection === "asc"
-          ? Number.parseFloat(a.activeLine) - Number.parseFloat(b.activeLine)
-          : Number.parseFloat(b.activeLine) - Number.parseFloat(a.activeLine)
+          ? aLine - bLine
+          : bLine - aLine;
       }
-
+      
+      if (sortField === "edge") {
+        const type = bestOddsFilter?.type || 'over';
+        const aValue = getValuePercent(a, a.activeLine, type) || 0;
+        const bValue = getValuePercent(b, b.activeLine, type) || 0;
+        return sortDirection === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+      
       if (sortField === "odds") {
-        const aOdds = Math.max(a.bestOverPrice, a.bestUnderPrice)
-        const bOdds = Math.max(b.bestOverPrice, b.bestUnderPrice)
-        return sortDirection === "asc" ? aOdds - bOdds : bOdds - aOdds
+        const aMetrics = a.metrics?.[a.activeLine]?.over;
+        const bMetrics = b.metrics?.[b.activeLine]?.over;
+        const aBestPrice = aMetrics?.best_price || 0;
+        const bBestPrice = bMetrics?.best_price || 0;
+        return sortDirection === "asc"
+          ? aBestPrice - bBestPrice
+          : bBestPrice - aBestPrice;
       }
 
       if (sortField === "ev") {
-        const avgOddsA = calculateAverageOdds(a.lines[a.activeLine])
-        const avgOddsB = calculateAverageOdds(b.lines[b.activeLine])
-
-        const maxEVA = getMaxEV(a, evMethod, avgOddsA)
-        const maxEVB = getMaxEV(b, evMethod, avgOddsB)
-
-        return sortDirection === "asc" ? maxEVA - maxEVB : maxEVB - maxEVA
+        const aValue = getMaxEV(a);
+        const bValue = getMaxEV(b);
+        return sortDirection === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
       }
 
-      return 0
-    })
-  }, [processedData, sortField, sortDirection, evMethod, bestOddsFilter, sport])
+      return 0;
+    });
+  }, [processedData, sortField, sortDirection, bestOddsFilter?.type]);
 
   return (
     <>
@@ -870,7 +795,7 @@ export function PropComparisonTableV2({
                     Odds
                   </TableHead>
                   <TableHead className="w-[20%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    EV%
+                    Value%
                   </TableHead>
                   <TableHead className="w-[10%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     Act
@@ -961,7 +886,7 @@ export function PropComparisonTableV2({
                   </TableHead>
                   <TableHead className="bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
                     <div className="flex items-center justify-end gap-1">
-                      <span>EV%</span>
+                      <span>Value%</span>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1016,7 +941,7 @@ export function PropComparisonTableV2({
               const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
               const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
               const isHomeTeam = teamAbbr === homeTeamAbbr
-              const avgOdds = calculateAverageOdds(odds)
+              const avgOdds = getAverageOdds(item, item.activeLine, "over")
 
               return (
                 <TableRow key={item.player_id} className="border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/50">
@@ -1124,67 +1049,9 @@ export function PropComparisonTableV2({
                       </div>
                     </TableCell>
                     {/* Avg Odds cell */}
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
-                            <span className="text-sm text-gray-700 dark:text-slate-300">{avgOdds.over ? formatOdds(avgOdds.over) : "-"}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
-                            <span className="text-sm text-gray-700 dark:text-slate-300">{avgOdds.under ? formatOdds(avgOdds.under) : "-"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    {/* EV% cell */}
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger className="w-full">
-                              <div className="flex items-center justify-center px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                                {renderEV(
-                                  item.bestOverOdds?.price,
-                                  avgOdds.over || null,
-                                  item.bestOverOdds?.price || null,
-                                  item.bestUnderOdds?.price || null,
-                                  evMethod,
-                                  item.lines[item.activeLine],
-                                  "over",
-                                )}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{getFairOddsExplanation(item.lines[item.activeLine], "over")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger className="w-full">
-                              <div className="flex items-center justify-center px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                                {renderEV(
-                                  item.bestUnderOdds?.price,
-                                  avgOdds.under || null,
-                                  item.bestOverOdds?.price || null,
-                                  item.bestUnderOdds?.price || null,
-                                  evMethod,
-                                  item.lines[item.activeLine],
-                                  "under",
-                                )}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{getFairOddsExplanation(item.lines[item.activeLine], "under")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
+                    {renderAverageOddsCell(item, item.activeLine)}
+                    {/* Value% cell */}
+                    {renderValueCell(item, item.activeLine)}
                     {/* Sportsbook cells */}
                     {activeSportsbooks.map((book) => {
                       const bookId = book.id.toLowerCase()

@@ -29,6 +29,16 @@ export interface OddsData {
   last_update?: string;
 }
 
+export interface LineMetrics {
+  avg_price: number;
+  avg_decimal: number;
+  fair_odds: number | null;
+  ev_pct: number | null;
+  best_book: string;
+  best_price: number;
+  value_pct: number;
+}
+
 export interface PlayerOdds {
   description: string;
   player_id: number;
@@ -46,6 +56,10 @@ export interface PlayerOdds {
   best_over_book?: string;
   best_under_book?: string;
   primary_line?: string; // Add this property
+  metrics?: Record<string, {
+    over?: LineMetrics;
+    under?: LineMetrics;
+  }>; // Add pre-calculated metrics from Redis
 }
 
 export interface PropComparisonParams {

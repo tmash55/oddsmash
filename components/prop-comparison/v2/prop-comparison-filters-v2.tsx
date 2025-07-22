@@ -65,8 +65,6 @@ interface PropComparisonFiltersV2Props {
   refetch: () => void
   viewMode: "table" | "grid"
   onViewModeChange: (mode: "table" | "grid") => void
-  evMethod?: "market-average" | "no-vig"
-  onEvMethodChange?: (method: "market-average" | "no-vig") => void
 }
 
 // Helper functions for team logos and abbreviations
@@ -205,8 +203,6 @@ export function PropComparisonFiltersV2({
   refetch,
   viewMode,
   onViewModeChange,
-  evMethod = "market-average",
-  onEvMethodChange,
 }: PropComparisonFiltersV2Props) {
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -431,7 +427,7 @@ export function PropComparisonFiltersV2({
           value={globalLine || "standard"} 
           onValueChange={(value) => onGlobalLineChange(value === "standard" ? null : value)}
         >
-          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
             <SelectValue>
               {globalLine || "Standard Lines"}
             </SelectValue>
@@ -463,7 +459,7 @@ export function PropComparisonFiltersV2({
       <div className="space-y-3">
         <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Market</Label>
         <Select value={market} onValueChange={onMarketChange}>
-          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
             <SelectValue placeholder="Select market" />
           </SelectTrigger>
           <SelectContent>
@@ -502,14 +498,14 @@ export function PropComparisonFiltersV2({
         <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sort By</Label>
         <div className="flex gap-3">
           <Select value={sortField} onValueChange={(value) => onSortChange(value as typeof sortField, sortDirection)}>
-            <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+            <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="name">Player</SelectItem>
               <SelectItem value="line">Line</SelectItem>
               <SelectItem value="odds">Best Odds</SelectItem>
-              <SelectItem value="ev">Expected Value</SelectItem>
+              <SelectItem value="ev">Value</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -528,36 +524,6 @@ export function PropComparisonFiltersV2({
       {/* Advanced Settings Section */}
       <div className="space-y-6">
         <h3 className="font-semibold text-base text-slate-800 dark:text-slate-200">Advanced Settings</h3>
-
-        {/* EV Method */}
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-            EV Calculation
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <BarChart3 className="h-4 w-4 text-blue-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-sm">Choose how to calculate Expected Value</p>
-                  <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-1">
-                    <li>Market Average: Uses average odds across books</li>
-                    <li>No Vig: Removes vigorish from market prices</li>
-                  </ul>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Select value={evMethod} onValueChange={(value: "market-average" | "no-vig") => onEvMethodChange?.(value)}>
-            <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
-              <SelectValue placeholder="Choose EV method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="market-average">Market Average</SelectItem>
-              <SelectItem value="no-vig">No Vig</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Best Odds Filter */}
         <div className="space-y-3">
@@ -589,7 +555,7 @@ export function PropComparisonFiltersV2({
                 }
               }}
             >
-              <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+              <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
                 <SelectValue placeholder="Select sportsbook" />
               </SelectTrigger>
               <SelectContent>
@@ -613,7 +579,7 @@ export function PropComparisonFiltersV2({
                   })
                 }}
               >
-                <SelectTrigger className="w-24 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+                <SelectTrigger className="w-24 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -788,7 +754,7 @@ export function PropComparisonFiltersV2({
                     <SelectItem value="name">Player</SelectItem>
                     <SelectItem value="line">Line</SelectItem>
                     <SelectItem value="odds">Best Odds</SelectItem>
-                    <SelectItem value="ev">Expected Value</SelectItem>
+                    <SelectItem value="ev">Value</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -815,36 +781,6 @@ export function PropComparisonFiltersV2({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[300px]">
                 <div className="p-4 space-y-4">
-                  {/* EV Method */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      EV Calculation
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <BarChart3 className="h-4 w-4 text-blue-500" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-sm">Choose how to calculate Expected Value</p>
-                            <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4 space-y-1">
-                              <li>Market Average: Uses average odds across books</li>
-                              <li>No Vig: Removes vigorish from market prices</li>
-                            </ul>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </Label>
-                    <Select value={evMethod} onValueChange={(value: "market-average" | "no-vig") => onEvMethodChange?.(value)}>
-                      <SelectTrigger className="w-full h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                        <SelectValue placeholder="Choose EV method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="market-average">Market Average</SelectItem>
-                        <SelectItem value="no-vig">No Vig</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   {/* Best Odds Filter */}
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
@@ -875,7 +811,7 @@ export function PropComparisonFiltersV2({
                           }
                         }}
                       >
-                        <SelectTrigger className="flex-1 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                        <SelectTrigger className="flex-1 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
                           <SelectValue placeholder="Select sportsbook" />
                         </SelectTrigger>
                         <SelectContent>
@@ -899,7 +835,7 @@ export function PropComparisonFiltersV2({
                             })
                           }}
                         >
-                          <SelectTrigger className="w-24 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                          <SelectTrigger className="w-24 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
                             <SelectValue placeholder="Type" />
                           </SelectTrigger>
                           <SelectContent>

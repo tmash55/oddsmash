@@ -215,8 +215,21 @@ function calculateAveragePrice(odds: Record<string, BookOdds> | undefined, type:
   return count > 0 ? decimalToAmerican(decimalSum / count) : null;
 }
 
-// Add helper function to get max EV for sorting
+// Update helper function to get max EV using pre-calculated metrics
 function getMaxEV(item: PlayerOdds, evMethod: "market-average" | "no-vig", selectedLine: string): number {
+  // Try to get from pre-calculated metrics first
+  const metrics = item.metrics?.[selectedLine];
+  if (metrics) {
+    const overValue = metrics.over?.value_pct || 0;
+    const underValue = metrics.under?.value_pct || 0;
+    const maxValue = Math.max(overValue, underValue);
+    
+    if (maxValue > 0) {
+      return maxValue;
+    }
+  }
+
+  // Fallback to original calculation if metrics not available
   const lineOdds = item.lines[selectedLine];
   if (!lineOdds) return -Infinity;
 
@@ -251,6 +264,27 @@ function getMaxEV(item: PlayerOdds, evMethod: "market-average" | "no-vig", selec
   }
   
   return maxEV;
+}
+
+// Add helper function to get Value% from pre-calculated metrics
+function getValuePercent(item: PlayerOdds, selectedLine: string, type: "over" | "under"): number | null {
+  // First try to get from pre-calculated metrics
+  const metrics = item.metrics?.[selectedLine]?.[type];
+  if (metrics?.value_pct !== undefined) {
+    return Math.round(metrics.value_pct * 10) / 10; // Round to 1 decimal
+  }
+  
+  // Fallback to frontend calculation if metrics not available
+  const lineOdds = item.lines[selectedLine];
+  if (!lineOdds) return null;
+  
+  const bestOdds = type === "over" ? item.best_over_price : item.best_under_price;
+  if (!bestOdds) return null;
+  
+  const avgPrice = calculateAveragePrice(lineOdds, type);
+  if (!avgPrice) return null;
+  
+  return calculateEVPercentage(bestOdds, avgPrice, type);
 }
 
 export function PropComparisonCardV2({ 
@@ -303,9 +337,8 @@ export function PropComparisonCardV2({
     }
     
     if (sortField === "ev") {
-      // Reverse the sort direction for EV to match table view
       const maxEV = getMaxEV(data, evMethod, selectedLine);
-      return maxEV === -Infinity ? null : (sortDirection === "asc" ? -maxEV : maxEV);
+      return maxEV === -Infinity ? null : maxEV;
     }
     
     return null;
@@ -330,9 +363,8 @@ export function PropComparisonCardV2({
         break;
       case "ev":
         // Don't show badge if EV is -Infinity or negative
-        if (typeof sortValue !== 'number' || Math.abs(sortValue) <= 0) return null;
-        // For display, always show positive value regardless of sort direction
-        displayValue = `${Math.abs(sortValue).toFixed(1)}%`;
+        if (typeof sortValue !== 'number' || sortValue <= 0) return null;
+        displayValue = `${sortValue.toFixed(1)}%`;
         colorClass = "text-blue-500";
         break;
     }
@@ -532,26 +564,15 @@ export function PropComparisonCardV2({
     return `${formatOdds(result)}`
   }
 
-  // Calculate EV for display
-  const calculateEV = (odds: OddsWithBook | null, type: 'over' | 'under'): number | null => {
-    if (!odds?.price) return null;
-
-    const lineOdds = data.lines[selectedLine];
-    if (!lineOdds) return null;
-
-    if (evMethod === "market-average") {
-      const avgPrice = calculateAveragePrice(lineOdds, type);
-      if (!avgPrice) return null;
-
-      return calculateEVPercentage(odds.price, avgPrice, type);
-    } else {
-      return calculateNoVigEV(odds.price, lineOdds, type);
-    }
+  // Update EV calculation to use pre-calculated metrics
+  const calculateEV = (type: 'over' | 'under'): number | null => {
+    // Try to get from pre-calculated metrics first
+    return getValuePercent(data, selectedLine, type);
   };
 
-  // Calculate EVs for both sides
-  const overEV = calculateEV(bestOdds.over, 'over');
-  const underEV = calculateEV(bestOdds.under, 'under');
+  // Calculate EVs for both sides using pre-calculated metrics
+  const overEV = calculateEV('over');
+  const underEV = calculateEV('under');
 
   // If filtered out by best odds filter, render nothing
   if (bestOddsFilter && !bestOdds.over && !bestOdds.under) {
@@ -571,14 +592,14 @@ export function PropComparisonCardV2({
               {/* Player Info */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 ring-2 ring-white dark:ring-gray-800 shadow-sm">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 ring-2 ring-white dark:ring-gray-800 shadow-sm">
                     {data.description ? (
                       <div className="relative w-full h-full">
                         <Image
                           src={getPlayerHeadshotUrl(data.player_id.toString(), sport)}
                           alt={data.description || "Player"}
-                          width={48}
-                          height={48}
+                          width={64}
+                          height={64}
                           className="object-cover w-full h-full"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -587,24 +608,24 @@ export function PropComparisonCardV2({
                             target.parentElement.querySelector('.player-initials')?.classList.remove('hidden');
                           }}
                         />
-                        <div className="player-initials hidden absolute inset-0 flex items-center justify-center text-lg font-semibold text-gray-600 dark:text-gray-300">
+                        <div className="player-initials hidden absolute inset-0 flex items-center justify-center text-xl font-semibold text-gray-600 dark:text-gray-300">
                           {getPlayerInitials(data.description)}
                         </div>
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-semibold text-gray-600 dark:text-gray-300">
+                      <div className="w-full h-full flex items-center justify-center text-xl font-semibold text-gray-600 dark:text-gray-300">
                         NA
                       </div>
                     )}
                   </div>
                   {/* Team logo overlay */}
                   {data.team && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white dark:bg-gray-800 shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden">
+                    <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-white dark:bg-gray-800 shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden">
                       <Image
                         src={getTeamLogoUrl(data.team, sport)}
                         alt={data.team}
-                        width={24}
-                        height={24}
+                        width={28}
+                        height={28}
                         className="object-contain w-full h-full p-0.5"
                       />
                     </div>
