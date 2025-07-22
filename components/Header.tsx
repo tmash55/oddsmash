@@ -29,7 +29,6 @@ import {
   Menu,
   BarChart3,
   LineChart,
-  Zap,
   ChevronRight,
   Home,
   Activity,
@@ -53,7 +52,6 @@ import Image from "next/image"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useBetslip } from "@/contexts/betslip-context"
 import { ThemeToggle } from "./theme-toggle"
-import { SportLogo } from "./sport-logo"
 import { sports } from "@/data/sports-data"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useEffect, useState } from "react"
@@ -94,7 +92,6 @@ export function Header() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [preferences, setPreferences] = useState<UserPreferences>({})
   const [loading, setLoading] = useState(true)
-
   const supabase = createClient()
 
   // Filter active sports
@@ -242,54 +239,6 @@ export function Header() {
     },
   ]
 
-  // Generate player props items from active sports (for authenticated users)
-  const playerPropsItems = activeSports.map((sport) => {
-    // Create description based on sport type
-    let description = ""
-    if (sport.id.includes("basketball")) {
-      description = "Points, rebounds, assists and more"
-    } else if (sport.id.includes("football") || sport.id.includes("nfl")) {
-      description = "Passing, rushing, receiving yards"
-    } else if (sport.id.includes("baseball")) {
-      description = "Home runs, hits, strikeouts"
-    } else if (sport.id.includes("hockey")) {
-      description = "Goals, assists, saves"
-    } else {
-      description = "Player statistics and props"
-    }
-
-    // Create URL path from sport ID
-    const sportPath = sport.id.split("_").pop() || sport.id
-    return {
-      title: sport.name,
-      description,
-      href: `/${sportPath.toLowerCase()}/odds/player-props`,
-      icon: <SportLogo sport={sport.id} size="xs" />,
-    }
-  })
-
-  // Hit rates items (for authenticated users)
-  const hitRatesItems = [
-    {
-      title: "Hit Rates",
-      description: "Track player prop hit rates and trends",
-      href: "/mlb/hit-rates?market=hits",
-      icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
-    },
-    {
-      title: "Hit Sheets",
-      description: "Instant access to the most popular hit-rate sheets—player streaks, strikeout rates, and More",
-      href: "/hit-sheets",
-      icon: <Zap className="h-4 w-4 text-green-600" />,
-    },
-    {
-      title: "Data Duels",
-      description: "Coming Soon",
-      href: "#",
-      icon: <Activity className="h-4 w-4 text-purple-600" />,
-    },
-  ]
-
   // Tracker items (for authenticated users)
   const trackerItems = [
     {
@@ -322,27 +271,11 @@ export function Header() {
       description: "Dashboard and overview",
     },
     {
-      title: "Player Props",
-      href: "/mlb/props",
-      icon: <BarChart3 className="h-5 w-5 text-blue-600" />,
+      title: "Smash Screen",
+      href: "/mlb/odds/player-props?market=home+runs",
+      icon: <Target className="h-5 w-5 text-purple-600" />,
       isActive: pathname?.includes("/odds/player-props"),
-      description: "Compare odds across sports",
-      children: playerPropsItems,
-    },
-    {
-      title: "Analytics",
-      href: "/mlb/hit-rates?market=hits",
-      icon: <Activity className="h-5 w-5 text-green-600" />,
-      isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
-      description: "Advanced player analytics",
-      children: hitRatesItems,
-    },
-    {
-      title: "Parlay Builder",
-      href: "/parlay-builder",
-      icon: <LineChart className="h-5 w-5 text-purple-600" />,
-      isActive: pathname?.startsWith("/parlay-builder"),
-      description: "Build winning parlays",
+      description: "Compare every book in seconds to find your edge",
     },
     {
       title: "Scanner",
@@ -352,24 +285,85 @@ export function Header() {
       description: "Scan and analyze betslips",
     },
     {
-      title: "History",
-      href: "/history",
-      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
-      isActive: pathname?.startsWith("/history"),
-      description: "View your betslip history",
+      title: "Hit Rates",
+      href: "/mlb/hit-rates?market=hits",
+      icon: <Activity className="h-5 w-5 text-green-600" />,
+      isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
+      description: "Track player prop hit rates and trends",
+    },
+    {
+      title: "Parlay Builder",
+      href: "/parlay-builder",
+      icon: <LineChart className="h-5 w-5 text-blue-600" />,
+      isActive: pathname?.startsWith("/parlay-builder"),
+      description: "Build winning parlays",
     },
     {
       title: "Trackers",
       href: "#",
       icon: <Crown className="h-5 w-5 text-yellow-600" />,
       isActive: pathname?.startsWith("/trackers"),
-      description: "Live leaderboards",
+      description: "DraftKings King of the * trackers",
       children: trackerItems,
+    },
+    {
+      title: "History",
+      href: "/history",
+      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
+      isActive: pathname?.startsWith("/history"),
+      description: "View your betslip history",
     },
   ]
 
-  // Choose navigation items based on auth state
-  const navigationItems = user ? authenticatedNavigationItems : publicNavigationItems
+  // Mobile navigation items (excluding Home)
+  const mobileNavigationItems = [
+    {
+      title: "Smash Screen",
+      href: "/mlb/odds/player-props?market=home+runs",
+      icon: <Target className="h-5 w-5 text-purple-600" />,
+      isActive: pathname?.includes("/odds/player-props"),
+      description: "Compare every book in seconds to find your edge",
+    },
+    {
+      title: "Scanner",
+      href: "/betslip-scanner",
+      icon: <Sparkles className="h-5 w-5 text-orange-600" />,
+      isActive: pathname?.startsWith("/betslip-scanner"),
+      description: "Scan and analyze betslips",
+    },
+    {
+      title: "Hit Rate",
+      href: "/mlb/hit-rates?market=hits",
+      icon: <Activity className="h-5 w-5 text-green-600" />,
+      isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
+      description: "Track player prop hit rates and trends",
+    },
+    {
+      title: "Parlay Builder",
+      href: "/parlay-builder",
+      icon: <LineChart className="h-5 w-5 text-blue-600" />,
+      isActive: pathname?.startsWith("/parlay-builder"),
+      description: "Build winning parlays",
+    },
+    {
+      title: "Trackers",
+      href: "#",
+      icon: <Crown className="h-5 w-5 text-yellow-600" />,
+      isActive: pathname?.startsWith("/trackers"),
+      description: "DraftKings King of the * trackers",
+      children: trackerItems,
+    },
+    {
+      title: "History",
+      href: "/history",
+      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
+      isActive: pathname?.startsWith("/history"),
+      description: "View your betslip history",
+    },
+  ]
+
+  // Choose navigation items based on auth state and platform
+  const navigationItems = user ? (isMobile ? mobileNavigationItems : authenticatedNavigationItems) : publicNavigationItems
 
   // Public features for marketing dropdown
   const publicFeatures = [
@@ -481,138 +475,44 @@ export function Header() {
                   // Authenticated Navigation
                   <>
                     <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
-                          pathname?.startsWith("/props") &&
-                            "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
-                        )}
-                      >
-                        <BarChart3 className="w-4 h-4 mr-1.5" />
-                        Props
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="w-[500px] p-4"
+                      <Link href="/mlb/odds/player-props?market=home+runs" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap group relative",
+                            pathname?.includes("/odds/player-props") &&
+                              "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                          )}
+                          title="Compare every book in seconds to find your edge"
                         >
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
-                                <NavigationMenuLink asChild>
-                                  <Link
-                                    href="/mlb/odds/player-props"
-                                    className="block space-y-2 no-underline outline-none transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                        <BarChart3 className="w-4 h-4 text-white" />
-                                      </div>
-                                      <div className="font-semibold text-blue-900 dark:text-blue-100">
-                                        Player Props Hub
-                                      </div>
-                                    </div>
-                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                      Compare player performance odds across all active sports
-                                    </p>
-                                  </Link>
-                                </NavigationMenuLink>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              {playerPropsItems.slice(0, 4).map((item) => (
-                                <NavigationMenuLink key={item.title} asChild>
-                                  <Link
-                                    href={item.href}
-                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                  >
-                                    {item.icon}
-                                    <div>
-                                      <div className="font-medium text-sm">{item.title}</div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                    </div>
-                                  </Link>
-                                </NavigationMenuLink>
-                              ))}
-                            </div>
-                          </div>
-                        </motion.div>
-                      </NavigationMenuContent>
+                          <Target className="w-4 h-4 mr-1.5" />
+                          Smash Screen
+                        </NavigationMenuLink>
+                      </Link>
                     </NavigationMenuItem>
 
                     <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 data-[state=open]:bg-green-50 dark:data-[state=open]:bg-green-950/50 text-sm",
-                          (pathname?.startsWith("/hit-rates") ||
-                            pathname?.startsWith("/hit-sheets") ||
-                            pathname?.startsWith("/data-duels")) &&
-                            "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
-                        )}
-                      >
-                        <Activity className="w-4 h-4 mr-1.5" />
-                        Analytics
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="w-[500px] p-4"
+                      <Link href="/mlb/hit-rates?market=hits" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={cn(
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            (pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets")) &&
+                              "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
+                          )}
+                          title="Track player prop hit rates and trends"
                         >
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                              <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border border-green-200/50 dark:border-green-800/50">
-                                <NavigationMenuLink asChild>
-                                  <Link
-                                    href="/hit-rates"
-                                    className="block space-y-2 no-underline outline-none transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
-                                        <Activity className="w-4 h-4 text-white" />
-                                      </div>
-                                      <div className="font-semibold text-green-900 dark:text-green-100">
-                                        Analytics Hub
-                                      </div>
-                                    </div>
-                                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-                                      Advanced player analytics and trend data
-                                    </p>
-                                  </Link>
-                                </NavigationMenuLink>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              {hitRatesItems.map((item) => (
-                                <NavigationMenuLink key={item.title} asChild>
-                                  <Link
-                                    href={item.href}
-                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                  >
-                                    {item.icon}
-                                    <div>
-                                      <div className="font-medium text-sm">{item.title}</div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                    </div>
-                                  </Link>
-                                </NavigationMenuLink>
-                              ))}
-                            </div>
-                          </div>
-                        </motion.div>
-                      </NavigationMenuContent>
+                          <Activity className="w-4 h-4 mr-1.5" />
+                          Hit Rate
+                        </NavigationMenuLink>
+                      </Link>
                     </NavigationMenuItem>
 
                     <NavigationMenuItem>
                       <Link href="/parlay-builder" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 inline-flex items-center text-sm whitespace-nowrap",
                             pathname?.startsWith("/parlay-builder") &&
-                              "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                              "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
                           )}
                         >
                           <LineChart className="w-4 h-4 mr-1.5" />
@@ -974,7 +874,6 @@ export function Header() {
                     </SheetClose>
                   </div>
                 </SheetHeader>
-
                 <div className="flex-1 overflow-auto">
                   <nav className="p-4 space-y-3">
                     {navigationItems.map((item, index) => (
@@ -1092,7 +991,6 @@ export function Header() {
                     ))}
                   </nav>
                 </div>
-
                 {/* Enhanced Footer */}
                 <div className="border-t border-border/50 p-6 bg-muted/20 backdrop-blur-sm">
                   <div className="flex items-center justify-between mb-4">
@@ -1172,7 +1070,6 @@ export function Header() {
                     </SheetClose>
                   </div>
                 </SheetHeader>
-
                 <div className="flex-1 overflow-auto">
                   {/* User Profile Section */}
                   {user ? (
@@ -1203,7 +1100,6 @@ export function Header() {
                           </Badge>
                         </div>
                       </motion.div>
-
                       <div className="mt-6 space-y-3">
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
@@ -1228,7 +1124,6 @@ export function Header() {
                             </Link>
                           </SheetClose>
                         </motion.div>
-
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -1252,7 +1147,6 @@ export function Header() {
                             </Link>
                           </SheetClose>
                         </motion.div>
-
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -1317,7 +1211,6 @@ export function Header() {
                     </div>
                   )}
                 </div>
-
                 {/* Enhanced Footer */}
                 <div className="border-t border-border/50 p-6 bg-muted/20 backdrop-blur-sm">
                   <div className="flex items-center justify-between mb-4">

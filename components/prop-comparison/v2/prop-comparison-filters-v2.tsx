@@ -431,7 +431,7 @@ export function PropComparisonFiltersV2({
           value={globalLine || "standard"} 
           onValueChange={(value) => onGlobalLineChange(value === "standard" ? null : value)}
         >
-          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
             <SelectValue>
               {globalLine || "Standard Lines"}
             </SelectValue>
@@ -463,7 +463,7 @@ export function PropComparisonFiltersV2({
       <div className="space-y-3">
         <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Market</Label>
         <Select value={market} onValueChange={onMarketChange}>
-          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
             <SelectValue placeholder="Select market" />
           </SelectTrigger>
           <SelectContent>
@@ -502,7 +502,7 @@ export function PropComparisonFiltersV2({
         <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sort By</Label>
         <div className="flex gap-3">
           <Select value={sortField} onValueChange={(value) => onSortChange(value as typeof sortField, sortDirection)}>
-            <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
@@ -549,7 +549,7 @@ export function PropComparisonFiltersV2({
             </TooltipProvider>
           </Label>
           <Select value={evMethod} onValueChange={(value: "market-average" | "no-vig") => onEvMethodChange?.(value)}>
-            <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+            <SelectTrigger className="w-full h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
               <SelectValue placeholder="Choose EV method" />
             </SelectTrigger>
             <SelectContent>
@@ -589,7 +589,7 @@ export function PropComparisonFiltersV2({
                 }
               }}
             >
-              <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+              <SelectTrigger className="flex-1 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
                 <SelectValue placeholder="Select sportsbook" />
               </SelectTrigger>
               <SelectContent>
@@ -613,7 +613,7 @@ export function PropComparisonFiltersV2({
                   })
                 }}
               >
-                <SelectTrigger className="w-24 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                <SelectTrigger className="w-24 h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
