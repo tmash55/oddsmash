@@ -27,7 +27,6 @@ interface UseTransformedDataParams {
   bestOddsFilter: BestOddsFilter | null;
   sortField: "odds" | "line" | "edge" | "name" | "ev";
   sortDirection: "asc" | "desc";
-  evMethod: "market-average" | "no-vig";
 }
 
 interface UseTransformedDataResult {

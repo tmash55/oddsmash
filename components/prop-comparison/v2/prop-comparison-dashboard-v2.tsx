@@ -102,7 +102,8 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
   const [selectedLine, setSelectedLine] = useState<string | null>(null)
   const [globalLine, setGlobalLine] = useState<string | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[] | null>(null)
-  const [evMethod, setEvMethod] = useState<"market-average" | "no-vig">("market-average")
+  // Remove evMethod state
+  // const [evMethod, setEvMethod] = useState<"market-average" | "no-vig">("market-average")
 
   // Sort states
   const [sortField, setSortField] = useState<"odds" | "line" | "edge" | "name" | "ev">("name")
@@ -138,7 +139,6 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
     bestOddsFilter,
     sortField,
     sortDirection,
-    evMethod,
   })
 
   // Get available games from processed data
@@ -362,8 +362,9 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
             refetch={refetch}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            evMethod={evMethod}
-            onEvMethodChange={setEvMethod}
+            // Remove evMethod props
+            // evMethod={evMethod}
+            // onEvMethodChange={setEvMethod}
           />
         </div>
       </Card>
@@ -420,7 +421,8 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                 setSortDirection(direction)
               }}
               bestOddsFilter={bestOddsFilter}
-              evMethod={evMethod}
+              // Remove evMethod prop
+              // evMethod={evMethod}
               globalLine={globalLine}
               sport={sport}
             />
@@ -438,7 +440,8 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
                     data={item}
                     bestOddsFilter={bestOddsFilter}
                     globalLine={globalLine}
-                    evMethod={evMethod}
+                    // Remove evMethod prop
+                    // evMethod={evMethod}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     sport={sport}

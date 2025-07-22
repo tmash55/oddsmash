@@ -109,7 +109,6 @@ interface PropComparisonCardV3Props {
   }
   bestOddsFilter: BestOddsFilter | null
   globalLine: string | null
-  evMethod: "market-average" | "no-vig"
   sortField: "odds" | "line" | "edge" | "name" | "ev"
   sortDirection: "asc" | "desc"
   sport: string
@@ -215,55 +214,15 @@ function calculateAveragePrice(odds: Record<string, BookOdds> | undefined, type:
   return count > 0 ? decimalToAmerican(decimalSum / count) : null;
 }
 
-// Update helper function to get max EV using pre-calculated metrics
-function getMaxEV(item: PlayerOdds, evMethod: "market-average" | "no-vig", selectedLine: string): number {
-  // Try to get from pre-calculated metrics first
+// Update helper function to get max EV using only pre-calculated metrics
+function getMaxValuePercent(item: PlayerOdds, selectedLine: string): number {
+  // Only use pre-calculated metrics
   const metrics = item.metrics?.[selectedLine];
-  if (metrics) {
-    const overValue = metrics.over?.value_pct || 0;
-    const underValue = metrics.under?.value_pct || 0;
-    const maxValue = Math.max(overValue, underValue);
-    
-    if (maxValue > 0) {
-      return maxValue;
-    }
-  }
+  if (!metrics) return 0;
 
-  // Fallback to original calculation if metrics not available
-  const lineOdds = item.lines[selectedLine];
-  if (!lineOdds) return -Infinity;
-
-  let maxEV = -Infinity;
-  
-  // Calculate EV for over
-  if (item.best_over_price) {
-    let overEV: number | null = null;
-    if (evMethod === "market-average") {
-      const avgPrice = calculateAveragePrice(lineOdds, 'over');
-      if (avgPrice) {
-        overEV = calculateEVPercentage(item.best_over_price, avgPrice, 'over');
-      }
-    } else {
-      overEV = calculateNoVigEV(item.best_over_price, lineOdds, 'over');
-    }
-    if (overEV && overEV > 0) maxEV = Math.max(maxEV, overEV);
-  }
-  
-  // Calculate EV for under
-  if (item.best_under_price) {
-    let underEV: number | null = null;
-    if (evMethod === "market-average") {
-      const avgPrice = calculateAveragePrice(lineOdds, 'under');
-      if (avgPrice) {
-        underEV = calculateEVPercentage(item.best_under_price, avgPrice, 'under');
-      }
-    } else {
-      underEV = calculateNoVigEV(item.best_under_price, lineOdds, 'under');
-    }
-    if (underEV && underEV > 0) maxEV = Math.max(maxEV, underEV);
-  }
-  
-  return maxEV;
+  const overValue = metrics.over?.value_pct || 0;
+  const underValue = metrics.under?.value_pct || 0;
+  return Math.max(overValue, underValue);
 }
 
 // Add helper function to get Value% from pre-calculated metrics
@@ -290,8 +249,7 @@ function getValuePercent(item: PlayerOdds, selectedLine: string, type: "over" | 
 export function PropComparisonCardV2({ 
   data, 
   bestOddsFilter, 
-  globalLine, 
-  evMethod = "market-average",
+  globalLine,
   sortField,
   sortDirection,
   sport
@@ -337,12 +295,12 @@ export function PropComparisonCardV2({
     }
     
     if (sortField === "ev") {
-      const maxEV = getMaxEV(data, evMethod, selectedLine);
-      return maxEV === -Infinity ? null : maxEV;
+      const valuePercent = getMaxValuePercent(data, selectedLine);
+      return valuePercent === 0 ? null : valuePercent;
     }
     
     return null;
-  }, [data, selectedLine, sortField, evMethod, sortDirection]);
+  }, [data, selectedLine, sortField, sortDirection]);
 
   // Add sort value display
   const renderSortValue = () => {
@@ -769,7 +727,7 @@ export function PropComparisonCardV2({
                         <span>Avg: {formatAverageOdds("over")}</span>
                         {overEV && overEV > 0 && (
                           <span className="text-green-500 dark:text-green-400">
-                            EV: +{overEV.toFixed(1)}%
+                            Value: +{overEV.toFixed(1)}%
                           </span>
                         )}
                       </div>
@@ -843,7 +801,7 @@ export function PropComparisonCardV2({
                         <span>Avg: {formatAverageOdds("under")}</span>
                         {underEV && underEV > 0 && (
                           <span className="text-red-500 dark:text-red-400">
-                            EV: +{underEV.toFixed(1)}%
+                            Value: +{underEV.toFixed(1)}%
                           </span>
                         )}
                       </div>
