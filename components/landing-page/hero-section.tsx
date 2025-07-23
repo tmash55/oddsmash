@@ -331,7 +331,7 @@ export function HeroSection() {
                         </div>
                         <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50">
                           <div className="text-sm font-medium text-red-700 dark:text-red-300">Loss</div>
-                          <div className="text-xs text-red-600 dark:text-red-400">Ohtani K's -110</div>
+                          <div className="text-xs text-red-600 dark:text-red-400">Ohtani K&apos;s -110</div>
                         </div>
                       </div>
                     </div>
