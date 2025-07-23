@@ -121,6 +121,9 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
   // Add best odds filter state
   const [bestOddsFilter, setBestOddsFilter] = useState<BestOddsFilter | null>(null)
 
+  // Add lastUpdated state
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
   // Fetch data
   const { data, isLoading, isError, refetch } = usePropComparisonV2({
     sport,
@@ -129,6 +132,20 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
     line: selectedLine,
     gameId: selectedGames?.[0] || undefined,
   })
+
+  // Update lastUpdated when data changes
+  useEffect(() => {
+    if (data?.data?.length > 0) {
+      // Find the most recent last_updated timestamp from all records
+      const mostRecent = data.data.reduce((latest, item) => {
+        if (!item.last_updated) return latest;
+        const itemDate = new Date(item.last_updated);
+        return !latest || itemDate > new Date(latest) ? item.last_updated : latest;
+      }, null as string | null);
+      
+      setLastUpdated(mostRecent);
+    }
+  }, [data]);
 
   // Transform data with optimized caching
   const { processedData, sortedData, totalCount, filteredCount } = useTransformedPropData({
@@ -362,6 +379,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
             refetch={refetch}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            lastUpdated={lastUpdated}
             // Remove evMethod props
             // evMethod={evMethod}
             // onEvMethodChange={setEvMethod}

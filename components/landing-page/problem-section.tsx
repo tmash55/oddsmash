@@ -1,290 +1,346 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
-import { Smartphone, Clock, DollarSign, AlertCircle, CheckCircle, Zap, Target, TrendingUp } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { ChevronLeft, ChevronRight, Upload, ArrowRight, RotateCcw, Copy, HelpCircle } from "lucide-react"
+import Link from "next/link"
+import { useState, useEffect } from "react"
 
-const problemPoints = [
+// Mock parlay data for different sportsbooks
+const parlayData = [
   {
-    icon: <Clock className="h-5 w-5" />,
-    text: "Tired of copy-pasting long parlays into every sportsbook?",
-    highlight: "copy-pasting long parlays",
+    book: "DraftKings",
+    logo: "DK",
+    color: "from-orange-500 to-red-500",
+    payout: "+1247",
+    legs: [
+      "Aaron Judge HR O/U 0.5",
+      "LeBron James Pts O/U 25.5",
+      "Connor McDavid Goals O/U 0.5",
+      "Shohei Ohtani K's O/U 7.5",
+    ],
   },
   {
-    icon: <DollarSign className="h-5 w-5" />,
-    text: "Not sure which book gives you the best value?",
-    highlight: "best value",
+    book: "FanDuel",
+    logo: "FD",
+    color: "from-blue-500 to-blue-600",
+    payout: "+1189",
+    legs: [
+      "Aaron Judge HR O/U 0.5",
+      "LeBron James Pts O/U 25.5",
+      "Connor McDavid Goals O/U 0.5",
+      "Shohei Ohtani K's O/U 7.5",
+    ],
   },
   {
-    icon: <AlertCircle className="h-5 w-5" />,
-    text: "Confused by bots that only compare one book?",
-    highlight: "only compare one book",
+    book: "MGM",
+    logo: "MG",
+    color: "from-green-500 to-green-600",
+    payout: "+1334",
+    legs: [
+      "Aaron Judge HR O/U 0.5",
+      "LeBron James Pts O/U 25.5",
+      "Connor McDavid Goals O/U 0.5",
+      "Shohei Ohtani K's O/U 7.5",
+    ],
   },
 ]
 
-const beforeSteps = [
-  { app: "DraftKings", time: "2 min", status: "checking" },
-  { app: "FanDuel", time: "2 min", status: "checking" },
-  { app: "BetMGM", time: "2 min", status: "checking" },
-  { app: "Caesars", time: "2 min", status: "checking" },
-]
+export function PainSolutionSection() {
+  const [currentParlay, setCurrentParlay] = useState(0)
 
-export function ProblemSection() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [activeView, setActiveView] = useState<"before" | "after">("before")
-  const [currentStep, setCurrentStep] = useState(0)
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
-  // Auto-switch between before/after views
+  // Auto-rotate through parlays
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveView((prev) => (prev === "before" ? "after" : "before"))
-    }, 4000)
+      setCurrentParlay((prev) => (prev + 1) % parlayData.length)
+    }, 3000)
     return () => clearInterval(interval)
   }, [])
 
-  // Animate steps in "before" view
-  useEffect(() => {
-    if (activeView === "before") {
-      const interval = setInterval(() => {
-        setCurrentStep((prev) => (prev + 1) % beforeSteps.length)
-      }, 800)
-      return () => clearInterval(interval)
-    }
-  }, [activeView])
+  const nextParlay = () => {
+    setCurrentParlay((prev) => (prev + 1) % parlayData.length)
+  }
+
+  const prevParlay = () => {
+    setCurrentParlay((prev) => (prev - 1 + parlayData.length) % parlayData.length)
+  }
 
   return (
-    <section className="relative py-16 sm:py-24 bg-slate-50 dark:bg-slate-900/50">
-      <div className="container px-4 mx-auto max-w-7xl">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-6">
-            Sportsbooks want you to guess. <br />
-            <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">
-              We want you to win.
-            </span>
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Stop wasting time manually checking every sportsbook. There&apos;s a better way.
-          </p>
-        </motion.div>
+    <section className="py-20 bg-gradient-to-br from-muted/20 to-background">
+      <div className="container px-4 md:px-6">
+        {/* Desktop Layout */}
+        <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-center">
+          {/* Left - Pain */}
+          <motion.div
+            className="space-y-8"
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-muted-foreground">
+                Hate juggling apps?
+              </h2>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Four sportsbooks. One parlay. A thousand clicks.
+              </p>
+            </div>
 
-        {/* Before/After Comparison */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16"
-        >
-          {/* Before OddSmash */}
-          <Card className="relative overflow-hidden border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-full bg-red-500/10">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Before OddSmash</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">The old way (painful)</p>
-                </div>
+            {/* Pain Points - Unified Icons */}
+            <div className="space-y-4 text-muted-foreground">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="w-6 h-6 text-muted-foreground/70" />
+                <span>Switching between DraftKings, FanDuel, MGM…</span>
               </div>
-
-              <div className="space-y-4">
-                {beforeSteps.map((step, index) => (
-                  <motion.div
-                    key={step.app}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-300 ${
-                      activeView === "before" && index === currentStep
-                        ? "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                        : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="h-4 w-4 text-slate-500" />
-                      <span className="font-medium text-slate-900 dark:text-slate-100">{step.app}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">{step.time}</span>
-                      {activeView === "before" && index === currentStep && (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                          className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"
-                        />
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+              <div className="flex items-center gap-3">
+                <Copy className="w-6 h-6 text-muted-foreground/70" />
+                <span>Copy-pasting each parlay leg</span>
               </div>
-
-              <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">Total time: 8+ minutes</span>
-                </div>
-                <p className="text-sm text-red-500 dark:text-red-400 mt-1">And you still might miss the best line!</p>
+              <div className="flex items-center gap-3">
+                <HelpCircle className="w-6 h-6 text-muted-foreground/70" />
+                <span>Still guessing which book pays best?</span>
               </div>
             </div>
-          </Card>
 
-          {/* After OddSmash */}
-          <Card className="relative overflow-hidden border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-full bg-green-500/10">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">After OddSmash</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">The smart way (effortless)</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <AnimatePresence mode="wait">
-                  {activeView === "after" && (
+            {/* Scrolling Carousel */}
+            <div className="relative">
+              <Card className="overflow-hidden bg-gradient-to-br from-background/80 to-muted/20 backdrop-blur-sm border-2 border-border/50 shadow-lg">
+                <CardContent className="p-0">
+                  <AnimatePresence mode="wait">
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
+                      key={currentParlay}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.5 }}
-                      className="space-y-4"
+                      className="p-6"
                     >
-                      <div className="flex items-center justify-between p-4 rounded-lg border border-purple-300 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20">
+                      {/* Book Header */}
+                      <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <Target className="h-4 w-4 text-purple-500" />
-                          <span className="font-medium text-slate-900 dark:text-slate-100">Scan betslip</span>
+                          <div
+                            className={`w-10 h-10 rounded-lg bg-gradient-to-br ${parlayData[currentParlay].color} flex items-center justify-center shadow-lg`}
+                          >
+                            <span className="text-white font-bold text-sm">{parlayData[currentParlay].logo}</span>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{parlayData[currentParlay].book}</h3>
+                            <p className="text-sm text-muted-foreground">4-Leg Parlay</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-500 dark:text-slate-400">2 sec</span>
-                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {parlayData[currentParlay].payout}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Potential Payout</div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 rounded-lg border border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-                        <div className="flex items-center gap-3">
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                          <span className="font-medium text-slate-900 dark:text-slate-100">Compare all books</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-500 dark:text-slate-400">Instant</span>
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 rounded-lg border border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-                        <div className="flex items-center gap-3">
-                          <Zap className="h-4 w-4 text-green-500" />
-                          <span className="font-medium text-slate-900 dark:text-slate-100">Find best payout</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-500 dark:text-slate-400">Instant</span>
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </div>
+                      {/* Parlay Legs */}
+                      <div className="space-y-3">
+                        {parlayData[currentParlay].legs.map((leg, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                            <span className="text-sm font-medium">{leg}</span>
+                            <span className="text-xs text-muted-foreground">-110</span>
+                          </div>
+                        ))}
                       </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                  </AnimatePresence>
+                </CardContent>
+              </Card>
 
-              <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                  <Zap className="h-4 w-4" />
-                  <span className="font-medium">Total time: 10 seconds</span>
+              {/* Enhanced Carousel Controls */}
+              <div className="flex items-center justify-between mt-6">
+                <button
+                  onClick={prevParlay}
+                  className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-border shadow-sm hover:shadow-md opacity-50 hover:opacity-100 transition-all duration-200 flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="flex gap-3">
+                  {parlayData.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentParlay(index)}
+                      className={`rounded-full transition-all duration-200 ${
+                        index === currentParlay
+                          ? "w-3 h-3 bg-gradient-to-r from-green-500 to-purple-500"
+                          : "w-2 h-2 bg-muted hover:bg-muted-foreground/30"
+                      }`}
+                    />
+                  ))}
                 </div>
-                <p className="text-sm text-green-500 dark:text-green-400 mt-1">Guaranteed best line, every time!</p>
+
+                <button
+                  onClick={nextParlay}
+                  className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-border shadow-sm hover:shadow-md opacity-50 hover:opacity-100 transition-all duration-200 flex items-center justify-center"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          </Card>
-        </motion.div>
+          </motion.div>
 
-        {/* View Toggle */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isVisible ? 1 : 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="flex justify-center mb-16"
-        >
-          <div className="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-lg">
-            <button
-              onClick={() => setActiveView("before")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeView === "before"
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              }`}
-            >
-              Before
-            </button>
-            <button
-              onClick={() => setActiveView("after")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeView === "after"
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              }`}
-            >
-              After
-            </button>
-          </div>
-        </motion.div>
+          {/* Right - Solution */}
+          <motion.div
+            className="space-y-8"
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <div className="space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Meet the Betslip Scanner
+                </span>
+              </h2>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Upload any screenshot—get your best book + EV instantly.
+              </p>
 
-        {/* Problem Points */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="max-w-4xl mx-auto"
-        >
-          <div className="text-center mb-12">
-            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">Sound familiar?</h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              These are the problems every serious bettor faces daily
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {problemPoints.map((point, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-                transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
+              {/* CTA moved up */}
+              <Button
+                size="lg"
+                className="w-full h-14 text-base font-semibold rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 group"
+                asChild
               >
-                <Card className="p-6 h-full border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm hover:shadow-lg transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-                      {point.icon}
-                    </div>
-                    <div>
-                      <p className="text-slate-900 dark:text-slate-100 leading-relaxed">
-                        {point.text.split(point.highlight).map((part, i, arr) => (
-                          <span key={i}>
-                            {part}
-                            {i < arr.length - 1 && (
-                              <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                {point.highlight}
-                              </span>
-                            )}
-                          </span>
-                        ))}
-                      </p>
-                    </div>
+                <Link href="/betslip-scanner">
+                  Try the Scanner
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
+
+            {/* Enhanced Scanner Preview */}
+            <Card className="overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-4 border-green-400/50 dark:border-green-600/50 shadow-2xl">
+              <CardContent className="p-8">
+                <div className="text-center space-y-6">
+                  {/* Upload State */}
+                  <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+                    <Upload className="w-8 h-8 text-white" />
                   </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">Best Odds: MGM +12% EV</h3>
+                    <p className="text-sm text-green-600 dark:text-green-400">Your parlay pays $145 more at MGM</p>
+                  </div>
+
+                  {/* Process Steps */}
+                  <div className="flex justify-between text-xs text-green-600/70 dark:text-green-400/70 pt-4 border-t border-green-200/50 dark:border-green-800/50">
+                    <span className="font-medium">1. Upload</span>
+                    <span className="font-medium">2. Scan</span>
+                    <span className="font-medium">3. Best Odds</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="lg:hidden space-y-12">
+          {/* Pain - Mobile */}
+          <motion.div
+            className="text-center space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-muted-foreground">
+                Hate juggling apps?
+              </h2>
+              <p className="text-lg text-muted-foreground">Four sportsbooks. One parlay. A thousand clicks.</p>
+            </div>
+
+            {/* Mobile Carousel - Swipeable */}
+            <div className="relative">
+              <Card className="overflow-hidden bg-gradient-to-br from-background/80 to-muted/20 backdrop-blur-sm border-2 border-border/50 shadow-lg">
+                <CardContent className="p-0">
+                  <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                    {parlayData.map((parlay, index) => (
+                      <div key={index} className="flex-none w-full snap-start p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-8 h-8 rounded-lg bg-gradient-to-br ${parlay.color} flex items-center justify-center`}
+                            >
+                              <span className="text-white font-bold text-xs">{parlay.logo}</span>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-sm">{parlay.book}</h3>
+                              <p className="text-xs text-muted-foreground">4-Leg Parlay</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-green-600 dark:text-green-400">{parlay.payout}</div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {parlay.legs.slice(0, 2).map((leg, legIndex) => (
+                            <div key={legIndex} className="text-xs text-muted-foreground">
+                              {leg}
+                            </div>
+                          ))}
+                          <div className="text-xs text-muted-foreground/60">+ 2 more legs</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+
+          {/* Solution - Mobile */}
+          <motion.div
+            className="text-center space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Meet the Betslip Scanner
+                </span>
+              </h2>
+              <p className="text-lg text-muted-foreground">Upload any screenshot—get your best book + EV instantly.</p>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full h-14 text-base font-semibold rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 group"
+              asChild
+            >
+              <Link href="/betslip-scanner">
+                Try the Scanner
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
+
+            <Card className="overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-4 border-green-400/50 dark:border-green-600/50 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-green-700 dark:text-green-300">Best Odds: MGM +12% EV</h3>
+                    <p className="text-sm text-green-600 dark:text-green-400">Your parlay pays $145 more</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
     </section>
   )

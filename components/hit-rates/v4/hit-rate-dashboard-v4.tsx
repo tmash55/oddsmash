@@ -303,99 +303,70 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     return Math.round((gamesHittingTier / totalGames) * 100)
   }
 
-  // Client-side filtering and pagination
+  // Update the availableGames memo to filter out past games
+  const availableGames = useMemo(() => {
+    if (!hitRatesData?.profiles?.length) return []
+    
+    const gamesMap = new Map()
+    const now = new Date()
+    
+    hitRatesData.profiles.forEach((profile: PlayerHitRateProfile) => {
+      // Skip if missing required fields
+      if (!profile.odds_event_id || !profile.home_team || !profile.away_team || !profile.commence_time) {
+        return
+      }
+      
+      const gameTime = new Date(profile.commence_time)
+      
+      // Skip if game is in the past
+      if (gameTime <= now) {
+        return
+      }
+      
+      gamesMap.set(profile.odds_event_id, {
+        odds_event_id: profile.odds_event_id,
+        home_team: profile.home_team,
+        away_team: profile.away_team,
+        commence_time: profile.commence_time,
+      })
+    })
+    
+    return Array.from(gamesMap.values()).sort((a, b) => {
+      const timeA = new Date(a.commence_time).getTime()
+      const timeB = new Date(b.commence_time).getTime()
+      return timeA - timeB
+    })
+  }, [hitRatesData?.profiles])
+
+  // Update the filteredAndSortedProfiles memo to ensure we're not showing past games
   const filteredAndSortedProfiles = useMemo(() => {
     if (!hitRatesData?.profiles) {
-      console.log(`🔍 [V4 Dashboard] No hitRatesData.profiles available`)
       return []
     }
 
     let profiles = [...hitRatesData.profiles]
-    console.log(`🔍 [V4 Dashboard] Starting with ${profiles.length} profiles`)
+    const now = new Date()
     
-    // Debug: Look for Seattle profiles specifically
-    const seattleProfilesAtStart = profiles.filter(p => 
-      p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
-      p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
-    )
-    console.log(`🔍 [V4 Dashboard] 🔍 SEATTLE DEBUG: Found ${seattleProfilesAtStart.length} Seattle profiles at start`)
-    
-    // Debug: Look for Josh Naylor profiles specifically
-    const joshProfilesAtStart = profiles.filter(p => 
-      p.player_name?.includes('Josh Naylor') ||
-      p.home_team?.includes('Arizona') || p.away_team?.includes('Arizona') ||
-      p.home_team?.includes('Diamondbacks') || p.away_team?.includes('Diamondbacks')
-    )
-    console.log(`🔍 [V4 Dashboard] 🔍 JOSH DEBUG: Found ${joshProfilesAtStart.length} Josh/Arizona profiles at start`)
-    joshProfilesAtStart.forEach(p => {
-      console.log(`🔍 [V4 Dashboard] 🔍 JOSH: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
+    // Filter out past games first
+    profiles = profiles.filter(profile => {
+      if (!profile.commence_time) return false
+      const gameTime = new Date(profile.commence_time)
+      return gameTime > now
     })
 
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      const beforeSearch = profiles.length
       profiles = profiles.filter(profile => 
         profile.player_name.toLowerCase().includes(query)
       )
-      console.log(`🔍 [V4 Dashboard] After search filter (${searchQuery}): ${beforeSearch} → ${profiles.length}`)
     }
 
     // Apply game filter
     if (selectedGames?.length) {
-      const beforeGameFilter = profiles.length
       profiles = profiles.filter(profile => 
         selectedGames.includes(profile.odds_event_id)
       )
-      console.log(`🔍 [V4 Dashboard] After game filter (${selectedGames.length} games): ${beforeGameFilter} → ${profiles.length}`)
-    }
-
-    // Optional time filter based on showPastGames toggle
-    if (!showPastGames) {
-      const now = new Date()
-      // Show all games in the next 24 hours to capture late games and timezone differences
-      const hoursAhead = 24
-      const futureTime = new Date(now.getTime() + (hoursAhead * 60 * 60 * 1000))
-      
-      const beforeTimeFilter = profiles.length
-      
-      // Debug: Check Seattle profiles before time filtering
-      const seattleBeforeTime = profiles.filter(p => 
-        p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
-        p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
-      )
-      console.log(`🔍 [V4 Dashboard] 🔍 SEATTLE DEBUG: ${seattleBeforeTime.length} Seattle profiles before time filter`)
-      seattleBeforeTime.forEach(p => {
-        const gameTime = new Date(p.commence_time)
-        const isWithinWindow = gameTime <= futureTime
-        console.log(`🔍 [V4 Dashboard] 🔍 SEATTLE: ${p.player_name} - ${p.commence_time} - Within 24h window? ${isWithinWindow}`)
-      })
-      
-      profiles = profiles.filter(profile => {
-        const commenceTime = new Date(profile.commence_time)
-        const isWithinNext24Hours = commenceTime <= futureTime
-        
-        if (!isWithinNext24Hours) {
-          console.log(`🔍 [V4 Dashboard] Filtering out game (more than ${hoursAhead} hours away): ${profile.player_name} (${profile.commence_time})`)
-        }
-        return isWithinNext24Hours
-      })
-      console.log(`🔍 [V4 Dashboard] After time filter (showing games within next ${hoursAhead} hours): ${beforeTimeFilter} → ${profiles.length}`)
-      
-      // Debug: Check Seattle profiles after time filtering
-      const seattleAfterTime = profiles.filter(p => 
-        p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
-        p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
-      )
-      console.log(`🔍 [V4 Dashboard] 🔍 SEATTLE DEBUG: ${seattleAfterTime.length} Seattle profiles after time filter`)
-      
-      // Debug: Check Josh profiles after time filtering
-      const joshAfterTime = profiles.filter(p => 
-        p.player_name?.includes('Josh Naylor') ||
-        p.home_team?.includes('Arizona') || p.away_team?.includes('Arizona') ||
-        p.home_team?.includes('Diamondbacks') || p.away_team?.includes('Diamondbacks')
-      )
-      console.log(`🔍 [V4 Dashboard] 🔍 JOSH DEBUG: ${joshAfterTime.length} Josh/Arizona profiles after time filter`)
     }
 
     // Apply sorting
@@ -457,7 +428,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
         : aValue < bValue ? 1 : -1
     })
 
-    console.log(`🔍 [V4 Dashboard] Final filtered and sorted profiles: ${profiles.length}`)
     return profiles
   }, [hitRatesData?.profiles, searchQuery, selectedGames, sortField, sortDirection, customTier])
 
@@ -499,98 +469,99 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   }, [filteredAndSortedProfiles, currentPage, hitRatesData?.profiles?.length]);
 
   // Extract available games from profiles
-  const availableGames = useMemo(() => {
-    if (!hitRatesData?.profiles?.length) return []
+  // This useMemo is now redundant as availableGames is calculated directly above
+  // const availableGames = useMemo(() => {
+  //   if (!hitRatesData?.profiles?.length) return []
     
-    const gamesMap = new Map()
-    const now = new Date()
-    // Show all games in the next 24 hours to capture late games and timezone differences
-    const hoursAhead = 24
-    const futureTime = new Date(now.getTime() + (hoursAhead * 60 * 60 * 1000))
+  //   const gamesMap = new Map()
+  //   const now = new Date()
+  //   // Show all games in the next 24 hours to capture late games and timezone differences
+  //   const hoursAhead = 24
+  //   const futureTime = new Date(now.getTime() + (hoursAhead * 60 * 60 * 1000))
     
-    console.log(`🎮 [Available Games] Current time: ${now.toISOString()}`)
-    console.log(`🎮 [Available Games] Future cutoff: ${futureTime.toISOString()}`)
-    console.log(`🎮 [Available Games] Total profiles to process: ${hitRatesData.profiles.length}`)
+  //   console.log(`🎮 [Available Games] Current time: ${now.toISOString()}`)
+  //   console.log(`🎮 [Available Games] Future cutoff: ${futureTime.toISOString()}`)
+  //   console.log(`🎮 [Available Games] Total profiles to process: ${hitRatesData.profiles.length}`)
     
-    // Look specifically for Seattle Mariners late game
-    const seattleProfiles = hitRatesData.profiles.filter(p => 
-      p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
-      p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
-    )
-    console.log(`🎮 [Available Games] 🔍 SEATTLE DEBUG: Found ${seattleProfiles.length} Seattle profiles:`)
-    seattleProfiles.forEach(p => {
-      console.log(`🎮 [Available Games] 🔍 SEATTLE: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
-      console.log(`🎮 [Available Games] 🔍 SEATTLE: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
-    })
+  //   // Look specifically for Seattle Mariners late game
+  //   const seattleProfiles = hitRatesData.profiles.filter(p => 
+  //     p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
+  //     p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
+  //   )
+  //   console.log(`🎮 [Available Games] 🔍 SEATTLE DEBUG: Found ${seattleProfiles.length} Seattle profiles:`)
+  //   seattleProfiles.forEach(p => {
+  //     console.log(`🎮 [Available Games] 🔍 SEATTLE: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
+  //     console.log(`🎮 [Available Games] 🔍 SEATTLE: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
+  //   })
     
-    // Look specifically for Josh Naylor late game
-    const joshProfiles = hitRatesData.profiles.filter(p => 
-      p.player_name?.includes('Josh Naylor') ||
-      p.home_team?.includes('Arizona') || p.away_team?.includes('Arizona') ||
-      p.home_team?.includes('Diamondbacks') || p.away_team?.includes('Diamondbacks')
-    )
-    console.log(`🎮 [Available Games] 🔍 JOSH DEBUG: Found ${joshProfiles.length} Josh/Arizona profiles:`)
-    joshProfiles.forEach(p => {
-      console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
-      console.log(`🎮 [Available Games] 🔍 JOSH: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
+  //   // Look specifically for Josh Naylor late game
+  //   const joshProfiles = hitRatesData.profiles.filter(p => 
+  //     p.player_name?.includes('Josh Naylor') ||
+  //     p.home_team?.includes('Arizona') || p.away_team?.includes('Arizona') ||
+  //     p.home_team?.includes('Diamondbacks') || p.away_team?.includes('Diamondbacks')
+  //   )
+  //   console.log(`🎮 [Available Games] 🔍 JOSH DEBUG: Found ${joshProfiles.length} Josh/Arizona profiles:`)
+  //   joshProfiles.forEach(p => {
+  //     console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
+  //     console.log(`🎮 [Available Games] 🔍 JOSH: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
       
-      // Check if it passes time filtering
-      const gameTime = new Date(p.commence_time)
-      const isWithinWindow = gameTime <= futureTime
-      console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} time check - ${p.commence_time} -> ${gameTime.toISOString()} -> Within 24h? ${isWithinWindow}`)
-    })
+  //     // Check if it passes time filtering
+  //     const gameTime = new Date(p.commence_time)
+  //     const isWithinWindow = gameTime <= futureTime
+  //     console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} time check - ${p.commence_time} -> ${gameTime.toISOString()} -> Within 24h? ${isWithinWindow}`)
+  //   })
     
-    let processedCount = 0
-    let excludedCount = 0
-    let missingFieldsCount = 0
-    let timeFilteredCount = 0
+  //   let processedCount = 0
+  //   let excludedCount = 0
+  //   let missingFieldsCount = 0
+  //   let timeFilteredCount = 0
     
-    hitRatesData.profiles.forEach((profile: PlayerHitRateProfile) => {
-      processedCount++
+  //   hitRatesData.profiles.forEach((profile: PlayerHitRateProfile) => {
+  //     processedCount++
       
-      // Check for missing required fields
-      if (!profile.odds_event_id || !profile.home_team || !profile.away_team || !profile.commence_time) {
-        missingFieldsCount++
-        console.log(`🎮 [Available Games] ❌ Missing fields for ${profile.player_name}: odds_event_id=${!!profile.odds_event_id}, home_team=${!!profile.home_team}, away_team=${!!profile.away_team}, commence_time=${!!profile.commence_time}`)
-        return
-      }
+  //     // Check for missing required fields
+  //     if (!profile.odds_event_id || !profile.home_team || !profile.away_team || !profile.commence_time) {
+  //       missingFieldsCount++
+  //       console.log(`�� [Available Games] ❌ Missing fields for ${profile.player_name}: odds_event_id=${!!profile.odds_event_id}, home_team=${!!profile.home_team}, away_team=${!!profile.away_team}, commence_time=${!!profile.commence_time}`)
+  //       return
+  //     }
       
-      const gameTime = new Date(profile.commence_time)
-      const isWithinWindow = gameTime <= futureTime
+  //     const gameTime = new Date(profile.commence_time)
+  //     const isWithinWindow = gameTime <= futureTime
       
-      console.log(`🎮 [Available Games] ${profile.home_team} vs ${profile.away_team}: ${profile.commence_time} (${gameTime.toISOString()}) - Within window: ${isWithinWindow}`)
+  //     console.log(`🎮 [Available Games] ${profile.home_team} vs ${profile.away_team}: ${profile.commence_time} (${gameTime.toISOString()}) - Within window: ${isWithinWindow}`)
       
-      if (isWithinWindow) {
-        gamesMap.set(profile.odds_event_id, {
-          odds_event_id: profile.odds_event_id,
-          home_team: profile.home_team,
-          away_team: profile.away_team,
-          commence_time: profile.commence_time,
-        })
-      } else {
-        timeFilteredCount++
-        console.log(`🎮 [Available Games] ⏰ Filtered out (beyond 24 hours): ${profile.home_team} vs ${profile.away_team}`)
-      }
-    })
+  //     if (isWithinWindow) {
+  //       gamesMap.set(profile.odds_event_id, {
+  //         odds_event_id: profile.odds_event_id,
+  //         home_team: profile.home_team,
+  //         away_team: profile.away_team,
+  //         commence_time: profile.commence_time,
+  //       })
+  //     } else {
+  //       timeFilteredCount++
+  //       console.log(`🎮 [Available Games] ⏰ Filtered out (beyond 24 hours): ${profile.home_team} vs ${profile.away_team}`)
+  //     }
+  //   })
     
-    const games = Array.from(gamesMap.values()).sort((a, b) => {
-      const timeA = new Date(a.commence_time).getTime()
-      const timeB = new Date(b.commence_time).getTime()
-      return timeA - timeB
-    })
+  //   const games = Array.from(gamesMap.values()).sort((a, b) => {
+  //     const timeA = new Date(a.commence_time).getTime()
+  //     const timeB = new Date(b.commence_time).getTime()
+  //     return timeA - timeB
+  //   })
     
-    console.log(`🎮 [Available Games] Summary:`)
-    console.log(`🎮 [Available Games] - Total profiles processed: ${processedCount}`)
-    console.log(`🎮 [Available Games] - Missing required fields: ${missingFieldsCount}`)
-    console.log(`🎮 [Available Games] - Filtered by time: ${timeFilteredCount}`)
-    console.log(`🎮 [Available Games] - Final unique games: ${games.length}`)
+  //   console.log(`🎮 [Available Games] Summary:`)
+  //   console.log(`🎮 [Available Games] - Total profiles processed: ${processedCount}`)
+  //   console.log(`🎮 [Available Games] - Missing required fields: ${missingFieldsCount}`)
+  //   console.log(`🎮 [Available Games] - Filtered by time: ${timeFilteredCount}`)
+  //   console.log(`🎮 [Available Games] - Final unique games: ${games.length}`)
     
-    games.forEach(game => {
-      console.log(`🎮 [Available Games] Final: ${game.home_team} vs ${game.away_team} at ${game.commence_time}`)
-    })
+  //   games.forEach(game => {
+  //     console.log(`🎮 [Available Games] Final: ${game.home_team} vs ${game.away_team} at ${game.commence_time}`)
+  //   })
     
-    return games
-  }, [hitRatesData?.profiles])
+  //   return games
+  // }, [hitRatesData?.profiles])
 
   // Update prefetch query to match
   useEffect(() => {

@@ -1,286 +1,348 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Search, ArrowRight, Zap, Lock, Smartphone, CheckCircle, TrendingUp, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { motion } from "framer-motion"
+import { Star, BarChart3, Target, Sparkles, Zap, Crown, Activity, LineChart, Home, Bell, Search, Smartphone, Flame } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
-
-// Live odds data for ticker
-const liveOdds = [
-  { game: "Lakers O/U 47.5", book: "FanDuel", odds: "+110", type: "best" },
-  { game: "Warriors -3.5", book: "DraftKings", odds: "-105", type: "value" },
-  { game: "Celtics ML", book: "BetMGM", odds: "+125", type: "best" },
-  { game: "Heat O/U 215.5", book: "Caesars", odds: "+108", type: "value" },
-]
-
-// Testimonials for rotation
-const testimonials = [
-  { text: "I cut my research time from 10 minutes to 10 seconds!", author: "Mike R." },
-  { text: "Found $200 in missed value in my first week using this.", author: "Sarah K." },
-  { text: "Never betting without scanning my slip first again.", author: "Alex T." },
-  { text: "This tool pays for itself with just one better line.", author: "Jordan M." },
-]
 
 export function HeroSection() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [currentOdds, setCurrentOdds] = useState(0)
-  const [currentTestimonial, setCurrentTestimonial] = useState(0)
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
-  // Rotate odds ticker
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentOdds((prev) => (prev + 1) % liveOdds.length)
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Rotate testimonials
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [])
-
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800/50">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 bg-grid-white/[0.02] dark:bg-grid-white/[0.05]" />
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 pt-24 md:pt-32">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -20, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 20, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+            delay: 3,
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-1/3 w-48 h-48 bg-green-500/10 dark:bg-green-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 25, 0],
+            y: [0, -15, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+            delay: 6,
+          }}
+        />
+      </div>
 
-      <div className="container relative px-4 py-16 sm:py-24 mx-auto max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Left Column - Content */}
+      <div className="container relative z-10 px-4 md:px-6">
+        {/* Hero Content - Centered */}
+        <motion.div
+          className="text-center space-y-8 mb-16"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          {/* Main Heading */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -30 }}
-            transition={{ duration: 0.6 }}
-            className="text-left"
+            className="space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
           >
-            {/* Badge - moved above headline */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: isVisible ? 1 : 0, scale: isVisible ? 1 : 0.95 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center px-4 py-2 mb-8 rounded-full bg-slate-900/5 dark:bg-slate-100/5 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm"
-            >
-              <Zap className="w-4 h-4 mr-2 text-green-500" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Instant Betslip Analysis</span>
-            </motion.div>
-
-            {/* Main headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8 text-slate-900 dark:text-slate-100">
-              Stop Wasting Time. <br />
-              <span className="bg-gradient-to-r from-green-600 to-green-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto">
+              <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80 bg-clip-text text-transparent">
+                Stop Wasting Time.
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
                 Start Smashing Odds.
               </span>
             </h1>
 
-            {/* Simplified subheadline with more spacing */}
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-10 leading-relaxed font-medium">
-              Scan your slip. Compare every book in seconds. Never miss value.
-            </p>
-
-            {/* CTA Buttons with enhanced styling */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Button
-                asChild
-                size="lg"
-                className="text-base font-medium px-8 h-12 bg-slate-900 hover:bg-slate-800 text-white border-0 group relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <Link href="/betslip-scanner">
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                  <motion.div
-                    className="absolute inset-0 bg-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    animate={{
-                      boxShadow: [
-                        "0 0 0 0 rgba(34, 197, 94, 0)",
-                        "0 0 0 4px rgba(34, 197, 94, 0.1)",
-                        "0 0 0 0 rgba(34, 197, 94, 0)",
-                      ],
-                    }}
-                    transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                  />
-                  <span className="relative z-10 flex items-center">
-                    <Search className="mr-2 h-4 w-4" />🔍 Try the Betslip Scanner
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </Link>
-              </Button>
-
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="text-base font-medium px-8 h-12 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 group bg-transparent"
-              >
-                <Link href="/odds-screen">
-                  Explore Odds Screen
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
+            <div className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              <p>Scan any betslip. Compare every book in seconds.</p>
+              <p>Never miss value.</p>
             </div>
-
-            {/* Refined trust signals */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 10 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <Lock className="h-4 w-4 text-green-500" />
-                <span>No signup. No paywall.</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <Zap className="h-4 w-4 text-green-500" />
-                <span>Works on X, Discord, or your own slip.</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <Smartphone className="h-4 w-4 text-green-500" />
-                <span>Mobile & desktop ready.</span>
-              </div>
-            </motion.div>
           </motion.div>
 
-          {/* Right Column - Demo Visual */}
+          {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : 30 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative w-full lg:w-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
           >
-            <Card className="overflow-hidden border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-              <div className="relative w-full aspect-[4/3] overflow-hidden">
-                {/* Placeholder for demo GIF */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-500/20 to-green-500/20" />
-                <Image
-                  src="/placeholder.svg?height=400&width=600&text=Betslip Scanner Demo"
-                  alt="Demo of betslip scanner showing screenshot upload and odds comparison"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 600px"
-                  priority
-                />
+            <Button
+              size="lg"
+              className="h-12 md:h-14 px-8 text-base font-semibold rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 group"
+              asChild
+            >
+              <Link href="/sign-up">🎟️ Create Your Free Account</Link>
+            </Button>
+          </motion.div>
 
-                {/* Demo flow overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg p-6 text-center max-w-sm mx-4">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">
-                        1
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-400" />
-                      <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
-                        2
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-400" />
-                      <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">
-                        3
+          {/* Feature Bullets */}
+          <motion.div
+            className="flex flex-wrap items-center justify-center gap-6 md:gap-8 text-sm text-muted-foreground mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.6 }}
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-muted-foreground/70" />
+              <span>Free account in 10 seconds</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-muted-foreground/70" />
+              <span>Works on X, Discord, screenshots</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-muted-foreground/70" />
+              <span>Live hit-rate overlays</span>
+            </div>
+          </motion.div>
+
+          {/* Trust Indicators */}
+          <motion.div
+            className="space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">Loved by early users</span>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Dashboard Preview - Full Width */}
+        <motion.div
+          className="w-full max-w-6xl mx-auto"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.8 }}
+        >
+          <Card className="overflow-hidden bg-gradient-to-br from-background/80 to-muted/20 backdrop-blur-xl border-2 border-border/50 shadow-2xl">
+            <CardContent className="p-0">
+              {/* Dashboard Header */}
+              <div className="flex items-center justify-between p-6 border-b border-border/50 bg-muted/20">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                      <Target className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-semibold text-lg">OddSmash</span>
+                  </div>
+                  <div className="hidden md:block">
+                    <span className="text-sm text-muted-foreground">Trading / Dashboard</span>
+                    <h2 className="font-semibold">Main Dashboard</h2>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                  <Search className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-4 min-h-[500px]">
+                {/* Sidebar */}
+                <div className="hidden lg:block bg-muted/10 border-r border-border/50 p-4">
+                  <nav className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      <Home className="w-4 h-4" />
+                      <span className="font-medium">Dashboard</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                      <span>Props</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <LineChart className="w-4 h-4 text-muted-foreground" />
+                      <span>Analytics</span>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        New
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <Activity className="w-4 h-4 text-muted-foreground" />
+                      <span>Hit Rates</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <Crown className="w-4 h-4 text-muted-foreground" />
+                      <span>Trackers</span>
+                    </div>
+                  </nav>
+                </div>
+
+                {/* Main Content */}
+                <div className="lg:col-span-2 p-6 space-y-6">
+                  {/* Balance Section */}
+                  <div>
+                    <div className="flex items-center gap-4 mb-4">
+                      <span className="text-sm text-muted-foreground">Balance</span>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          1D
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          7D
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          1M
+                        </Badge>
+                        <Badge variant="default" className="text-xs">
+                          1Y
+                        </Badge>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      <span className="font-medium">Upload</span> → <span className="font-medium">Scan</span> →{" "}
-                      <span className="font-medium">Compare</span>
-                    </p>
+                    <div className="flex items-baseline gap-2 mb-6">
+                      <span className="text-3xl font-bold">$2,847.32</span>
+                      <span className="text-green-600 dark:text-green-400 text-sm font-medium">+47.3%</span>
+                    </div>
+
+                    {/* Scanner Upload State - Cropped to show first frame */}
+                    <div className="h-48 rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-2 border-green-200/50 dark:border-green-800/50 flex flex-col items-center justify-center group hover:border-green-300/50 dark:hover:border-green-700/50 transition-colors relative overflow-hidden">
+                      {/* Upload State */}
+                      <div className="text-center space-y-3">
+                        <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                          <span className="text-2xl">📸</span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                            Upload a screenshot
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400">Drag & drop or click to scan</p>
+                        </div>
+                      </div>
+
+                      {/* Step indicators at bottom */}
+                      <div className="absolute bottom-3 left-3 right-3 flex justify-between text-xs text-green-600/70 dark:text-green-400/70">
+                        <span className="font-medium">1. Upload</span>
+                        <span className="opacity-50">2. Scan</span>
+                        <span className="opacity-50">3. Best Odds</span>
+                      </div>
+
+                      {/* Subtle animation hint */}
+                      <motion.div
+                        className="absolute inset-0 rounded-xl border-2 border-green-400/30"
+                        animate={{
+                          borderColor: ["rgba(34, 197, 94, 0.3)", "rgba(34, 197, 94, 0.1)", "rgba(34, 197, 94, 0.3)"],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Props Section */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Top Props</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400">⚾</span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">Aaron Judge</div>
+                            <div className="text-xs text-muted-foreground">Home Runs O/U 0.5</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">+125</div>
+                          <div className="text-xs text-green-600 dark:text-green-400">73% hit rate</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">🏀</span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">LeBron James</div>
+                            <div className="text-xs text-muted-foreground">Points O/U 25.5</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">-110</div>
+                          <div className="text-xs text-green-600 dark:text-green-400">68% hit rate</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Sidebar */}
+                <div className="hidden lg:block bg-muted/10 border-l border-border/50 p-4">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-semibold mb-4">Quick Actions</h3>
+                      <div className="space-y-3">
+                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
+                          <Target className="w-4 h-4 mr-2" />
+                          Smash Screen
+                        </Button>
+                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Scanner
+                        </Button>
+                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
+                          <Activity className="w-4 h-4 mr-2" />
+                          Hit Rates
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold mb-4">Recent Activity</h3>
+                      <div className="space-y-3">
+                        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
+                          <div className="text-sm font-medium text-green-700 dark:text-green-300">Win</div>
+                          <div className="text-xs text-green-600 dark:text-green-400">Judge HR +125</div>
+                        </div>
+                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50">
+                          <div className="text-sm font-medium text-red-700 dark:text-red-300">Loss</div>
+                          <div className="text-xs text-red-600 dark:text-red-400">Ohtani K's -110</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Demo description */}
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <span className="font-medium text-slate-900 dark:text-slate-100">Live Demo</span>
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Watch our scanner instantly identify picks and show the best odds with EV calculations.
-                </p>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Live Odds Ticker */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-16 max-w-4xl mx-auto"
-        >
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>Live Odds Updates</span>
-            </div>
-          </div>
-
-          <Card className="bg-slate-50 dark:bg-slate-900/50 border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm p-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentOdds}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="text-center"
-              >
-                <div className="flex items-center justify-center gap-4 text-slate-900 dark:text-slate-100">
-                  <span className="text-lg font-medium">{liveOdds[currentOdds].game}</span>
-                  <ArrowRight className="h-4 w-4 text-slate-400" />
-                  <span className="text-green-600 dark:text-green-400 font-bold">
-                    Best at {liveOdds[currentOdds].odds}
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-300">on {liveOdds[currentOdds].book}</span>
-                  <div className="px-2 py-1 rounded-full bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-medium">
-                    {liveOdds[currentOdds].type === "best" ? "BEST LINE" : "VALUE"}
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+            </CardContent>
           </Card>
         </motion.div>
 
-        {/* Rotating Testimonial */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-12 max-w-2xl mx-auto text-center"
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTestimonial}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-lg p-6 backdrop-blur-sm"
-            >
-              <div className="flex items-center justify-center gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <blockquote className="text-lg text-slate-900 dark:text-slate-100 font-medium mb-3">
-                &quot;{testimonials[currentTestimonial].text}&quot;
-              </blockquote>
-              <cite className="text-slate-500 dark:text-slate-400 text-sm">
-                — {testimonials[currentTestimonial].author}
-              </cite>
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
+        
       </div>
     </section>
   )

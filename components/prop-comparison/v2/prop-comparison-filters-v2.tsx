@@ -39,6 +39,7 @@ interface Game {
   commence_time: string
 }
 
+// Add lastUpdated to props interface
 interface PropComparisonFiltersV2Props {
   market: string
   onMarketChange: (market: string) => void
@@ -51,7 +52,7 @@ interface PropComparisonFiltersV2Props {
   globalLine: string | null
   onGlobalLineChange: (line: string | null) => void
   availableLines: string[]
-  lineRange: { min: number; max: number } | null // Add line range prop
+  lineRange: { min: number; max: number } | null
   sortField: "odds" | "line" | "edge" | "name" | "ev"
   sortDirection: "asc" | "desc"
   onSortChange: (field: "odds" | "line" | "edge" | "name" | "ev", direction: "asc" | "desc") => void
@@ -65,6 +66,45 @@ interface PropComparisonFiltersV2Props {
   refetch: () => void
   viewMode: "table" | "grid"
   onViewModeChange: (mode: "table" | "grid") => void
+  lastUpdated?: string // Add optional lastUpdated prop
+}
+
+// Add formatLastUpdated helper function
+const formatLastUpdated = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 30) {
+      return "Just now";
+    }
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds}s ago`;
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes}m ago`;
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    }
+    
+    // For older timestamps, show the full date and time
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (e) {
+    return "Unknown";
+  }
 }
 
 // Helper functions for team logos and abbreviations
@@ -203,6 +243,7 @@ export function PropComparisonFiltersV2({
   refetch,
   viewMode,
   onViewModeChange,
+  lastUpdated,
 }: PropComparisonFiltersV2Props) {
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -661,6 +702,12 @@ export function PropComparisonFiltersV2({
                         </Button>
                       </SheetTrigger>
                     </div>
+                    {lastUpdated && (
+                      <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                        <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                        <span>Updated {formatLastUpdated(lastUpdated)}</span>
+                      </div>
+                    )}
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto">
                     {renderMobileFilters()}
@@ -684,33 +731,43 @@ export function PropComparisonFiltersV2({
       ) : (
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
           {/* Primary Filters */}
-          <div className="p-4 flex flex-wrap items-center gap-3">
-            {renderGlobalLineFilter()}
-            <Select value={market} onValueChange={onMarketChange}>
-              <SelectTrigger className="h-10 w-[140px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                <SelectValue placeholder="Select market" />
-              </SelectTrigger>
-              <SelectContent>
-                {markets.map((marketValue) => (
-                  <SelectItem key={marketValue} value={marketValue}>
-                    {formatMarketLabel(marketValue)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {renderGlobalLineFilter()}
+              <Select value={market} onValueChange={onMarketChange}>
+                <SelectTrigger className="h-10 w-[140px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                  <SelectValue placeholder="Select market" />
+                </SelectTrigger>
+                <SelectContent>
+                  {markets.map((marketValue) => (
+                    <SelectItem key={marketValue} value={marketValue}>
+                      {formatMarketLabel(marketValue)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {renderGamesFilter()}
+              {renderGamesFilter()}
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search players..."
-                value={debouncedSearch}
-                onChange={(e) => setDebouncedSearch(e.target.value)}
-                className="pl-10 h-10 w-[200px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search players..."
+                  value={debouncedSearch}
+                  onChange={(e) => setDebouncedSearch(e.target.value)}
+                  className="pl-10 h-10 w-[200px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
             </div>
+
+            {/* Add Last Updated Timestamp */}
+            {lastUpdated && (
+              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                <span>Updated {formatLastUpdated(lastUpdated)}</span>
+              </div>
+            )}
           </div>
 
           {/* Secondary Filters */}

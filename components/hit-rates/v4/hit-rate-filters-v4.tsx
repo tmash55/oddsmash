@@ -107,10 +107,17 @@ function getTeamAbbreviation(teamName: string): string {
   return teamMap[teamName] || teamName.slice(0, 3).toUpperCase()
 }
 
-const formatGameTime = (timeString: string): string => {
+// Update the formatGameTime function to also check if game is in the past
+const formatGameTime = (timeString: string): string | null => {
   try {
     const date = new Date(timeString)
     const now = new Date()
+    
+    // If game is in the past, return null
+    if (date < now) {
+      return null
+    }
+    
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const gameDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     
@@ -137,7 +144,7 @@ const formatGameTime = (timeString: string): string => {
       })
     }
   } catch (e) {
-    return "TBD"
+    return null
   }
 }
 
@@ -266,6 +273,13 @@ export default function HitRateFiltersV4({
     return () => clearTimeout(timer)
   }, [debouncedSearch, onSearchChange])
 
+  // Filter out past games before rendering in the dropdown
+  const filteredAvailableGames = availableGames.filter(game => {
+    const gameTime = new Date(game.commence_time)
+    const now = new Date()
+    return gameTime > now
+  })
+
   // Mobile filters render function
   const renderMobileFilters = () => (
     <div className="space-y-6 p-6 bg-gradient-to-b from-slate-50/50 to-white dark:from-slate-900/50 dark:to-slate-900">
@@ -314,7 +328,7 @@ export default function HitRateFiltersV4({
           <SelectTrigger className="h-11 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue>
               {selectedGames?.[0] ? (
-                <GameDisplay game={availableGames.find(g => g.odds_event_id === selectedGames[0])!} />
+                <GameDisplay game={filteredAvailableGames.find(g => g.odds_event_id === selectedGames[0])!} />
               ) : (
                 "All Games"
               )}
@@ -322,7 +336,7 @@ export default function HitRateFiltersV4({
           </SelectTrigger>
           <SelectContent className="max-h-80">
             <SelectItem value="all">All Games</SelectItem>
-            {availableGames.map((game) => (
+            {filteredAvailableGames.map((game) => (
               <SelectItem key={game.odds_event_id} value={game.odds_event_id}>
                 <GameDisplay game={game} showTime />
               </SelectItem>
