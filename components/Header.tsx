@@ -231,11 +231,11 @@ export function Header() {
       description: "Learn how to get started",
     },
     {
-      title: "Pricing",
-      href: "#pricing",
-      icon: <DollarSign className="h-5 w-5 text-purple-600" />,
+      title: "Founders Beta",
+      href: "#founders-beta",
+      icon: <Sparkles className="h-5 w-5 text-purple-600" />,
       isActive: false,
-      description: "Choose your plan",
+      description: "Join our exclusive beta program",
     },
   ]
 
@@ -673,14 +673,14 @@ export function Header() {
                     </NavigationMenuItem>
 
                     <NavigationMenuItem>
-                      <Link href="#pricing" legacyBehavior passHref>
+                      <Link href="#founders-beta" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
                             "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
                           )}
                         >
-                          <DollarSign className="w-4 h-4 mr-1.5" />
-                          Pricing
+                          <Sparkles className="w-4 h-4 mr-1.5" />
+                          Founders Beta
                         </NavigationMenuLink>
                       </Link>
                     </NavigationMenuItem>

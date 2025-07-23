@@ -18,6 +18,7 @@ interface ValuePlay {
   side: string
   line: string
   avg_odds: number
+  avg_american: number
   ev: number
   avg_decimal: number
   value_pct: number
@@ -148,8 +149,8 @@ export function LiveValuePlaysSection() {
     return () => clearInterval(interval)
   }, [])
 
-  // Triple the plays for seamless infinite scroll
-  const triplePlaysList = [...valuePlays, ...valuePlays, ...valuePlays]
+  // Multiple the plays for seamless infinite scroll
+  const infinitePlaysList = [...valuePlays, ...valuePlays, ...valuePlays, ...valuePlays, ...valuePlays, ...valuePlays]
 
   const nextMobileCard = () => {
     setCurrentMobileIndex((prev) => (prev + 1) % valuePlays.length)
@@ -160,10 +161,10 @@ export function LiveValuePlaysSection() {
   }
 
   return (
-    <section className="py-16 sm:py-24 bg-gradient-to-br from-green-50/30 via-background to-blue-50/30 dark:from-green-950/10 dark:via-background dark:to-blue-950/10 relative overflow-hidden">
+    <section className="py-16 sm:py-24 bg-gradient-to-br from-primary/5 via-background to-blue-50/30 dark:from-primary/10 dark:via-background dark:to-blue-950/10 relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-blue-500/5" />
-      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-green-500/10 dark:bg-green-400/5 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-blue-500/5" />
+      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -177,17 +178,17 @@ export function LiveValuePlaysSection() {
         >
           <div className="flex items-center justify-center gap-2 mb-6">
             <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}>
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-lg"></div>
             </motion.div>
             <Badge
               variant="secondary"
-              className="bg-gradient-to-r from-green-100 to-blue-100 text-green-700 dark:from-green-900/30 dark:to-blue-900/30 dark:text-green-300 border-0"
+              className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 dark:from-emerald-900/30 dark:to-teal-900/30 dark:text-emerald-400 border-0"
             >
               Live Updates
             </Badge>
           </div>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">
-            <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
               Live Value Plays
             </span>
           </h2>
@@ -200,7 +201,7 @@ export function LiveValuePlaysSection() {
       {/* Loading State */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center py-12 text-red-500">{error}</div>
@@ -238,26 +239,26 @@ export function LiveValuePlaysSection() {
                   isPaused
                     ? {}
                     : {
-                        x: [0, -100 * valuePlays.length - 6 * valuePlays.length],
+                        x: [`-${200 / 3}%`, `-${100 / 3}%`], // Reversed direction
                       }
                 }
                 transition={{
                   x: {
                     repeat: Number.POSITIVE_INFINITY,
                     repeatType: "loop",
-                    duration: 35,
+                    duration: Math.max(120, valuePlays.length * 8), // Much slower: 120s minimum, 8s per item
                     ease: "linear",
                   },
                 }}
               >
-                {triplePlaysList.map((play, index) => (
+                {infinitePlaysList.map((play, index) => (
                   <motion.div
                     key={`${play.player_id}-${play.market}-${index}`}
                     className="flex-shrink-0 w-80 group cursor-pointer"
                     whileHover={{ scale: 1.02, y: -2 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="group relative flex h-full w-80 flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-card/95 to-card/80 backdrop-blur-xl border border-border/30 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-green-500/30">
+                    <div className="group relative flex h-full w-80 flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-card/95 to-card/80 backdrop-blur-xl border border-border/30 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-primary/30">
                       {/* Main Content */}
                       <div className="p-6 flex flex-col h-full">
                         {/* Header with Value Badge - Repositioned */}
@@ -273,7 +274,7 @@ export function LiveValuePlaysSection() {
                           </div>
                           {/* Value Badge - Now positioned to not overlap */}
                           <div className="flex-shrink-0">
-                            <Badge className="font-bold text-lg px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg border-0">
+                            <Badge className="font-bold text-lg px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg border-0">
                               +{Math.round(play.value_pct)}%
                             </Badge>
                           </div>
@@ -285,7 +286,7 @@ export function LiveValuePlaysSection() {
                         </div>
 
                         {/* Price - Primary Focus */}
-                        <div className="mb-6 flex-1 flex items-center gap-3">
+                        <div className="mb-6 flex-1 flex items-center justify-center gap-3">
                           <div className="text-4xl font-black text-foreground">{formatOdds(play.best_price)}</div>
                           {getBookLogo(play.best_book) ? (
                             <div className="relative h-8 w-24">
@@ -306,17 +307,15 @@ export function LiveValuePlaysSection() {
                           {/* Remove logo from here since it's now by the odds */}
                           <div className="flex items-center justify-center gap-3 bg-muted/20 rounded-lg p-3">
                             <div className="text-center">
-                              <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                                {formatOdds(play.best_price)}
-                              </div>
+                              <div className="text-lg font-bold text-primary">{formatOdds(play.best_price)}</div>
                               <div className="text-xs text-muted-foreground">Best</div>
                             </div>
                             <div className="text-muted-foreground font-bold text-sm">VS</div>
                             <div className="text-center">
                               <div className="text-lg font-bold text-muted-foreground">
-                                {formatOdds(Math.round(play.avg_odds))}
+                                {formatOdds(Math.round(play.avg_american))}
                               </div>
-                              <div className="text-xs text-muted-foreground">Avg</div>
+                              <div className="text-xs text-muted-foreground">Average</div>
                             </div>
                           </div>
                         </div>
@@ -367,7 +366,7 @@ export function LiveValuePlaysSection() {
                             </div>
                             {/* Value Badge - Mobile */}
                             <div className="flex-shrink-0">
-                              <Badge className="font-bold text-xl px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl border-0">
+                              <Badge className="font-bold text-xl px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xl border-0">
                                 +{Math.round(valuePlays[currentMobileIndex].value_pct)}%
                               </Badge>
                             </div>
@@ -383,7 +382,7 @@ export function LiveValuePlaysSection() {
                           </div>
 
                           {/* Price - Main Focus Mobile */}
-                          <div className="mb-6 flex-1 flex items-center justify-center gap-4">
+                          <div className="mb-6 flex-1 flex flex-col items-center justify-center gap-4">
                             <div className="text-5xl font-black text-foreground">
                               {formatOdds(valuePlays[currentMobileIndex].best_price)}
                             </div>
@@ -408,7 +407,7 @@ export function LiveValuePlaysSection() {
                             {/* Remove logo section since it's now by the odds */}
                             <div className="flex items-center justify-center gap-4 bg-muted/20 rounded-lg p-4">
                               <div className="text-center">
-                                <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                                <div className="text-xl font-bold text-primary">
                                   {formatOdds(valuePlays[currentMobileIndex].best_price)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">Best</div>
@@ -416,7 +415,7 @@ export function LiveValuePlaysSection() {
                               <div className="text-muted-foreground font-bold text-lg">VS</div>
                               <div className="text-center">
                                 <div className="text-xl font-bold text-muted-foreground">
-                                  {formatOdds(Math.round(valuePlays[currentMobileIndex].avg_odds))}
+                                  {formatOdds(Math.round(valuePlays[currentMobileIndex].avg_american))}
                                 </div>
                                 <div className="text-xs text-muted-foreground">Avg</div>
                               </div>
@@ -448,7 +447,7 @@ export function LiveValuePlaysSection() {
                       onClick={() => setCurrentMobileIndex(idx)}
                       className={`rounded-full transition-all duration-200 ${
                         idx === currentMobileIndex
-                          ? "w-3 h-3 bg-orange-500"
+                          ? "w-3 h-3 bg-emerald-500"
                           : "w-2 h-2 bg-muted hover:bg-muted-foreground/30"
                       }`}
                     />
@@ -472,8 +471,8 @@ export function LiveValuePlaysSection() {
         </>
       )}
 
-      {/* Bottom CTA */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Bottom CTA - Fixed z-index and positioning */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-30">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -483,10 +482,10 @@ export function LiveValuePlaysSection() {
         >
           <Button
             size="lg"
-            className="group h-14 rounded-2xl bg-gradient-to-r from-green-600 to-blue-600 px-8 sm:px-10 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:from-green-700 hover:to-blue-700"
+            className="group h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 px-8 sm:px-10 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 relative z-40"
             asChild
           >
-            <Link href="/mlb/odds/player-props?market=home+runs">
+            <Link href="/mlb/odds/player-props?market=home+runs" className="relative z-50">
               <TrendingUp className="mr-2 h-5 w-5" />
               View the Smash Screen
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />

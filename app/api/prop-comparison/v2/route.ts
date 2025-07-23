@@ -68,9 +68,16 @@ export async function GET(request: Request) {
 
     console.log(`[/api/prop-comparison/v2] Retrieved ${oddsData.length} Redis entries`);
 
+    // Calculate global most recent timestamp BEFORE filtering
+    const allValidData = oddsData.filter((data): data is any => data !== null);
+    const globalLastUpdated = allValidData.reduce((latest, item) => {
+      if (!item.last_updated) return latest;
+      const itemDate = new Date(item.last_updated);
+      return !latest || itemDate > new Date(latest) ? item.last_updated : latest;
+    }, null as string | null);
+
     // Process and filter the data while preserving metrics
-    const filteredData = oddsData
-      .filter((data): data is any => data !== null)
+    const filteredData = allValidData
       .map((data) => {
         // Debug: Check if metrics exist
         if (data.metrics) {
@@ -115,6 +122,7 @@ export async function GET(request: Request) {
         keyPattern, // Include the pattern for debugging
         keysFound: allKeys.length, // Include number of keys found
         itemsWithMetrics: itemsWithMetrics.length, // Include metrics count for debugging
+        globalLastUpdated, // Include global most recent timestamp
       }
     });
 

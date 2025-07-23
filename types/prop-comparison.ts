@@ -76,6 +76,16 @@ export interface PropComparisonParams {
 export interface PropComparisonResponse {
   success: boolean;
   data: PlayerOdds[];
+  metadata?: {
+    total: number;
+    sport: string;
+    market: string;
+    gameId: string;
+    keyPattern: string;
+    keysFound: number;
+    itemsWithMetrics: number;
+    globalLastUpdated: string | null;
+  };
 }
 
 export interface BestOddsFilter {

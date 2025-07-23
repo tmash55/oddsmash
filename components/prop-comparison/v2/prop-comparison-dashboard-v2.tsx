@@ -133,10 +133,13 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
     gameId: selectedGames?.[0] || undefined,
   })
 
-  // Update lastUpdated when data changes
+  // Update lastUpdated when data changes - use global timestamp from API
   useEffect(() => {
-    if (data?.data?.length > 0) {
-      // Find the most recent last_updated timestamp from all records
+    if (data?.metadata?.globalLastUpdated) {
+      // Use the global most recent timestamp from the API metadata
+      setLastUpdated(data.metadata.globalLastUpdated);
+    } else if (data?.data?.length > 0) {
+      // Fallback to calculating from filtered data if global timestamp not available
       const mostRecent = data.data.reduce((latest, item) => {
         if (!item.last_updated) return latest;
         const itemDate = new Date(item.last_updated);

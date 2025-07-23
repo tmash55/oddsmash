@@ -18,14 +18,19 @@ const sportsbooks = [
 ]
 
 export function SportsbookTicker() {
-  // Triple the array for seamless infinite scroll
-  const tripleLogos = [...sportsbooks, ...sportsbooks, ...sportsbooks]
+  // Calculate the width of one complete set
+  const logoWidth = 128 // w-32 = 128px
+  const gapWidth = 48 // gap-12 = 48px
+  const totalWidth = sportsbooks.length * (logoWidth + gapWidth)
+
+  // Create enough copies to ensure seamless loop
+  const extendedLogos = [...sportsbooks, ...sportsbooks, ...sportsbooks, ...sportsbooks]
 
   return (
-    <section className="py-16 bg-gradient-to-br from-muted/10 via-background to-muted/10 border-y border-border/50">
+    <section className="py-12 bg-gradient-to-br from-muted/10 via-background to-muted/10 border-y border-border/50">
       <div className="container px-4 md:px-6">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
             Supported Sportsbooks
           </p>
@@ -50,18 +55,21 @@ export function SportsbookTicker() {
           <motion.div
             className="flex gap-12 items-center"
             animate={{
-              x: [0, -100 * sportsbooks.length - 12 * sportsbooks.length],
+              x: [-totalWidth, 0],
             }}
             transition={{
               x: {
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
-                duration: 40,
+                duration: 30,
                 ease: "linear",
               },
             }}
+            style={{
+              width: `${totalWidth * 4}px`, // Ensure container is wide enough
+            }}
           >
-            {tripleLogos.map((sportsbook, index) => (
+            {extendedLogos.map((sportsbook, index) => (
               <motion.div
                 key={`${sportsbook.name}-${index}`}
                 className="flex-shrink-0 w-32 h-16 relative group cursor-pointer"
@@ -77,11 +85,6 @@ export function SportsbookTicker() {
                     sizes="128px"
                   />
                 </div>
-
-                {/* Tooltip on hover */}
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                  {sportsbook.name}
-                </div>
               </motion.div>
             ))}
           </motion.div>
@@ -89,7 +92,7 @@ export function SportsbookTicker() {
       </div>
 
       {/* Bottom section */}
-      <div className="container px-4 md:px-6 mt-8">
+      <div className="container px-4 md:px-6 mt-6">
         <div className="text-center">
           <p className="text-sm text-muted-foreground">More sportsbooks added regularly</p>
           <div className="flex items-center justify-center gap-2 mt-2">
