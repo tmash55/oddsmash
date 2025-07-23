@@ -56,6 +56,7 @@ export interface PlayerOdds {
   best_over_book?: string;
   best_under_book?: string;
   primary_line?: string; // Add this property
+  last_updated?: string; // Add missing last_updated property
   metrics?: Record<string, {
     over?: LineMetrics;
     under?: LineMetrics;
