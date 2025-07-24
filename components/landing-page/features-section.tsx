@@ -19,6 +19,7 @@ import {
   Grid3X3,
   Table,
 } from "lucide-react"
+import Image from "next/image"
 
 const features = [
   {
@@ -26,7 +27,7 @@ const features = [
     icon: BarChart3,
     title: "SmashBoard",
     subtitle: "Real-time Odds. Smash-Worthy Insights.",
-    description: "Compare player props across sportsbooks with built-in EV analysis and smart filters.",
+    description: "Compare player props across sportsbooks with built-in value analysis and smart filters.",
     badge: "Live Odds",
     color: "from-blue-500 to-cyan-500",
     size: "large",
@@ -71,313 +72,10 @@ const features = [
   },
 ]
 
-// Enhanced SmashBoard Animation - Table and Card Views
+// Enhanced SmashBoard Animation - Real Images
 const SmashBoardAnimation = () => {
   const [currentView, setCurrentView] = React.useState(0) // 0 = table, 1 = cards
-  const [currentPage, setCurrentPage] = React.useState(0)
   const [isMobile, setIsMobile] = React.useState(false)
-
-  const players = [
-    {
-      name: "Aaron Judge",
-      team: "NYY",
-      time: "6:08 PM",
-      opponent: "vs TOR",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+260",
-          avgOdds: "+230",
-          value: "+9.1%",
-          valueColor: "text-green-400",
-          bestBook: "Bally Bet",
-        },
-        under: {
-          line: "U -258",
-          bestOdds: "U -290",
-          avgOdds: "U",
-          value: "+3.2%",
-          valueColor: "text-green-400",
-          bestBook: "Novig",
-        },
-      },
-      books: [
-        { name: "DK", over: "+230", under: "-", logo: "🟠" },
-        { name: "FD", over: "+220", under: "-", logo: "🔵" },
-        { name: "MG", over: "+250", under: "-300", logo: "🟢" },
-        { name: "CS", over: "+245", under: "-", logo: "🟡" },
-        { name: "BR", over: "+210", under: "-", logo: "🟣" },
-        { name: "BB", over: "+260", under: "-275", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Abraham Toro",
-      team: "BOS",
-      time: "6:06 PM",
-      opponent: "vs PHI",
-      avatar: "👨🏽",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+850",
-          avgOdds: "+689",
-          value: "+20.5%",
-          valueColor: "text-emerald-400",
-          bestBook: "BetMGM",
-        },
-        under: {
-          line: "U -1270",
-          bestOdds: "U -1411",
-          avgOdds: "U",
-          value: "+0.7%",
-          valueColor: "text-green-400",
-          bestBook: "Novig",
-        },
-      },
-      books: [
-        { name: "DK", over: "+650", under: "-", logo: "🟠" },
-        { name: "FD", over: "+800", under: "-1600", logo: "🔵" },
-        { name: "MG", over: "+850", under: "-", logo: "🟢" },
-        { name: "CS", over: "+550", under: "-", logo: "🟡" },
-        { name: "BR", over: "+600", under: "-1400", logo: "🟣" },
-        { name: "BB", over: "+680", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Adael Amador",
-      team: "COL",
-      time: "2:11 PM",
-      opponent: "vs STL",
-      avatar: "👨🏽",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+1200",
-          avgOdds: "+915",
-          value: "+28.1%",
-          valueColor: "text-emerald-400",
-          bestBook: "DraftKings",
-        },
-        under: {
-          line: "U -2000",
-          bestOdds: "U -2277",
-          avgOdds: "U",
-          value: "+0.6%",
-          valueColor: "text-green-400",
-          bestBook: "BetMGM",
-        },
-      },
-      books: [
-        { name: "DK", over: "+1200", under: "-", logo: "🟠" },
-        { name: "FD", over: "+900", under: "-", logo: "🔵" },
-        { name: "MG", over: "+950", under: "-2000", logo: "🟢" },
-        { name: "CS", over: "+750", under: "-", logo: "🟡" },
-        { name: "BR", over: "+900", under: "-2800", logo: "🟣" },
-        { name: "BB", over: "+1000", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Adam Frazier",
-      team: "PIT",
-      time: "1:21 PM",
-      opponent: "vs CHC",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+900",
-          avgOdds: "+765",
-          value: "+15.5%",
-          valueColor: "text-green-400",
-          bestBook: "FanDuel",
-        },
-        under: {
-          line: "U -1289",
-          bestOdds: "U -1666",
-          avgOdds: "U",
-          value: "+1.7%",
-          valueColor: "text-green-400",
-          bestBook: "Novig",
-        },
-      },
-      books: [
-        { name: "DK", over: "+650", under: "-", logo: "🟠" },
-        { name: "FD", over: "+900", under: "-1600", logo: "🔵" },
-        { name: "MG", over: "+825", under: "-", logo: "🟢" },
-        { name: "CS", over: "+700", under: "-", logo: "🟡" },
-        { name: "BR", over: "+800", under: "-2500", logo: "🟣" },
-        { name: "BB", over: "+900", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Addison Barger",
-      team: "TOR",
-      time: "6:08 PM",
-      opponent: "vs NYY",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+500",
-          avgOdds: "+500",
-          value: "0%",
-          valueColor: "text-gray-400",
-          bestBook: "FanDuel",
-        },
-        under: { line: "U -", bestOdds: "U -", avgOdds: "U", value: "0%", valueColor: "text-gray-400", bestBook: "-" },
-      },
-      books: [
-        { name: "DK", over: "-", under: "-", logo: "🟠" },
-        { name: "FD", over: "+500", under: "-", logo: "🔵" },
-        { name: "MG", over: "-", under: "-", logo: "🟢" },
-        { name: "CS", over: "-", under: "-", logo: "🟡" },
-        { name: "BR", over: "-", under: "-", logo: "🟣" },
-        { name: "BB", over: "-", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Adolis Garcia",
-      team: "TEX",
-      time: "7:05 PM",
-      opponent: "vs OAK",
-      avatar: "👨🏽",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+390",
-          avgOdds: "+347",
-          value: "+9.5%",
-          valueColor: "text-green-400",
-          bestBook: "FanDuel",
-        },
-        under: {
-          line: "U -450",
-          bestOdds: "U -533",
-          avgOdds: "U",
-          value: "+2.9%",
-          valueColor: "text-green-400",
-          bestBook: "BetMGM",
-        },
-      },
-      books: [
-        { name: "DK", over: "+310", under: "-", logo: "🟠" },
-        { name: "FD", over: "+390", under: "-", logo: "🔵" },
-        { name: "MG", over: "+350", under: "-450", logo: "🟢" },
-        { name: "CS", over: "+360", under: "-", logo: "🟡" },
-        { name: "BR", over: "+390", under: "-600", logo: "🟣" },
-        { name: "BB", over: "+375", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Alec Burleson",
-      team: "STL",
-      time: "2:11 PM",
-      opponent: "vs COL",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+326",
-          avgOdds: "+290",
-          value: "+9.1%",
-          valueColor: "text-green-400",
-          bestBook: "FanDuel",
-        },
-        under: {
-          line: "U -375",
-          bestOdds: "U -424",
-          avgOdds: "U",
-          value: "+2.5%",
-          valueColor: "text-green-400",
-          bestBook: "BetMGM",
-        },
-      },
-      books: [
-        { name: "DK", over: "+285", under: "-", logo: "🟠" },
-        { name: "FD", over: "+326", under: "-", logo: "🔵" },
-        { name: "MG", over: "+290", under: "-375", logo: "🟢" },
-        { name: "CS", over: "+270", under: "-", logo: "🟡" },
-        { name: "BR", over: "+285", under: "-500", logo: "🟣" },
-        { name: "BB", over: "+325", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Alex Bregman",
-      team: "HOU",
-      time: "7:10 PM",
-      opponent: "vs LAA",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+280",
-          avgOdds: "+245",
-          value: "+11.2%",
-          valueColor: "text-green-400",
-          bestBook: "Bally Bet",
-        },
-        under: {
-          line: "U -320",
-          bestOdds: "U -380",
-          avgOdds: "U",
-          value: "+4.1%",
-          valueColor: "text-green-400",
-          bestBook: "Novig",
-        },
-      },
-      books: [
-        { name: "DK", over: "+240", under: "-", logo: "🟠" },
-        { name: "FD", over: "+250", under: "-350", logo: "🔵" },
-        { name: "MG", over: "+245", under: "-320", logo: "🟢" },
-        { name: "CS", over: "+235", under: "-", logo: "🟡" },
-        { name: "BR", over: "+260", under: "-400", logo: "🟣" },
-        { name: "BB", over: "+280", under: "-", logo: "🔴" },
-      ],
-    },
-    {
-      name: "Anthony Rizzo",
-      team: "NYY",
-      time: "6:08 PM",
-      opponent: "vs TOR",
-      avatar: "👨🏻",
-      teamLogo: "⚾",
-      lines: {
-        over: {
-          line: "O 0.5",
-          bestOdds: "+450",
-          avgOdds: "+380",
-          value: "+15.8%",
-          valueColor: "text-green-400",
-          bestBook: "DraftKings",
-        },
-        under: {
-          line: "U -550",
-          bestOdds: "U -650",
-          avgOdds: "U",
-          value: "+2.8%",
-          valueColor: "text-green-400",
-          bestBook: "Caesars",
-        },
-      },
-      books: [
-        { name: "DK", over: "+450", under: "-", logo: "🟠" },
-        { name: "FD", over: "+380", under: "-600", logo: "🔵" },
-        { name: "MG", over: "+400", under: "-550", logo: "🟢" },
-        { name: "CS", over: "+360", under: "-650", logo: "🟡" },
-        { name: "BR", over: "+420", under: "-700", logo: "🟣" },
-        { name: "BB", over: "+440", under: "-", logo: "🔴" },
-      ],
-    },
-  ]
 
   // Check if mobile
   React.useEffect(() => {
@@ -389,234 +87,18 @@ const SmashBoardAnimation = () => {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
+  // Toggle between views every 6 seconds
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      const playersPerPage = isMobile ? 3 : 6
-      setCurrentPage((prev) => (prev + 1) % Math.ceil(players.length / playersPerPage))
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [currentView, isMobile])
-
-  // Toggle between views - different timing for mobile vs desktop
-  React.useEffect(() => {
-    const viewInterval = setInterval(
-      () => {
-        setCurrentView((prev) => (prev + 1) % 2)
-        setCurrentPage(0) // Reset page when switching views
-      },
-      isMobile ? 6000 : 8000,
-    ) // Faster cycling on mobile
+    const viewInterval = setInterval(() => {
+      setCurrentView((prev) => (prev + 1) % 2)
+    }, 6000)
     return () => clearInterval(viewInterval)
-  }, [isMobile])
-
-  // Update the visible players calculation
-  const playersPerPageTable = isMobile ? 3 : 6
-  const playersPerPageCards = 6 // Always show 6 cards (2 rows of 3)
-  const playersPerPage = currentView === 0 ? playersPerPageTable : playersPerPageCards
-  const startIndex = currentPage * playersPerPage
-  const visiblePlayers = players.slice(startIndex, startIndex + playersPerPage)
-
-  // Table View
-  const TableView = () => (
-    <div className="space-y-2">
-      {/* Table Header with Sportsbook Initials */}
-      <div className="grid grid-cols-12 gap-1 text-[7px] text-blue-300/70 font-medium border-b border-blue-800/30 pb-1">
-        <div className="col-span-3">Player</div>
-        <div className="col-span-1">Line</div>
-        <div className="col-span-2">Best</div>
-        <div className="col-span-1">Value%</div>
-        <div className="col-span-5 grid grid-cols-6 gap-0.5 text-center">
-          <span>DK</span>
-          <span>FD</span>
-          <span>MG</span>
-          <span>CS</span>
-          <span>BR</span>
-          <span>BB</span>
-        </div>
-      </div>
-
-      {/* Player Rows */}
-      <div className="space-y-1">
-        {visiblePlayers.map((player, index) => (
-          <motion.div
-            key={`${player.name}-${currentPage}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="space-y-0.5"
-          >
-            {/* Over Line */}
-            <div className="grid grid-cols-12 gap-1 items-center bg-gradient-to-r from-blue-900/20 to-cyan-900/20 rounded-md p-1.5 border border-blue-500/10">
-              {/* Player Info */}
-              <div className="col-span-3 flex items-center gap-1">
-                <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[8px] flex-shrink-0">
-                  {player.avatar}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[8px] text-blue-200 font-medium truncate">{player.name}</div>
-                  <div className="text-[6px] text-blue-300/60 truncate">
-                    {player.team} {player.time}
-                  </div>
-                </div>
-              </div>
-
-              {/* Line */}
-              <div className="col-span-1">
-                <div className="text-[8px] text-blue-200 font-medium">{player.lines.over.line}</div>
-              </div>
-
-              {/* Best Odds */}
-              <div className="col-span-2">
-                <motion.div
-                  className="text-[9px] font-bold text-green-400"
-                  animate={{ scale: [1, 1.02, 1] }}
-                  transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, delay: index * 0.5 }}
-                >
-                  {player.lines.over.bestOdds}
-                </motion.div>
-                <div className="text-[6px] text-blue-300/60">{player.lines.over.bestBook}</div>
-              </div>
-
-              {/* Value % */}
-              <div className="col-span-1">
-                <motion.div
-                  className={`text-[8px] font-bold ${player.lines.over.valueColor}`}
-                  animate={{
-                    textShadow: [
-                      "0 0 0px rgba(34, 197, 94, 0)",
-                      "0 0 4px rgba(34, 197, 94, 0.6)",
-                      "0 0 0px rgba(34, 197, 94, 0)",
-                    ],
-                  }}
-                  transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, delay: index * 0.3 }}
-                >
-                  {player.lines.over.value}
-                </motion.div>
-              </div>
-
-              {/* Sportsbooks */}
-              <div className="col-span-5 grid grid-cols-6 gap-0.5">
-                {player.books.map((book, i) => (
-                  <motion.div
-                    key={i}
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 + i * 0.05 }}
-                  >
-                    <div className={`text-[7px] font-bold ${book.over !== "-" ? "text-green-300" : "text-gray-500"}`}>
-                      {book.over}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Under Line */}
-            <div className="grid grid-cols-12 gap-1 items-center bg-gradient-to-r from-red-900/10 to-orange-900/10 rounded-md p-1.5 border border-red-500/10">
-              <div className="col-span-3"></div>
-              <div className="col-span-1">
-                <div className="text-[8px] text-red-200 font-medium">{player.lines.under.line}</div>
-              </div>
-              <div className="col-span-2">
-                <div className="text-[9px] font-bold text-red-300">{player.lines.under.bestOdds}</div>
-                <div className="text-[6px] text-red-300/60">{player.lines.under.bestBook}</div>
-              </div>
-              <div className="col-span-1">
-                <div className={`text-[8px] font-bold ${player.lines.under.valueColor}`}>
-                  {player.lines.under.value}
-                </div>
-              </div>
-              <div className="col-span-5 grid grid-cols-6 gap-0.5">
-                {player.books.map((book, i) => (
-                  <div key={i} className="text-center">
-                    <div className={`text-[7px] font-bold ${book.under !== "-" ? "text-red-300" : "text-gray-500"}`}>
-                      {book.under}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
-
-  // Card View - Always 3 columns
-  const CardView = () => (
-    <div className="grid grid-cols-3 gap-2">
-      {visiblePlayers.map((player, index) => (
-        <motion.div
-          key={`card-${player.name}-${currentPage}`}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: index * 0.05 }}
-          className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-lg p-2 border border-gray-700/50"
-        >
-          {/* Player Header */}
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] flex-shrink-0">
-              {player.avatar}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[9px] text-white font-medium truncate">{player.name}</div>
-              <div className="text-[7px] text-gray-400">Home Runs</div>
-              <div className="text-[7px] text-gray-400">
-                {player.team} • {player.time}
-              </div>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <button className="bg-green-600/80 text-white text-[6px] px-1.5 py-0.5 rounded text-center font-medium">
-                + Over
-              </button>
-              <button className="bg-red-600/80 text-white text-[6px] px-1.5 py-0.5 rounded text-center font-medium">
-                + Under
-              </button>
-            </div>
-          </div>
-
-          {/* Line Selector */}
-          <div className="mb-2">
-            <div className="bg-gray-700/50 rounded px-2 py-1 text-[7px] text-gray-300 text-center">Line: 0.5</div>
-          </div>
-
-          {/* Over/Under Cards */}
-          <div className="grid grid-cols-2 gap-1 mb-2">
-            {/* Over */}
-            <div className="bg-green-600/20 border border-green-500/30 rounded p-1.5">
-              <div className="text-[7px] text-green-300 mb-1">Over</div>
-              <div className="text-[12px] font-bold text-green-400">{player.lines.over.bestOdds}</div>
-              <div className="text-[6px] text-green-300/80">{player.lines.over.bestBook}</div>
-              <div className="text-[6px] text-green-300/60 mt-1">
-                Avg: {player.lines.over.avgOdds} Value: {player.lines.over.value}
-              </div>
-            </div>
-
-            {/* Under */}
-            <div className="bg-red-600/20 border border-red-500/30 rounded p-1.5">
-              <div className="text-[7px] text-red-300 mb-1">Under</div>
-              <div className="text-[12px] font-bold text-red-400">{player.lines.under.bestOdds}</div>
-              <div className="text-[6px] text-red-300/80">{player.lines.under.bestBook}</div>
-              <div className="text-[6px] text-red-300/60 mt-1">
-                Avg: {player.lines.over.avgOdds} Value: {player.lines.under.value}
-              </div>
-            </div>
-          </div>
-
-          {/* Compare Button */}
-          <button className="w-full bg-gray-700/50 text-gray-300 text-[7px] py-1 rounded hover:bg-gray-600/50 transition-colors">
-            📊 Compare All Odds
-          </button>
-        </motion.div>
-      ))}
-    </div>
-  )
+  }, [])
 
   return (
     <div className="absolute inset-0 p-3">
       {/* View Toggle Indicator */}
-      <div className="absolute top-1 left-1 flex items-center gap-1">
+      <div className="absolute top-1 left-1 flex items-center gap-1 z-10">
         <motion.div
           className={`w-4 h-4 rounded flex items-center justify-center ${
             currentView === 0 ? "bg-blue-500/30" : "bg-gray-600/30"
@@ -635,20 +117,35 @@ const SmashBoardAnimation = () => {
         </motion.div>
       </div>
 
-      {/* Main Content */}
-      <div className="pt-6">
+      {/* Main Image Content */}
+      <div className="pt-6 h-full">
         <motion.div
           key={currentView}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative h-full rounded-lg overflow-hidden"
         >
-          {currentView === 0 ? <TableView /> : <CardView />}
+          <Image
+            src={currentView === 0 ? "/landing-page/smash_screen_table.png" : "/landing-page/smash_screen_cards.png"}
+            alt={
+              currentView === 0
+                ? "SmashBoard Table View - Detailed odds comparison"
+                : "SmashBoard Cards View - Player prop cards"
+            }
+            fill
+            className="object-cover object-top"
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 580px"
+          />
+
+          {/* Subtle overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
         </motion.div>
       </div>
 
       {/* Live Update Indicators */}
-      <div className="absolute top-1 right-1 flex items-center gap-1">
+      <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
         <motion.div
           className="w-1 h-1 bg-green-400 rounded-full"
           animate={{ opacity: [1, 0.3, 1] }}
@@ -657,21 +154,21 @@ const SmashBoardAnimation = () => {
         <span className="text-[6px] text-green-400 font-medium">Live</span>
       </div>
 
-      {/* Page indicators - Update calculation */}
-      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-        {Array.from({ length: Math.ceil(players.length / playersPerPage) }).map((_, idx) => (
+      {/* View Label */}
+      <div className="absolute bottom-1 left-1 text-[6px] text-blue-400/60 z-10">
+        {currentView === 0 ? "Table View" : "Cards View"} • Live Odds
+      </div>
+
+      {/* View indicators */}
+      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5 z-10">
+        {[0, 1].map((idx) => (
           <div
             key={idx}
             className={`w-1 h-1 rounded-full transition-all duration-300 ${
-              idx === currentPage ? "bg-blue-400" : "bg-blue-900/30"
+              idx === currentView ? "bg-blue-400" : "bg-blue-900/30"
             }`}
           />
         ))}
-      </div>
-
-      {/* Props count indicator - Update count */}
-      <div className="absolute bottom-1 left-1 text-[6px] text-blue-400/60">
-        {currentView === 0 ? "Table" : "Cards"} • {players.length * 2} props
       </div>
     </div>
   )
@@ -1265,7 +762,7 @@ export default function LandingFeaturesSection() {
                       Real-time Odds. Smash-Worthy Insights.
                     </p>
                     <p className="text-base text-muted-foreground leading-relaxed">
-                      Compare player props across sportsbooks with built-in EV analysis and smart filters. Your ultimate
+                      Compare player props across sportsbooks with built-in value analysis and smart filters. Your ultimate
                       command center for finding value.
                     </p>
                   </div>
