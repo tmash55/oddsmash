@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Target, Crown, Clock, Share2, TrendingUp, ArrowRight, Zap } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import Image from "next/image"
 
 export function HeroSection() {
   const [isMobile, setIsMobile] = useState(false)
@@ -168,18 +169,21 @@ export function HeroSection() {
                       </div>
                     </div>
 
-                    {/* Desktop Content */}
-                    <div className="aspect-[16/10] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-6 lg:p-8 relative">
-                      <div className="text-center text-gray-400 mb-6">
-                        <div className="text-3xl lg:text-4xl mb-4">📊</div>
-                        <div className="text-lg lg:text-xl font-medium text-gray-300">SmashBoard Screen</div>
-                        <div className="text-sm lg:text-base opacity-60">Real-time odds comparison</div>
-                      </div>
+                    {/* Desktop Content - Replace the placeholder with actual screenshot */}
+                    <div className="aspect-[16/10] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+                      <Image
+                        src="/landing-page/smash_screen_hero.png"
+                        alt="SmashBoard Screen - Real-time odds comparison dashboard"
+                        fill
+                        className="object-cover object-center"
+                        priority
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 580px"
+                      />
 
-                      {/* Floating UI Elements */}
+                      {/* Floating UI Elements - Keep these for extra visual interest */}
                       {!isMobile && (
                         <motion.div
-                          className="absolute top-6 right-6 w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center"
+                          className="absolute top-6 right-6 w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center backdrop-blur-sm"
                           animate={{ y: [0, -8, 0] }}
                           transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                         >
@@ -189,7 +193,7 @@ export function HeroSection() {
 
                       {!isMobile && (
                         <motion.div
-                          className="absolute bottom-6 left-6 w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center"
+                          className="absolute bottom-6 left-6 w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center backdrop-blur-sm"
                           animate={{ scale: [1, 1.2, 1] }}
                           transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
                         >
