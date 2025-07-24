@@ -396,55 +396,63 @@ export function Header() {
     },
   ]
 
+  // Conditional components based on mobile state
+  const HeaderComponent = isMobile ? "header" : motion.header
+  const MotionDiv = isMobile ? "div" : motion.div
+
   return (
-    <motion.header
+    <HeaderComponent
       className={cn(
         "sticky top-0 z-50 w-full backdrop-blur-xl transition-all duration-500",
         isScrolled
           ? "bg-background/90 supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm"
           : "bg-background/95 supports-[backdrop-filter]:bg-background/90",
       )}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      {...(!isMobile && {
+        initial: { y: -100 },
+        animate: { y: 0 },
+        transition: { duration: 0.6, ease: "easeOut" },
+      })}
     >
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/98 to-background/95 pointer-events-none overflow-hidden">
-        <motion.div
-          className="absolute top-0 left-1/4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, 20, 0],
-            y: [0, -10, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-1/4 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, -20, 0],
-            y: [0, 10, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-        />
-      </div>
+      {/* Subtle gradient background - Only on desktop */}
+      {!isMobile && (
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/98 to-background/95 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-0 left-1/4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 20, 0],
+              y: [0, -10, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-1/4 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -20, 0],
+              y: [0, 10, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+              delay: 2,
+            }}
+          />
+        </div>
+      )}
 
       <div className="container h-16 items-center relative z-10">
         {/* Desktop Layout */}
         <div className="hidden md:grid grid-cols-3 h-16 items-center">
           {/* Logo - Left column */}
           <div className="flex items-center">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <MotionDiv {...(!isMobile && { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } })}>
               <Link href="/" className="flex items-center group">
                 {!logoError ? (
                   <div className="relative w-9 h-9 rounded-xl overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
@@ -467,7 +475,7 @@ export function Header() {
                   </div>
                 )}
               </Link>
-            </motion.div>
+            </MotionDiv>
           </div>
 
           {/* Navigation - Center column */}
@@ -551,53 +559,98 @@ export function Header() {
                         Trackers
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="w-[500px] p-4"
-                        >
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
-                                <NavigationMenuLink asChild>
-                                  <Link
-                                    href="/trackers"
-                                    className="block space-y-2 no-underline outline-none transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
-                                        <Crown className="w-4 h-4 text-white" />
+                        {isMobile ? (
+                          <div className="w-[500px] p-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/trackers"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
+                                          <Crown className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-yellow-900 dark:text-yellow-100">
+                                          Stat Trackers
+                                        </div>
                                       </div>
-                                      <div className="font-semibold text-yellow-900 dark:text-yellow-100">
-                                        Stat Trackers
+                                      <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
+                                        Live leaderboards and competition tracking
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {trackerItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
                                       </div>
-                                    </div>
-                                    <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
-                                      Live leaderboards and competition tracking
-                                    </p>
-                                  </Link>
-                                </NavigationMenuLink>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              {trackerItems.map((item) => (
-                                <NavigationMenuLink key={item.title} asChild>
-                                  <Link
-                                    href={item.href}
-                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                  >
-                                    {item.icon}
-                                    <div>
-                                      <div className="font-medium text-sm">{item.title}</div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                    </div>
-                                  </Link>
-                                </NavigationMenuLink>
-                              ))}
-                            </div>
                           </div>
-                        </motion.div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-[500px] p-4"
+                          >
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/trackers"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
+                                          <Crown className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-yellow-900 dark:text-yellow-100">
+                                          Stat Trackers
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
+                                        Live leaderboards and competition tracking
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {trackerItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
                       </NavigationMenuContent>
                     </NavigationMenuItem>
                   </>
@@ -614,51 +667,98 @@ export function Header() {
                         Features
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="w-[500px] p-4"
-                        >
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
-                                <NavigationMenuLink asChild>
-                                  <Link
-                                    href="#features"
-                                    className="block space-y-2 no-underline outline-none transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                        <Target className="w-4 h-4 text-white" />
+                        {isMobile ? (
+                          <div className="w-[500px] p-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="#features"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                          <Target className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-blue-900 dark:text-blue-100">
+                                          All Features
+                                        </div>
                                       </div>
-                                      <div className="font-semibold text-blue-900 dark:text-blue-100">All Features</div>
-                                    </div>
-                                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                      Discover all our powerful betting tools and analytics
-                                    </p>
-                                  </Link>
-                                </NavigationMenuLink>
+                                      <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                        Discover all our powerful betting tools and analytics
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {publicFeatures.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              {publicFeatures.map((item) => (
-                                <NavigationMenuLink key={item.title} asChild>
-                                  <Link
-                                    href={item.href}
-                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                  >
-                                    {item.icon}
-                                    <div>
-                                      <div className="font-medium text-sm">{item.title}</div>
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                    </div>
-                                  </Link>
-                                </NavigationMenuLink>
-                              ))}
-                            </div>
                           </div>
-                        </motion.div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-[500px] p-4"
+                          >
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="#features"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                          <Target className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-blue-900 dark:text-blue-100">
+                                          All Features
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                        Discover all our powerful betting tools and analytics
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {publicFeatures.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
                       </NavigationMenuContent>
                     </NavigationMenuItem>
 
@@ -697,7 +797,7 @@ export function Header() {
           <div className="flex justify-end items-center space-x-3">
             {/* Betslip Cart - Only show for authenticated users */}
             {user && (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <MotionDiv {...(!isMobile && { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } })}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -705,24 +805,29 @@ export function Header() {
                   className="relative h-10 w-10 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-300"
                 >
                   <Receipt className="h-5 w-5" />
-                  {totalSelections > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
-                    >
-                      {totalSelections}
-                    </motion.span>
-                  )}
+                  {totalSelections > 0 &&
+                    (isMobile ? (
+                      <span className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                        {totalSelections}
+                      </span>
+                    ) : (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
+                      >
+                        {totalSelections}
+                      </motion.span>
+                    ))}
                 </Button>
-              </motion.div>
+              </MotionDiv>
             )}
 
             {/* User Account */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <MotionDiv {...(!isMobile && { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } })}>
                     <Button
                       variant="ghost"
                       className="relative h-10 px-3 rounded-xl hover:bg-muted transition-all duration-300"
@@ -744,7 +849,7 @@ export function Header() {
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </Button>
-                  </motion.div>
+                  </MotionDiv>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-2">
                   <DropdownMenuLabel className="p-3">
@@ -806,7 +911,7 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-3">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <MotionDiv {...(!isMobile && { whileHover: { scale: 1.02 }, whileTap: { scale: 0.98 } })}>
                   <Button
                     asChild
                     className="rounded-xl px-5 h-10 font-semibold text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200 border-0"
@@ -816,8 +921,8 @@ export function Header() {
                       Start Smashing
                     </Link>
                   </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                </MotionDiv>
+                <MotionDiv {...(!isMobile && { whileHover: { scale: 1.02 }, whileTap: { scale: 0.98 } })}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -828,7 +933,7 @@ export function Header() {
                       Sign In
                     </Link>
                   </Button>
-                </motion.div>
+                </MotionDiv>
                 <ThemeToggle />
               </div>
             )}
@@ -888,12 +993,7 @@ export function Header() {
                 <div className="flex-1 overflow-auto">
                   <nav className="p-4 space-y-3">
                     {navigationItems.map((item, index) => (
-                      <motion.div
-                        key={item.title}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
+                      <div key={item.title}>
                         {item.children ? (
                           <div className="space-y-2">
                             <button
@@ -936,13 +1036,8 @@ export function Header() {
                                   className="overflow-hidden"
                                 >
                                   <div className="pl-4 space-y-2 pt-2">
-                                    {item.children.map((child, childIndex) => (
-                                      <motion.div
-                                        key={child.title}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: childIndex * 0.05 }}
-                                      >
+                                    {item.children.map((child) => (
+                                      <div key={child.title}>
                                         <SheetClose asChild>
                                           <Link
                                             href={child.href}
@@ -962,7 +1057,7 @@ export function Header() {
                                             </div>
                                           </Link>
                                         </SheetClose>
-                                      </motion.div>
+                                      </div>
                                     ))}
                                   </div>
                                 </motion.div>
@@ -998,7 +1093,7 @@ export function Header() {
                             </Link>
                           </SheetClose>
                         )}
-                      </motion.div>
+                      </div>
                     ))}
                   </nav>
                 </div>
@@ -1085,12 +1180,7 @@ export function Header() {
                   {/* User Profile Section */}
                   {user ? (
                     <div className="p-6">
-                      <motion.div
-                        className="flex items-center space-x-4 p-6 rounded-2xl bg-gradient-to-r from-muted/40 to-muted/20 border border-muted/50"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                      >
+                      <div className="flex items-center space-x-4 p-6 rounded-2xl bg-gradient-to-r from-muted/40 to-muted/20 border border-muted/50">
                         <Avatar className="h-16 w-16 ring-2 ring-primary/20 shadow-lg">
                           <AvatarImage
                             src={profile?.avatar_url || user?.user_metadata?.avatar_url}
@@ -1110,13 +1200,9 @@ export function Header() {
                             {preferences?.subscription_tier || "Free Plan"}
                           </Badge>
                         </div>
-                      </motion.div>
+                      </div>
                       <div className="mt-6 space-y-3">
-                        <motion.div
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 }}
-                        >
+                        <div>
                           <SheetClose asChild>
                             <Link
                               href="/profile"
@@ -1134,12 +1220,8 @@ export function Header() {
                               <ChevronRight className="h-5 w-5 text-muted-foreground" />
                             </Link>
                           </SheetClose>
-                        </motion.div>
-                        <motion.div
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 }}
-                        >
+                        </div>
+                        <div>
                           <SheetClose asChild>
                             <Link
                               href="/history"
@@ -1157,12 +1239,8 @@ export function Header() {
                               <ChevronRight className="h-5 w-5 text-muted-foreground" />
                             </Link>
                           </SheetClose>
-                        </motion.div>
-                        <motion.div
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.4 }}
-                        >
+                        </div>
+                        <div>
                           <button
                             onClick={() => {
                               signOut()
@@ -1181,17 +1259,13 @@ export function Header() {
                             </div>
                             <ChevronRight className="h-5 w-5" />
                           </button>
-                        </motion.div>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="p-6">
                       <div className="space-y-4">
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                        >
+                        <div>
                           <SheetClose asChild>
                             <Button
                               asChild
@@ -1204,12 +1278,8 @@ export function Header() {
                               </Link>
                             </Button>
                           </SheetClose>
-                        </motion.div>
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                        >
+                        </div>
+                        <div>
                           <SheetClose asChild>
                             <Button
                               asChild
@@ -1220,7 +1290,7 @@ export function Header() {
                               <Link href="/sign-in">Already have an account? Sign In</Link>
                             </Button>
                           </SheetClose>
-                        </motion.div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1254,20 +1324,25 @@ export function Header() {
                 className="relative h-11 w-11 rounded-xl active:scale-95 transition-transform duration-75"
               >
                 <Receipt className="h-6 w-6" />
-                {totalSelections > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
-                  >
-                    {totalSelections}
-                  </motion.span>
-                )}
+                {totalSelections > 0 &&
+                  (isMobile ? (
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                      {totalSelections}
+                    </span>
+                  ) : (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg"
+                    >
+                      {totalSelections}
+                    </motion.span>
+                  ))}
               </Button>
             )}
           </div>
         </div>
       </div>
-    </motion.header>
+    </HeaderComponent>
   )
 }
