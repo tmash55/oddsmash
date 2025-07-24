@@ -42,7 +42,7 @@ export function FeaturesCTA() {
               </span>
             </h2>
             <p className="text-lg sm:text-xl max-w-2xl mx-auto text-gray-600 dark:text-white/70">
-              Get free access to all features while we're in beta. Help shape the future of sports betting tools and
+              Get free access to all features while we&apos;re in beta. Help shape the future of sports betting tools and
               lock in exclusive founder pricing.
             </p>
           </div>
