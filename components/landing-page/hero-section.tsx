@@ -1,445 +1,256 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import {
-  BarChart3,
-  Target,
-  Sparkles,
-  Crown,
-  Activity,
-  LineChart,
-  Home,
-  Bell,
-  Search,
-  Clock,
-  Share2,
-  TrendingUp,
-  ArrowRight,
-} from "lucide-react"
+import { Target, Crown, Clock, Share2, TrendingUp, ArrowRight, Zap } from "lucide-react"
 import Link from "next/link"
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 pt-24 md:pt-32 pb-20">
-      {/* Animated background elements */}
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 pt-12 md:pt-16 pb-16">
+      {/* Enhanced animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl"
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-400/5 rounded-full blur-3xl"
           animate={{
-            x: [0, 30, 0],
-            y: [0, -20, 0],
+            x: [0, 40, 0],
+            y: [0, -30, 0],
             scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, -40, 0],
-            y: [0, 20, 0],
-            scale: [1, 1.3, 1],
           }}
           transition={{
             duration: 15,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
-            delay: 3,
           }}
         />
         <motion.div
-          className="absolute top-1/2 right-1/3 w-48 h-48 bg-primary/10 dark:bg-primary/5 rounded-full blur-3xl"
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl"
           animate={{
-            x: [0, 25, 0],
-            y: [0, -15, 0],
-            scale: [1, 1.1, 1],
+            x: [0, -50, 0],
+            y: [0, 25, 0],
+            scale: [1, 1.3, 1],
           }}
           transition={{
-            duration: 10,
+            duration: 18,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
-            delay: 6,
+            delay: 4,
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -20, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+            delay: 8,
           }}
         />
       </div>
 
-      <div className="container relative z-10 px-4 md:px-6">
-        {/* Hero Content - Centered */}
-        <motion.div
-          className="text-center space-y-8 mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          {/* Main Heading */}
+      <div className="container relative z-10 px-4 md:px-6 lg:px-8 max-w-7xl">
+        {/* Hero Content */}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[80vh]">
+          {/* Left Column - Text Content */}
           <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-center lg:text-left space-y-6 lg:pr-8"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto">
-              <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80 bg-clip-text text-transparent">
-                Stop Wasting Time.
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-primary via-blue-600 to-primary bg-clip-text text-transparent">
-                Start Smashing Odds.
-              </span>
-            </h1>
-
-            <div className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              <p>Scan any betslip. Compare every book in seconds.</p>
-              <p>Never miss value.</p>
-            </div>
-
-            {/* Beta Micro-copy */}
+            {/* Main Heading */}
             <motion.div
-              className="pt-2"
-              initial={{ opacity: 0, y: 10 }}
+              className="space-y-4"
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
             >
-              <p className="text-sm text-muted-foreground/60 max-w-2xl mx-auto">
-                Currently in closed beta — all features free for early adopters
-              </p>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-foreground leading-tight">
+                Stop Wasting Time.
+                <br />
+                <span className="bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Start Smashing Odds.
+                </span>
+              </h1>
+
+              <div className="text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl lg:max-w-none">
+                <p>Scan any betslip—compare every book in seconds.</p>
+              </div>
+            </motion.div>
+
+            {/* CTA Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="relative group"
+            >
+              <Button
+                size="lg"
+                className="h-14 md:h-16 px-8 md:px-10 text-base md:text-lg font-bold rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+                asChild
+              >
+                <Link href="/sign-up" className="inline-flex items-center">
+                  <Crown className="w-5 h-5 md:w-6 md:h-6 mr-3" />
+                  <span>Join The Founders</span>
+                  <ArrowRight className="w-5 h-5 md:w-6 md:h-6 ml-3 group-hover:translate-x-1 transition-transform duration-300" />
+                </Link>
+              </Button>
             </motion.div>
           </motion.div>
 
-          {/* Enhanced Premium CTA Button - Clean Version */}
+          {/* Right Column - Device Mockups */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="relative group"
+            className="relative lg:pl-8"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
           >
-            <Button
-              size="lg"
-              className="relative h-16 md:h-18 px-10 md:px-12 text-lg font-black rounded-3xl bg-emerald-400 hover:bg-emerald-300 text-black shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] transition-all duration-500 border-0 overflow-hidden"
-              asChild
-            >
-              <Link href="/sign-up" className="inline-flex items-center relative z-10">
-                {/* Refined shimmer effect - Only on hover */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 group-hover:via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  animate={{
-                    x: ["-100%", "100%"],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                    repeatDelay: 3,
-                    ease: "easeInOut",
-                  }}
-                />
-
-                {/* Softened pulsing dot - Slower and more subtle */}
-                <motion.div
-                  className="w-2 h-2 bg-purple-500 rounded-full mr-3 shadow-lg opacity-60"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    opacity: [0.6, 0.8, 0.6],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                  }}
-                />
-
-                <span className="relative z-10 font-black">Join the Founders Beta</span>
-
-                {/* Enhanced BETA pill - Hover-triggered glow */}
-                <motion.div
-                  className="ml-4 relative"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  <Badge className="bg-purple-500 hover:bg-purple-400 text-white text-[10px] font-black px-3 py-1.5 border-0 shadow-lg uppercase tracking-wider transition-all duration-300">
-                    <motion.span
-                      className="group-hover:animate-pulse"
-                      animate={{
-                        textShadow: [
-                          "0 0 0px rgba(255,255,255,0)",
-                          "0 0 4px rgba(255,255,255,0.6)",
-                          "0 0 0px rgba(255,255,255,0)",
-                        ],
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      Beta
-                    </motion.span>
-                  </Badge>
-                </motion.div>
-
-                {/* Refined animated arrow - Gentler motion */}
-                <motion.div
-                  className="ml-3"
-                  animate={{
-                    x: [0, 2, 0],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
-                </motion.div>
-              </Link>
-            </Button>
-          </motion.div>
-
-          {/* Feature Bullets */}
-          <motion.div
-            className="flex flex-wrap items-center justify-center gap-6 md:gap-8 text-sm text-muted-foreground mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground/70" />
-              <span>Free account in 10 seconds</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-muted-foreground/70" />
-              <span>Works on X, Discord & screenshots</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-muted-foreground/70" />
-              <span>Live hit-rate overlays</span>
-            </div>
-          </motion.div>
-
-          {/* Trust Indicators */}
-          <motion.div
-            className="space-y-4 hidden sm:block"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.6 }}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <div className="text-sm text-muted-foreground max-w-md mx-auto text-center">
-                <span className="font-medium">"Saved me 10 mins per parlay!"</span>
-                <span className="text-muted-foreground/70"> — @SharpBettor</span>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Dashboard Preview - Full Width */}
-        <motion.div
-          className="w-full max-w-6xl mx-auto"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 0.8 }}
-        >
-          <Card className="overflow-hidden bg-gradient-to-br from-background/90 to-muted/30 backdrop-blur-xl border-2 border-border/50 shadow-2xl drop-shadow-xl">
-            <CardContent className="p-0">
-              {/* Dashboard Header */}
-              <div className="flex items-center justify-between p-6 border-b border-border/50 bg-muted/20">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                      <Target className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <span className="font-semibold text-lg">OddSmash</span>
-                  </div>
-                  <div className="hidden md:block">
-                    <span className="text-sm text-muted-foreground">Trading / Dashboard</span>
-                    <h2 className="font-semibold">Main Dashboard</h2>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-muted-foreground" />
-                  <Search className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-4 min-h-[500px]">
-                {/* Sidebar */}
-                <div className="hidden lg:block bg-muted/10 border-r border-border/50 p-4">
-                  <nav className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 text-primary">
-                      <Home className="w-4 h-4" />
-                      <span className="font-medium">Dashboard</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                      <span>Props</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <LineChart className="w-4 h-4 text-muted-foreground" />
-                      <span>Analytics</span>
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        New
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Activity className="w-4 h-4 text-muted-foreground" />
-                      <span>Hit Rates</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Crown className="w-4 h-4 text-muted-foreground" />
-                      <span>Trackers</span>
-                    </div>
-                  </nav>
-                </div>
-
-                {/* Main Content */}
-                <div className="lg:col-span-2 p-6 space-y-6">
-                  {/* Balance Section */}
-                  <div>
-                    <div className="flex items-center gap-4 mb-4">
-                      <span className="text-sm text-muted-foreground">Balance</span>
+            <div className="relative flex items-center justify-center lg:justify-end min-h-[500px] lg:min-h-[600px]">
+              {/* Desktop Mockup */}
+              <motion.div
+                className="relative z-10 w-full max-w-[520px] lg:max-w-[580px]"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+              >
+                <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl lg:rounded-3xl p-2 lg:p-3 shadow-2xl">
+                  <div className="bg-black rounded-xl lg:rounded-2xl overflow-hidden">
+                    {/* Browser Bar */}
+                    <div className="bg-gray-800 px-4 py-3 flex items-center gap-2">
                       <div className="flex gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          1D
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          7D
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          1M
-                        </Badge>
-                        <Badge variant="default" className="text-xs">
-                          1Y
-                        </Badge>
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <div className="flex-1 bg-gray-700 rounded-md px-3 py-1 ml-4">
+                        <div className="text-xs text-gray-400">oddsmash.com/dashboard</div>
                       </div>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-6">
-                      <span className="text-3xl font-bold">$2,847.32</span>
-                      <span className="text-primary text-sm font-medium">+47.3%</span>
-                    </div>
 
-                    {/* Scanner Upload State - Updated with primary colors */}
-                    <div className="h-48 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border-2 border-primary/20 dark:border-primary/30 flex flex-col items-center justify-center group hover:border-primary/30 dark:hover:border-primary/40 transition-colors relative overflow-hidden">
-                      {/* Upload State */}
-                      <div className="text-center space-y-3">
-                        <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                          <span className="text-2xl">📸</span>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-primary">Upload a screenshot</p>
-                          <p className="text-xs text-primary/80">Drag & drop or click to scan</p>
-                        </div>
+                    {/* Desktop Content */}
+                    <div className="aspect-[16/10] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-6 lg:p-8 relative">
+                      <div className="text-center text-gray-400 mb-6">
+                        <div className="text-3xl lg:text-4xl mb-4">📊</div>
+                        <div className="text-lg lg:text-xl font-medium text-gray-300">SmashBoard Analytics</div>
+                        <div className="text-sm lg:text-base opacity-60">Real-time odds comparison</div>
                       </div>
 
-                      {/* Step indicators at bottom */}
-                      <div className="absolute bottom-3 left-3 right-3 flex justify-between text-xs text-primary/70">
-                        <span className="font-medium">1. Upload</span>
-                        <span className="opacity-50">2. Scan</span>
-                        <span className="opacity-50">3. Best Odds</span>
-                      </div>
-
-                      {/* Subtle animation hint */}
+                      {/* Floating UI Elements */}
                       <motion.div
-                        className="absolute inset-0 rounded-xl border-2 border-primary/30"
-                        animate={{
-                          borderColor: [
-                            "hsl(var(--primary) / 0.3)",
-                            "hsl(var(--primary) / 0.1)",
-                            "hsl(var(--primary) / 0.3)",
-                          ],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                      />
-                    </div>
-                  </div>
+                        className="absolute top-6 right-6 w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center"
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                      >
+                        <Target className="w-4 h-4 text-emerald-400" />
+                      </motion.div>
 
-                  {/* Props Section */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Top Props</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400">⚾</span>
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm">Aaron Judge</div>
-                            <div className="text-xs text-muted-foreground">Home Runs O/U 0.5</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">+125</div>
-                          <div className="text-xs text-primary">73% hit rate</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">🏀</span>
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm">LeBron James</div>
-                            <div className="text-xs text-muted-foreground">Points O/U 25.5</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">-110</div>
-                          <div className="text-xs text-primary">68% hit rate</div>
-                        </div>
-                      </div>
+                      <motion.div
+                        className="absolute bottom-6 left-6 w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
+                      >
+                        <TrendingUp className="w-3 h-3 text-blue-400" />
+                      </motion.div>
                     </div>
                   </div>
                 </div>
+              </motion.div>
 
-                {/* Right Sidebar */}
-                <div className="hidden lg:block bg-muted/10 border-l border-border/50 p-4">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-semibold mb-4">Quick Actions</h3>
-                      <div className="space-y-3">
-                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                          <Target className="w-4 h-4 mr-2" />
-                          Smash Screen
-                        </Button>
-                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Scanner
-                        </Button>
-                        <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                          <Activity className="w-4 h-4 mr-2" />
-                          Hit Rates
-                        </Button>
+              {/* Mobile Mockup */}
+              <motion.div
+                className="absolute right-[-20px] lg:right-[-30px] bottom-0 lg:bottom-8 z-20 w-[200px] lg:w-[240px]"
+                initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.8 }}
+              >
+                <div className="relative">
+                  {/* iPhone Frame */}
+                  <div className="bg-gray-900 rounded-[2rem] lg:rounded-[2.5rem] p-2 lg:p-3 shadow-2xl">
+                    <div className="bg-black rounded-[1.5rem] lg:rounded-[2rem] overflow-hidden">
+                      {/* Status Bar */}
+                      <div className="bg-gray-900 px-4 lg:px-6 py-2 lg:py-3 flex justify-between items-center text-white text-xs lg:text-sm">
+                        <span className="font-medium">3:00</span>
+                        <div className="flex items-center gap-1 lg:gap-2">
+                          <div className="flex gap-1">
+                            <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-white rounded-full"></div>
+                            <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-white rounded-full"></div>
+                            <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-white/50 rounded-full"></div>
+                          </div>
+                          <div className="w-5 h-2.5 lg:w-6 lg:h-3 border border-white/50 rounded-sm">
+                            <div className="w-3 h-1.5 lg:w-4 lg:h-2 bg-white rounded-sm m-0.5"></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-4">Recent Activity</h3>
-                      <div className="space-y-3">
-                        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                          <div className="text-sm font-medium text-primary">Win</div>
-                          <div className="text-xs text-primary/80">Judge HR +125</div>
+                      {/* Mobile App Content */}
+                      <div className="aspect-[9/16] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-4 lg:p-6 relative">
+                        <div className="text-center text-gray-400 mb-4">
+                          <div className="text-2xl lg:text-3xl mb-3">📱</div>
+                          <div className="text-sm lg:text-base font-medium text-gray-300">Betslip Scanner</div>
+                          <div className="text-xs lg:text-sm opacity-60">AI-Powered Analysis</div>
                         </div>
-                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50">
-                          <div className="text-sm font-medium text-red-700 dark:text-red-300">Loss</div>
-                          <div className="text-xs text-red-600 dark:text-red-400">Ohtani K&apos;s -110</div>
-                        </div>
+
+                        {/* Mobile floating elements */}
+                        <motion.div
+                          className="absolute top-8 lg:top-12 left-4 lg:left-6 w-5 h-5 lg:w-6 lg:h-6 bg-emerald-500/30 rounded-full flex items-center justify-center"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                        >
+                          <Zap className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-emerald-400" />
+                        </motion.div>
                       </div>
                     </div>
                   </div>
+
+                  {/* External floating elements */}
+                  <motion.div
+                    className="absolute -top-4 lg:-top-6 -left-4 lg:-left-6 w-6 h-6 lg:w-8 lg:h-8 bg-emerald-500/20 rounded-full flex items-center justify-center"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  >
+                    <Zap className="w-3 h-3 lg:w-4 lg:h-4 text-emerald-400" />
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute -bottom-4 lg:-bottom-6 -right-4 lg:-right-6 w-5 h-5 lg:w-6 lg:h-6 bg-purple-500/20 rounded-full flex items-center justify-center"
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
+                  >
+                    <Target className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-purple-400" />
+                  </motion.div>
+                </div>
+              </motion.div>
+            </div>
+            {/* Micro-features section - Below devices */}
+            <motion.div
+              className="mt-16 lg:mt-20 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.6 }}
+            >
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-4 md:gap-8 text-sm md:text-base text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-500" />
+                  <span>Free account in 10 seconds</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-blue-500" />
+                  <span>Works on X, Discord & screenshots</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-purple-500" />
+                  <span>Live hit-rate overlays</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
     </section>
   )

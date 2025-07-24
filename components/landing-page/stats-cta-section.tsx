@@ -14,9 +14,10 @@ const stats = [
 
 export function StatsCTASection() {
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-br from-muted/20 via-background to-muted/20 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 dark:from-blue-950/10 dark:via-transparent dark:to-purple-950/10" />
+    <section className="py-16 sm:py-20 bg-background relative overflow-hidden">
+      {/* Enhanced Background Elements - Matching Features Section */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-purple-50/30 dark:from-blue-950/10 dark:via-transparent dark:to-purple-950/10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/3 to-purple-500/3 dark:from-blue-400/3 dark:to-purple-400/3 rounded-full blur-3xl" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Stats Row */}
@@ -59,7 +60,7 @@ export function StatsCTASection() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-center"
         >
-          <div className="bg-gradient-to-br from-blue-50/80 to-purple-50/80 dark:from-blue-950/40 dark:to-purple-950/40 rounded-3xl p-8 sm:p-12 border-2 border-blue-200/30 dark:border-blue-800/20 backdrop-blur-xl shadow-xl">
+          <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border-2 border-border/50 shadow-xl">
             <motion.h3
               className="text-2xl sm:text-3xl font-bold text-foreground mb-4"
               initial={{ opacity: 0, y: 20 }}
@@ -67,7 +68,7 @@ export function StatsCTASection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.6 }}
             >
-              Ready to explore all features?
+              Ready to start smashing odds?
             </motion.h3>
             <motion.p
               className="text-lg text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
@@ -76,31 +77,22 @@ export function StatsCTASection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              Dive deeper into each tool and see how they work together to give you the ultimate betting advantage.
+              Join thousands of bettors who are already using our tools to find better odds and make smarter bets.
             </motion.p>
             <motion.div
-              className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center"
+              className="flex justify-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.8 }}
             >
-              <Link href="/features">
+              <Link href="#features">
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 sm:px-10 h-14 text-base font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 group"
                 >
                   Explore All Features
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="px-8 sm:px-10 h-14 text-base font-semibold rounded-2xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-2 hover:bg-white/80 dark:hover:bg-gray-900/80 transition-all duration-300"
-                >
-                  Start Free Trial
                 </Button>
               </Link>
             </motion.div>

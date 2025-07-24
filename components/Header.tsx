@@ -43,7 +43,6 @@ import {
   TrendingUp,
   Settings,
   HelpCircle,
-  DollarSign,
   BookOpen,
   Target,
 } from "lucide-react"
@@ -363,7 +362,11 @@ export function Header() {
   ]
 
   // Choose navigation items based on auth state and platform
-  const navigationItems = user ? (isMobile ? mobileNavigationItems : authenticatedNavigationItems) : publicNavigationItems
+  const navigationItems = user
+    ? isMobile
+      ? mobileNavigationItems
+      : authenticatedNavigationItems
+    : publicNavigationItems
 
   // Public features for marketing dropdown
   const publicFeatures = [
@@ -478,7 +481,7 @@ export function Header() {
                       <Link href="/mlb/odds/player-props?market=home+runs" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap group relative",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap group relative",
                             pathname?.includes("/odds/player-props") &&
                               "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
                           )}
@@ -494,7 +497,7 @@ export function Header() {
                       <Link href="/mlb/hit-rates?market=hits" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
                             (pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets")) &&
                               "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
                           )}
@@ -510,7 +513,7 @@ export function Header() {
                       <Link href="/parlay-builder" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 inline-flex items-center text-sm whitespace-nowrap",
                             pathname?.startsWith("/parlay-builder") &&
                               "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
                           )}
@@ -525,7 +528,7 @@ export function Header() {
                       <Link href="/betslip-scanner" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-orange-50 dark:hover:bg-orange-950/50 inline-flex items-center text-sm",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-orange-50 dark:hover:bg-orange-950/50 inline-flex items-center text-sm",
                             pathname?.startsWith("/betslip-scanner") &&
                               "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
                           )}
@@ -539,7 +542,7 @@ export function Header() {
                     <NavigationMenuItem>
                       <NavigationMenuTrigger
                         className={cn(
-                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-950/50 data-[state=open]:bg-yellow-50 dark:data-[state=open]:bg-yellow-950/50 text-sm",
+                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-950/50 data-[state=open]:bg-yellow-50 dark:data-[state=open]:bg-yellow-950/50 text-sm",
                           pathname?.startsWith("/trackers") &&
                             "bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300",
                         )}
@@ -604,7 +607,7 @@ export function Header() {
                     <NavigationMenuItem>
                       <NavigationMenuTrigger
                         className={cn(
-                          "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
+                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
                         )}
                       >
                         <Star className="w-4 h-4 mr-1.5" />
@@ -663,7 +666,7 @@ export function Header() {
                       <Link href="#how-it-works" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
                           )}
                         >
                           <BookOpen className="w-4 h-4 mr-1.5" />
@@ -676,7 +679,7 @@ export function Header() {
                       <Link href="#founders-beta" legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
-                            "px-3 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
+                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
                           )}
                         >
                           <Sparkles className="w-4 h-4 mr-1.5" />
@@ -802,23 +805,31 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center space-x-2">
-                <ThemeToggle />
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <div className="flex items-center space-x-3">
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    asChild
+                    className="rounded-xl px-5 h-10 font-semibold text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200 border-0"
+                  >
+                    <Link href="/sign-up" className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Start Smashing
+                    </Link>
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="outline"
                     size="sm"
                     asChild
-                    className="rounded-xl px-4 h-10 font-medium bg-transparent"
+                    className="rounded-xl px-4 h-10 font-medium border-border/50 hover:border-border transition-all duration-200 bg-transparent"
                   >
-                    <Link href="/sign-up">Get Started</Link>
+                    <Link href="/sign-in" className="text-sm">
+                      Sign In
+                    </Link>
                   </Button>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="default" size="sm" asChild className="rounded-xl px-4 h-10 font-medium">
-                    <Link href="/sign-in">Sign In</Link>
-                  </Button>
-                </motion.div>
+                <ThemeToggle />
               </div>
             )}
           </div>
@@ -1185,9 +1196,12 @@ export function Header() {
                             <Button
                               asChild
                               size="lg"
-                              className="w-full h-12 text-base font-semibold rounded-2xl active:scale-[0.98] transition-transform duration-75 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              className="w-full h-12 text-base font-semibold rounded-2xl active:scale-[0.98] transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
                             >
-                              <Link href="/sign-in">Sign In</Link>
+                              <Link href="/sign-up" className="flex items-center justify-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                Start Smashing
+                              </Link>
                             </Button>
                           </SheetClose>
                         </motion.div>
@@ -1199,11 +1213,11 @@ export function Header() {
                           <SheetClose asChild>
                             <Button
                               asChild
-                              variant="outline"
+                              variant="ghost"
                               size="lg"
-                              className="w-full h-12 text-base font-semibold rounded-2xl active:scale-[0.98] transition-transform duration-75 border-2 bg-transparent"
+                              className="w-full h-12 text-base font-medium rounded-2xl active:scale-[0.98] transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             >
-                              <Link href="/sign-up">Create Account</Link>
+                              <Link href="/sign-in">Already have an account? Sign In</Link>
                             </Button>
                           </SheetClose>
                         </motion.div>
