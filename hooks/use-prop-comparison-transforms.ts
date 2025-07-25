@@ -1,23 +1,12 @@
 import { useMemo } from 'react'
 import type { PlayerOdds, BestOddsFilter, TransformedPlayerOdds, OddsPrice } from '@/types/prop-comparison'
-
-// Helper function to calculate edge percentage
-function calculateEdge(odds: Record<string, any>, type: 'over' | 'under' = 'over'): number {
-  const prices = Object.values(odds)
-    .map(book => book[type]?.price)
-    .filter(price => price !== undefined && price !== null) as number[];
-
-  if (prices.length === 0) return 0;
-
-  const decimalOdds = prices.map(price => {
-    if (price > 0) return (price / 100) + 1;
-    return (100 / Math.abs(price)) + 1;
-  });
-
-  const avgDecimal = decimalOdds.reduce((a, b) => a + b, 0) / decimalOdds.length;
-  const bestDecimal = Math.max(...decimalOdds);
-  return ((bestDecimal / avgDecimal) - 1) * 100;
-}
+import { 
+  getBestBook, 
+  getBestPrice, 
+  getValuePercent, 
+  isBookBest,
+  getMaxValuePercent 
+} from '@/lib/prop-metrics-utils'
 
 interface UseTransformedDataParams {
   data: PlayerOdds[] | undefined;
@@ -59,39 +48,36 @@ export function useTransformedPropData({
       
       const lineOdds = item.lines?.[activeLine] || {};
 
-      let bestOverOdds: OddsPrice | null = null;
-      let bestUnderOdds: OddsPrice | null = null;
-      let bestOverPrice = -Infinity;
-      let bestUnderPrice = -Infinity;
-      let bestOverBook = "";
-      let bestUnderBook = "";
-
-      // Cache edge calculations
+      // Cache value percentages using metrics
       const edgeValues = new Map<'over' | 'under', number>();
+      edgeValues.set('over', getValuePercent(item, activeLine, 'over'));
+      edgeValues.set('under', getValuePercent(item, activeLine, 'under'));
 
-      Object.entries(lineOdds).forEach(([bookId, bookOdds]) => {
-        if (bookOdds.over && bookOdds.over.price > bestOverPrice) {
-          bestOverPrice = bookOdds.over.price;
-          bestOverBook = bookId;
-          bestOverOdds = bookOdds.over;
-        }
-        if (bookOdds.under && bookOdds.under.price > bestUnderPrice) {
-          bestUnderPrice = bookOdds.under.price;
-          bestUnderBook = bookId;
-          bestUnderOdds = bookOdds.under;
-        }
-      });
+      // Get best books and prices from metrics
+      const bestOverBook = getBestBook(item, activeLine, 'over') || '';
+      const bestUnderBook = getBestBook(item, activeLine, 'under') || '';
+      const bestOverPrice = getBestPrice(item, activeLine, 'over');
+      const bestUnderPrice = getBestPrice(item, activeLine, 'under');
 
-      // Pre-calculate edges
-      edgeValues.set('over', calculateEdge(lineOdds, 'over'));
-      edgeValues.set('under', calculateEdge(lineOdds, 'under'));
+      // Get best odds objects
+      const bestOverOdds = bestOverPrice ? {
+        price: bestOverPrice,
+        sid: bestOverBook,
+        link: lineOdds[bestOverBook]?.over?.link
+      } : null;
+
+      const bestUnderOdds = bestUnderPrice ? {
+        price: bestUnderPrice,
+        sid: bestUnderBook,
+        link: lineOdds[bestUnderBook]?.under?.link
+      } : null;
 
       return {
         ...item,
         bestOverOdds,
         bestUnderOdds,
-        bestOverPrice: bestOverPrice === -Infinity ? 0 : bestOverPrice,
-        bestUnderPrice: bestUnderPrice === -Infinity ? 0 : bestUnderPrice,
+        bestOverPrice,
+        bestUnderPrice,
         bestOverBook,
         bestUnderBook,
         activeLine,
@@ -124,10 +110,10 @@ export function useTransformedPropData({
         }
       }
 
-      // Apply best odds filter using pre-calculated edges
+      // Apply best odds filter using Redis metrics
       if (bestOddsFilter) {
-        const edge = item.edgeValues.get(bestOddsFilter.type) || 0;
-        return edge >= bestOddsFilter.minOdds;
+        const bestBook = getBestBook(item, item.activeLine, bestOddsFilter.type);
+        return bestBook?.toLowerCase() === bestOddsFilter.sportsbook.toLowerCase();
       }
       
       return true;
@@ -153,28 +139,27 @@ export function useTransformedPropData({
       
       if (sortField === "edge") {
         const type = bestOddsFilter?.type || 'over';
-        const aEdge = a.edgeValues.get(type) || 0;
-        const bEdge = b.edgeValues.get(type) || 0;
+        const aValue = getValuePercent(a, a.activeLine, type);
+        const bValue = getValuePercent(b, a.activeLine, type);
         return sortDirection === "asc"
-          ? aEdge - bEdge
-          : bEdge - aEdge;
+          ? aValue - bValue
+          : bValue - aValue;
       }
       
       if (sortField === "odds") {
+        const aPrice = getBestPrice(a, a.activeLine, 'over');
+        const bPrice = getBestPrice(b, b.activeLine, 'over');
         return sortDirection === "asc"
-          ? a.bestOverPrice - b.bestOverPrice
-          : b.bestOverPrice - a.bestOverPrice;
+          ? aPrice - bPrice
+          : bPrice - aPrice;
       }
 
       if (sortField === "ev") {
-        // Default to desc (highest to lowest) for EV
-        const actualDirection = sortDirection === "asc" ? "desc" : "asc";
-        const type = bestOddsFilter?.type || 'over';
-        const aEdge = a.edgeValues.get(type) || 0;
-        const bEdge = b.edgeValues.get(type) || 0;
-        return actualDirection === "asc"
-          ? aEdge - bEdge
-          : bEdge - aEdge;
+        const aValue = getMaxValuePercent(a, a.activeLine);
+        const bValue = getMaxValuePercent(b, b.activeLine);
+        return sortDirection === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
       }
 
       return 0;

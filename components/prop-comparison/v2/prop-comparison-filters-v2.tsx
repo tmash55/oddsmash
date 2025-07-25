@@ -246,6 +246,7 @@ export function PropComparisonFiltersV2({
   lastUpdated,
 }: PropComparisonFiltersV2Props) {
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
+  const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
   const isMobile = useMediaQuery("(max-width: 768px)")
   const markets = SUPPORTED_MARKETS[sport] || []
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
@@ -590,8 +591,7 @@ export function PropComparisonFiltersV2({
                 } else {
                   onBestOddsFilterChange({
                     sportsbook: value,
-                    type: bestOddsFilter?.type || "over",
-                    minOdds: 0,
+                    type: bestOddsFilter?.type || "over"
                   })
                 }
               }}
@@ -825,87 +825,59 @@ export function PropComparisonFiltersV2({
               </div>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow"
+            {/* Best Odds Filter */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm font-medium">Best Odds:</span>
+              </div>
+              <Select
+                value={bestOddsFilter?.sportsbook || ""}
+                onValueChange={(value) => {
+                  if (!value) {
+                    onBestOddsFilterChange(null)
+                  } else {
+                    onBestOddsFilterChange({
+                      sportsbook: value,
+                      type: bestOddsFilter?.type || "over"
+                    })
+                  }
+                }}
+              >
+                <SelectTrigger className="h-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                  <SelectValue placeholder="Select sportsbook" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeSportsbooks.map((book) => (
+                    <SelectItem key={book.id} value={book.id}>
+                      <div className="flex items-center gap-2">
+                        {renderSportsbookLogo(book.id)}
+                        <span>{book.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {bestOddsFilter && (
+                <Select
+                  value={bestOddsFilter.type}
+                  onValueChange={(value: "over" | "under") => {
+                    onBestOddsFilterChange({
+                      ...bestOddsFilter,
+                      type: value,
+                    })
+                  }}
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Advanced
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[300px]">
-                <div className="p-4 space-y-4">
-                  {/* Best Odds Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      Best Odds Filter
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Zap className="h-4 w-4 text-yellow-500" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Filter props where a sportsbook offers the best odds</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Select
-                        value={bestOddsFilter?.sportsbook || ""}
-                        onValueChange={(value) => {
-                          if (!value) {
-                            onBestOddsFilterChange(null)
-                          } else {
-                            onBestOddsFilterChange({
-                              sportsbook: value,
-                              type: bestOddsFilter?.type || "over",
-                              minOdds: 0,
-                            })
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="flex-1 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
-                          <SelectValue placeholder="Select sportsbook" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {activeSportsbooks.map((book) => (
-                            <SelectItem key={book.id} value={book.id}>
-                              <div className="flex items-center gap-2">
-                                {renderSportsbookLogo(book.id)}
-                                <span>{book.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {bestOddsFilter && (
-                        <Select
-                          value={bestOddsFilter.type}
-                          onValueChange={(value: "over" | "under") => {
-                            onBestOddsFilterChange({
-                              ...bestOddsFilter,
-                              type: value,
-                            })
-                          }}
-                        >
-                          <SelectTrigger className="w-24 h-9 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400">
-                            <SelectValue placeholder="Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="over">Over</SelectItem>
-                            <SelectItem value="under">Under</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <SelectTrigger className="w-24 h-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="over">Over</SelectItem>
+                    <SelectItem value="under">Under</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
 
           {/* Active Filters */}

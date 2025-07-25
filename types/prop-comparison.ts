@@ -90,8 +90,7 @@ export interface PropComparisonResponse {
 
 export interface BestOddsFilter {
   sportsbook: string;
-  type: "over" | "under" | null;
-  minOdds: number;
+  type: "over" | "under";  // Remove null since we always need a type
 }
 
 export interface TransformedPlayerOdds extends PlayerOdds {

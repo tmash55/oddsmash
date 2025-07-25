@@ -356,14 +356,14 @@ export function ScannedBetslipView({
   }
 
   // Social sharing helpers
-  const shareToTwitter = () => {
-    const text = `Just found the best odds for this ${betslip.sportsbook} betslip with ${betslip.total_selections} picks! 🎯`
+  const shareToX = () => {
+    const text = `Just scanned my parlay with @OddSmash. See the full odds breakdown, hit rate & value insights →`
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
   const shareToReddit = () => {
-    const title = `${betslip.sportsbook} Betslip - ${betslip.total_selections} picks with odds comparison`
+    const title = `Just scanned my parlay with OddSmash - Full odds breakdown, hit rate & value insights`
     const url = `https://reddit.com/submit?title=${encodeURIComponent(title)}&url=${encodeURIComponent(window.location.href)}`
     window.open(url, "_blank", "noopener,noreferrer")
   }
@@ -374,9 +374,22 @@ export function ScannedBetslipView({
   }
 
   const shareToLinkedIn = () => {
-    const title = `${betslip.sportsbook} Betslip Odds Comparison`
-    const summary = `Compare odds for this ${betslip.total_selections}-pick parlay across all major sportsbooks`
+    const title = `Parlay Analysis with OddSmash`
+    const summary = `Just scanned my parlay with OddSmash. See the full odds breakdown, hit rate & value insights.`
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(summary)}`
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const shareToWhatsApp = () => {
+    const text = `Just scanned my parlay with OddSmash. See the full odds breakdown, hit rate & value insights →`
+    const url = `https://wa.me/?text=${encodeURIComponent(`${text}\n${window.location.href}`)}`
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const shareToEmail = () => {
+    const subject = `Check out my parlay analysis on OddSmash`
+    const body = `Just scanned my parlay with OddSmash. See the full odds breakdown, hit rate & value insights:\n\n${window.location.href}`
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
@@ -864,7 +877,7 @@ export function ScannedBetslipView({
             betslip={betslip}
             user={user}
             isOwner={isOwner}
-            isPublicState={isPublicState}
+            isPublicState={isPublic}
             isRefreshing={isRefreshing}
             isUpdatingPrivacy={isUpdatingPrivacy}
             canRefresh={canRefresh}
@@ -874,8 +887,12 @@ export function ScannedBetslipView({
             handleTogglePrivacy={handleTogglePrivacy}
             handleUpdateTitle={handleUpdateTitle}
             handleCopyLink={handleCopyLink}
-            shareToTwitter={shareToTwitter}
+            shareToX={shareToX}
             shareToReddit={shareToReddit}
+            shareToFacebook={shareToFacebook}
+            shareToLinkedIn={shareToLinkedIn}
+            shareToWhatsApp={shareToWhatsApp}
+            shareToEmail={shareToEmail}
           />
 
           {/* Public betslip notification - Modern design */}
@@ -947,23 +964,6 @@ export function ScannedBetslipView({
                     <div className="text-3xl font-black text-green-700 dark:text-green-400">
                       {formatOddsClean(bestOdds)}
                     </div>
-                  </div>
-                </div>
-
-                {/* Payout Section - Tighter alignment */}
-                <div className="flex items-center justify-between mb-4 p-3 bg-green-100/50 dark:bg-green-900/20 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
-                      <PieChart className="h-4 w-4 text-green-700 dark:text-green-300" />
-                    </div>
-                    <span className="text-sm text-green-700 dark:text-green-300 font-semibold">$100 bet wins</span>
-                  </div>
-                  <div className="text-lg font-black text-green-800 dark:text-green-200">
-                    $
-                    {(bestOdds > 0 
-                      ? bestOdds  // For +odds, you win the odds amount on $100
-                      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
-                    ).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                   </div>
                 </div>
 
