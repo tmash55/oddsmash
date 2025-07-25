@@ -86,7 +86,13 @@ export function ScannedBetslipView({
 
   // Helper function to get hit rate data for a selection with bet type awareness
   const getHitRateForSelection = (selection: any) => {
+    //console.log('=== GET HIT RATE FOR SELECTION DEBUG ===')
+    //console.log('Selection object:', selection)
+    //console.log('hitRatesData available:', !!hitRatesData)
+    //console.log('hitRatesData keys:', hitRatesData ? Object.keys(hitRatesData) : 'N/A')
+
     if (!hitRatesData) {
+      console.log("No hitRatesData available")
       return null
     }
 
@@ -96,6 +102,7 @@ export function ScannedBetslipView({
     const rawHitRateData = hitRatesData[playerName] || null
 
     if (!rawHitRateData) {
+      console.log("No hit rate data found for player")
       return null
     }
 
@@ -123,9 +130,20 @@ export function ScannedBetslipView({
     // For over bets, check if we need alternate line calculation
     if (Math.abs(line - rawHitRateData.line) >= 0.5 && rawHitRateData.points_histogram) {
       try {
+        console.log(`[HIT RATE DEBUG] Alternate line detected for ${playerName}:`)
+        console.log(`  Selection line: ${line}`)
+        console.log(`  Profile line: ${rawHitRateData.line}`)
+        console.log(`  Difference: ${Math.abs(line - rawHitRateData.line)}`)
+        console.log(`  Has recent_games: ${!!rawHitRateData.recent_games}`)
+        console.log(`  Recent games count: ${rawHitRateData.recent_games?.length || 0}`)
+        
         // Import the calculator function dynamically to avoid module issues
         const { calculateAllHitRatesForLine } = require("@/lib/hit-rate-calculator")
         const recalculatedData = calculateAllHitRatesForLine(rawHitRateData, line, betType)
+
+        console.log(`[HIT RATE DEBUG] Recalculated hit rates for ${playerName} ${line}:`)
+        console.log(`  L10 Hit Rate: ${recalculatedData.last_10_hit_rate}%`)
+        console.log(`  Is Alternate Line: ${recalculatedData.is_alternate_line}`)
 
         return recalculatedData
       } catch (error) {
@@ -141,6 +159,8 @@ export function ScannedBetslipView({
       bet_type: "over",
       line: line,
     }
+
+    //console.log('=== END HIT RATE DEBUG ===')
 
     return result
   }
@@ -369,7 +389,21 @@ export function ScannedBetslipView({
       (s) => s.current_odds && s.current_odds.bookmakers && Object.keys(s.current_odds.bookmakers).length > 0,
     )
 
+    currentSelections.forEach((selection, i) => {
+      const hasOdds =
+        selection.current_odds &&
+        selection.current_odds.bookmakers &&
+        Object.keys(selection.current_odds.bookmakers).length > 0
+      console.log(`Selection ${i + 1}: ${selection.player_name} - Has odds: ${hasOdds}`)
+      if (hasOdds) {
+        console.log(`  Available sportsbooks: ${Object.keys(selection.current_odds.bookmakers).join(", ")}`)
+      } else {
+        console.log(`  Current odds structure:`, selection.current_odds)
+      }
+    })
+
     if (selectionsWithOdds.length === 0) {
+      console.log("❌ No selections with odds found")
       return { parlayResults: {}, bestSportsbook: "", bestOdds: null }
     }
 
@@ -383,24 +417,33 @@ export function ScannedBetslipView({
       }
     })
 
+    console.log(`🏢 All available sportsbooks: ${Array.from(allSportsbooks).join(", ")}`)
+
     // Calculate parlay for each sportsbook
     for (const sportsbook of Array.from(allSportsbooks)) {
       const oddsForThisBook: number[] = []
       let hasAllSelections = true
 
+      console.log(`\n📊 Checking ${sportsbook}:`)
+
       for (const selection of selectionsWithOdds) {
         const bookOdds = selection.current_odds?.bookmakers?.[sportsbook]?.price
+        console.log(`  ${selection.player_name}: ${bookOdds || "N/A"}`)
 
         if (bookOdds && typeof bookOdds === "number") {
           oddsForThisBook.push(bookOdds)
         } else {
+          console.log(`    ❌ Missing or invalid odds for ${selection.player_name} at ${sportsbook}`)
           hasAllSelections = false
           break
         }
       }
 
+      console.log(`  Has all selections: ${hasAllSelections}, Odds count: ${oddsForThisBook.length}`)
+
       if (hasAllSelections && oddsForThisBook.length === selectionsWithOdds.length) {
         const parlayOdds = calculateParlayOdds(oddsForThisBook)
+        console.log(`  ✅ Parlay odds: ${parlayOdds}`)
         parlayResults[sportsbook] = {
           parlayOdds,
           hasAllSelections: true,
@@ -427,6 +470,9 @@ export function ScannedBetslipView({
         }
       }
     })
+
+    console.log(`🏆 Best sportsbook: ${bestSportsbook} with odds: ${bestOdds}`)
+    console.log("📋 Final parlay results:", parlayResults)
 
     return {
       parlayResults,
@@ -809,58 +855,6 @@ export function ScannedBetslipView({
       .filter((leg) => leg.odds !== null) // Only show legs that have odds
   }
 
-  // Find the best sportsbook for this parlay
-  const findBestSportsbook = () => {
-    if (!selections || selections.length === 0) return null
-
-    // Check which selections have odds data
-    const selectionsWithOdds = selections.filter(selection => {
-      const hasOdds = selection.current_odds && 
-                     selection.current_odds.bookmakers && 
-                     Object.keys(selection.current_odds.bookmakers).length > 0
-      return hasOdds
-    })
-
-    if (selectionsWithOdds.length === 0) {
-      return null
-    }
-
-    // Collect all available sportsbooks
-    const allSportsbooks = new Set<string>()
-    selectionsWithOdds.forEach(selection => {
-      if (selection.current_odds?.bookmakers) {
-        Object.keys(selection.current_odds.bookmakers).forEach(book => {
-          allSportsbooks.add(book)
-        })
-      }
-    })
-
-    // Find the sportsbook that has odds for all selections
-    let bestSportsbook = null
-    let bestOdds = -Infinity
-
-    allSportsbooks.forEach(sportsbook => {
-      const oddsForThisBook = selectionsWithOdds.map(selection => {
-        const bookOdds = selection.current_odds?.bookmakers?.[sportsbook]?.odds
-        return bookOdds
-      }).filter(odds => odds !== undefined && odds !== null)
-
-      const hasAllSelections = oddsForThisBook.length === selectionsWithOdds.length
-      
-      if (hasAllSelections && oddsForThisBook.length > 0) {
-        // Calculate parlay odds (multiply all odds)
-        const parlayOdds = oddsForThisBook.reduce((total, odds) => total * odds, 1)
-        
-        if (parlayOdds > bestOdds) {
-          bestOdds = parlayOdds
-          bestSportsbook = sportsbook
-        }
-      }
-    })
-
-    return bestSportsbook
-  }
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
@@ -953,6 +947,23 @@ export function ScannedBetslipView({
                     <div className="text-3xl font-black text-green-700 dark:text-green-400">
                       {formatOddsClean(bestOdds)}
                     </div>
+                  </div>
+                </div>
+
+                {/* Payout Section - Tighter alignment */}
+                <div className="flex items-center justify-between mb-4 p-3 bg-green-100/50 dark:bg-green-900/20 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
+                      <PieChart className="h-4 w-4 text-green-700 dark:text-green-300" />
+                    </div>
+                    <span className="text-sm text-green-700 dark:text-green-300 font-semibold">$100 bet wins</span>
+                  </div>
+                  <div className="text-lg font-black text-green-800 dark:text-green-200">
+                    $
+                    {(bestOdds > 0 
+                      ? bestOdds  // For +odds, you win the odds amount on $100
+                      : (100 * 100) / Math.abs(bestOdds)  // For -odds, you win (100 * stake) / |odds|
+                    ).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                   </div>
                 </div>
 

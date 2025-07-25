@@ -241,9 +241,12 @@ export default function HitRateFiltersV4({
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  // Log available games for debugging
+  // Debug logging for available games
   useEffect(() => {
-    // Available games logging removed for production
+    console.log(`🎯 [Filters] Received ${availableGames.length} available games:`)
+    availableGames.forEach(game => {
+      console.log(`🎯 [Filters] Game: ${game.home_team} vs ${game.away_team} at ${game.commence_time}`)
+    })
   }, [availableGames])
 
   // Set default line on mount if not already set

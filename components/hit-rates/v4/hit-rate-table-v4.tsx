@@ -409,6 +409,8 @@ interface V4OddsCellProps {
 function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps) {
   const line = customTier !== null ? customTier : profile.line;
   
+  console.log(`[V4OddsCell] ${profile.player_name} | ${profile.market} | ${betType} ${line}`);
+  
   // Helper function to find sportsbook data by name
   const getSportsbookData = (sportsbookName: string) => {
     return sportsbooks.find(sb => 
@@ -451,11 +453,16 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
   // Priority 1: Check if we have resolved odds from Redis Odds Resolver
   if (freshOdds && freshOdds._resolved) {
     const resolvedOdds = freshOdds._resolved;
+    console.log(`[V4OddsCell] Using resolved odds from ${resolvedOdds.source}`);
     
     const oddsData = betType === "over" ? resolvedOdds.over : resolvedOdds.under;
     
     if (oddsData) {
+      console.log(`[V4OddsCell] RESOLVED ${betType.toUpperCase()}: ${oddsData.odds} from ${oddsData.sportsbook}`);
+      
       return renderOddsWithLogo(oddsData.odds, oddsData.sportsbook, oddsData.link);
+    } else {
+      console.log(`[V4OddsCell] No ${betType} odds in resolved data`);
     }
   }
   
@@ -464,6 +471,7 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
     const lineData = profile.all_odds.lines[line.toString()];
     
     if (lineData) {
+      console.log(`[V4OddsCell] FRESH ODDS from profile.all_odds: Found line data for ${line}`, lineData);
       
       // Extract odds for the specific bet type
       let bestOdds = -Infinity;
@@ -485,7 +493,11 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
       });
       
       if (bestOdds !== -Infinity) {
+        console.log(`[V4OddsCell] FRESH ${betType.toUpperCase()}: Best ${bestOdds} from ${bestBook}`);
+        
         return renderOddsWithLogo(bestOdds, bestBook, bestLink);
+      } else {
+        console.log(`[V4OddsCell] No ${betType} odds found in fresh Redis structure`);
       }
     }
   }
@@ -496,6 +508,7 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
     const relevantOdds = lineKey ? profile.all_odds[lineKey] : null;
     
     if (relevantOdds) {
+      console.log(`[V4OddsCell] OLD FORMAT: Found odds for line ${lineKey}`);
       
       let bestOdds = -Infinity;
       let bestBook = "";
@@ -514,6 +527,7 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
       });
       
       if (bestOdds !== -Infinity) {
+        console.log(`[V4OddsCell] OLD FORMAT: Best ${bestOdds} from ${bestBook}`);
         
         const linkData = relevantOdds[bestBook];
         const link = linkData?.over_link || linkData?.link;
@@ -525,9 +539,11 @@ function V4OddsCell({ profile, customTier, betType, freshOdds }: V4OddsCellProps
   
   // For under bets with old format, show unavailable
   if (betType === "under") {
+    console.log(`[V4OddsCell] Under odds not available in old format`);
   }
   
   // No odds available
+  console.log(`[V4OddsCell] No ${betType} odds available`);
   return (
     <div className="flex items-center justify-center">
       <span className="text-xs text-muted-foreground">—</span>

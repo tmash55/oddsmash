@@ -65,7 +65,7 @@ const ManualProcessAnimation = () => {
     { name: "DraftKings", logo: "DK", checked: false },
     { name: "FanDuel", logo: "FD", checked: false },
     { name: "BetMGM", logo: "MGM", checked: false },
-    { name: "ESPN", logo: "ESPN", checked: false },
+    { name: "ESPN", logo: "ESPN ", checked: false },
     { name: "BetRivers", logo: "BR", checked: false },
   ]
 

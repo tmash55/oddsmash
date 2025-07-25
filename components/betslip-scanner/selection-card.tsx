@@ -115,6 +115,14 @@ export function SelectionCard({
       return Math.round((hits / gamesToAnalyze.length) * 100)
     }
 
+    console.log(`🔄 [SelectionCard] Recalculating hit rates for ${selection.player_name}:`, {
+      isAlternateLine: hitRateData.is_alternate_line,
+      line,
+      betType: selection.bet_type,
+      totalGames: recentGames.length,
+      originalL10: hitRateData.last_10_hit_rate
+    })
+
     const recalculated = {
       ...hitRateData,
       last_5_hit_rate: calculateHitRateForGames(recentGames, 5),
@@ -123,11 +131,21 @@ export function SelectionCard({
       season_hit_rate: calculateHitRateForGames(recentGames, recentGames.length)
     }
 
+    console.log(`✅ [SelectionCard] Recalculated rates:`, recalculated)
+
     return recalculated
   })()
 
   // Ensure we have a valid bet type
   const effectiveBetType = selection.bet_type || "over"
+
+  console.log("SelectionCard render:", {
+    playerName: selection.player_name,
+    betType: selection.bet_type,
+    effectiveBetType,
+    line: selection.line,
+    hitRateData: hitRateData ? { last_10_hit_rate: hitRateData.last_10_hit_rate } : null,
+  })
 
   return (
     <>
