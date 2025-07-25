@@ -21,8 +21,6 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
       selection.player_name && !gameLevelMarkets.includes(selection.market || '')
     )
     
-    console.log(`📊 Filtering selections: ${selections.length} total, ${playerPropSelections.length} player props`)
-    
     for (const selection of playerPropSelections) {
       try {
         if (!selection.player_name) continue
@@ -37,14 +35,10 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
         // Remove duplicates
         const uniqueMarkets = Array.from(new Set(marketVariations))
         
-        console.log(`🔍 Hit rate lookup for "${selection.player_name}":`)
-        console.log(`   Market variations: ${uniqueMarkets.join(', ')}`)
-        
         let hitRateData = null
         
         // Try each market variation until we find a match
         for (const marketVariation of uniqueMarkets) {
-          console.log(`   Trying market: "${marketVariation}"...`)
           const baseUrl = getBaseUrl()
             
           const response = await fetch(
@@ -55,7 +49,6 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
             const responseData = await response.json()
             if (responseData.profile) {
               hitRateData = responseData.profile
-              console.log(`✅ Hit rate found for "${selection.player_name}" with market "${marketVariation}"`)
               break
             }
           }
@@ -63,8 +56,6 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
         
         if (hitRateData) {
           hitRatesData[selection.player_name] = hitRateData
-        } else {
-          console.log(`⚠️ No hit rate data found for ${selection.player_name} with any market variation`)
         }
         
       } catch (error) {
@@ -73,7 +64,6 @@ export async function fetchHitRatesForSelections(selections: BetslipSelection[])
       }
     }
     
-    console.log(`📊 Hit rate data fetched for ${Object.keys(hitRatesData).length}/${playerPropSelections.length} player props`)
     return hitRatesData
   } catch (error) {
     console.error('❌ Error in fetchHitRatesForSelections:', error)

@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -17,6 +17,7 @@ import {
   EyeOff,
   Info,
 } from "lucide-react"
+import { calculateEnhancedOddSmashScore, OddSmashScoreInput } from "@/lib/oddsmash-score"
 
 interface QuickStatsCardProps {
   betslip: any
@@ -119,26 +120,22 @@ export function QuickStatsCard({
   const rawScore = edgeScore + marketBeatScore + hitRateScore + consistencyBonus
   const oddsmashScore = Math.round(Math.min(Math.max(rawScore, 0), 100))
   
-  console.log('🎯 ODDSMASH SCORE BREAKDOWN:', {
-    edgeScore: Math.round(edgeScore * 100) / 100,
-    marketBeatScore: Math.round(marketBeatScore * 100) / 100,
-    hitRateScore: Math.round(hitRateScore * 100) / 100,
-    consistencyBonus: Math.round(consistencyBonus * 100) / 100,
-    rawScore: Math.round(rawScore * 100) / 100,
-    finalScore: oddsmashScore,
-    inputs: {
-      avgL10HitRate,
-      avgL20HitRate,
-      avgSeasonHitRate,
-      bestOdds,
-      originalAmericanOdds,
-      bestPayout,
-      originalPayout,
-      booksBeaten,
-      totalBooks,
-      highConfidencePicks
+  // Calculate enhanced OddSmash score
+  const enhancedScore = useMemo(() => {
+    if (!selections || selections.length === 0) {
+      return null
     }
-  })
+
+    const scoreInputs: OddSmashScoreInput[] = selections.map(selection => ({
+      selection,
+      hitRateData: hitRatesData?.[selection.player_name] || null,
+      currentOdds: selection.current_odds || null,
+      bestOdds: null, // We don't have best odds comparison in this context
+      originalOdds: null, // We don't have original odds in this context
+    }))
+
+    return calculateEnhancedOddSmashScore(scoreInputs)
+  }, [selections, hitRatesData])
 
   return (
     <Card className="border-0 shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">

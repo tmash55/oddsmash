@@ -119,7 +119,6 @@ export function ScannerDashboard() {
 
       // Handle authentication redirect
       if (response.status === 401) {
-        console.log("Authentication required, redirecting to sign-in")
         // Redirect to sign-in page
         window.location.href = "/sign-in"
         return
@@ -137,14 +136,6 @@ export function ScannerDashboard() {
       if (responseData.success && responseData.data) {
         const { selections, sportsbook, confidence, savedBetslipId } = responseData.data
 
-        console.log("✅ API Response Data:", responseData.data)
-        console.log("📊 Selections:", selections)
-        console.log("🏢 Sportsbook:", sportsbook)
-        console.log("🎯 Confidence:", confidence)
-        console.log("🆔 Saved Betslip ID:", savedBetslipId)
-        console.log("🆔 savedBetslipId type:", typeof savedBetslipId)
-        console.log("🆔 savedBetslipId truthy:", !!savedBetslipId)
-
         // Move to fetching stage and show extracted selections
         setLoadingStage("fetching")
         const fetchingInterval = simulateProgress(55, 90, 5000)
@@ -161,8 +152,6 @@ export function ScannerDashboard() {
 
         // If we have a saved betslip ID, redirect to the dedicated page
         if (savedBetslipId) {
-          console.log("🔄 Redirecting to betslip page:", savedBetslipId)
-
           // Complete loading animation with longer completion phase
           setTimeout(() => {
             clearInterval(fetchingInterval)
@@ -171,13 +160,10 @@ export function ScannerDashboard() {
 
             // Longer delay to show completion and celebrate
             setTimeout(() => {
-              console.log("🚀 Executing redirect to:", `/betslip/${savedBetslipId}`)
               window.location.href = `/betslip/${savedBetslipId}`
             }, 2000)
           }, 3000)
           return
-        } else {
-          console.log("❌ No savedBetslipId - falling back to inline results")
         }
 
         // Fallback: show results inline (for development/testing)
@@ -242,7 +228,6 @@ export function ScannerDashboard() {
       }
 
       const oddsData = await response.json()
-      console.log("Odds lookup results:", oddsData)
 
       // Store parlay comparison data
       setParlayComparison(oddsData.parlayComparison)

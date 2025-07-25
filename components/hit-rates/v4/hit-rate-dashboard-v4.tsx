@@ -144,7 +144,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   } = useQuery({
     queryKey: ['hitRates', sport, currentMarket],
     queryFn: () => {
-      console.log(`🌐 [CACHE TEST] Making API call for ${sport} ${currentMarket}`)
       return fetchHitRatesData({
         sport,
         market: currentMarket,
@@ -164,21 +163,9 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   useEffect(() => {
     if (hitRatesData?.profiles?.length) {
       const sampleProfile = hitRatesData.profiles[0]
-      console.log(`📊 [V4 Dashboard] Sample profile structure:`, {
-        player_name: sampleProfile.player_name,
-        market: sampleProfile.market,
-        line: sampleProfile.line,
-        has_all_odds: !!sampleProfile.all_odds,
-        all_odds_keys: sampleProfile.all_odds ? Object.keys(sampleProfile.all_odds) : [],
-        all_odds_sample: sampleProfile.all_odds ? Object.keys(sampleProfile.all_odds).slice(0, 2).reduce((acc, key) => {
-          acc[key] = sampleProfile.all_odds[key]
-          return acc
-        }, {} as Record<string, any>) : {},
-      })
       
       // Check how many profiles have odds data
       const profilesWithOdds = hitRatesData.profiles.filter(p => p.all_odds && Object.keys(p.all_odds).length > 0)
-      console.log(`📊 [V4 Dashboard] Profiles with odds: ${profilesWithOdds.length}/${hitRatesData.profiles.length}`)
       
       if (profilesWithOdds.length === 0) {
         console.warn(`⚠️ [V4 Dashboard] No profiles have all_odds data! This will cause display issues.`)
@@ -188,13 +175,7 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
 
   // Log cache status
   useEffect(() => {
-    if (hitRatesData) {
-      if (isHitRatesFetching) {
-        console.log(`🔄 [CACHE TEST] ${sport} ${currentMarket}: Data from cache, refetching in background`)
-      } else {
-        console.log(`✅ [CACHE TEST] ${sport} ${currentMarket}: Data loaded (from ${isHitRatesLoading ? 'API' : 'cache'})`)
-      }
-    }
+    // Cache status logging removed for production
   }, [hitRatesData, isHitRatesLoading, isHitRatesFetching, sport, currentMarket])
 
   const {
@@ -216,22 +197,15 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     const targetLine = customTier !== null ? customTier - 0.5 : profile.line
     const lineKey = targetLine.toString()
     
-    console.log(`[V4 Dashboard] Extracting odds for ${profile.player_name}, line: ${targetLine}, customTier: ${customTier}`)
-    
     if (!profile.all_odds) {
-      console.log(`[V4 Dashboard] ❌ No all_odds field for ${profile.player_name}`)
       return null
     }
     
     if (Object.keys(profile.all_odds).length === 0) {
-      console.log(`[V4 Dashboard] ❌ Empty all_odds object for ${profile.player_name}`)
       return null
     }
     
-    console.log(`[V4 Dashboard] Available lines for ${profile.player_name}:`, Object.keys(profile.all_odds))
-    
     if (!profile.all_odds[lineKey]) {
-      console.log(`[V4 Dashboard] ❌ No odds found for ${profile.player_name} line ${targetLine} (looking for key: ${lineKey})`)
       return null
     }
     
@@ -239,8 +213,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     let bestOdds = -Infinity
     let bestBook = ""
     let bestLink: string | null = null
-    
-    console.log(`[V4 Dashboard] Line odds structure for ${profile.player_name}:`, lineOdds)
     
     // Find best odds across all sportsbooks
     Object.entries(lineOdds).forEach(([book, bookData]: [string, any]) => {
@@ -254,8 +226,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
         odds = bookData
       }
       
-      console.log(`[V4 Dashboard] ${book} odds for ${profile.player_name}:`, { odds, link })
-      
       if (odds !== undefined && odds > bestOdds) {
         bestOdds = odds
         bestBook = book
@@ -264,11 +234,8 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     })
     
     if (bestOdds === -Infinity) {
-      console.log(`[V4 Dashboard] ❌ No valid odds found for ${profile.player_name} line ${targetLine}`)
       return null
     }
-    
-    console.log(`[V4 Dashboard] ✅ Best odds for ${profile.player_name}: ${bestOdds} from ${bestBook}`)
     
     return {
       over: {
@@ -453,18 +420,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     const startIndex = (currentPage - 1) * 25;
     const slicedProfiles = filteredAndSortedProfiles.slice(startIndex, startIndex + 25);
     
-    // Debug logging
-    console.log(`🔍 [V4 Dashboard] Pagination Debug:`, {
-      totalProfiles: hitRatesData?.profiles?.length || 0,
-      filteredAndSortedCount: filteredAndSortedProfiles.length,
-      currentPage,
-      startIndex,
-      endIndex: startIndex + 25,
-      currentProfilesCount: slicedProfiles.length,
-      totalPages,
-      firstProfileName: slicedProfiles[0]?.player_name || 'none',
-    });
-    
     return slicedProfiles;
   }, [filteredAndSortedProfiles, currentPage, hitRatesData?.profiles?.length]);
 
@@ -479,37 +434,17 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   //   const hoursAhead = 24
   //   const futureTime = new Date(now.getTime() + (hoursAhead * 60 * 60 * 1000))
     
-  //   console.log(`🎮 [Available Games] Current time: ${now.toISOString()}`)
-  //   console.log(`🎮 [Available Games] Future cutoff: ${futureTime.toISOString()}`)
-  //   console.log(`🎮 [Available Games] Total profiles to process: ${hitRatesData.profiles.length}`)
-    
   //   // Look specifically for Seattle Mariners late game
   //   const seattleProfiles = hitRatesData.profiles.filter(p => 
   //     p.home_team?.includes('Seattle') || p.away_team?.includes('Seattle') ||
   //     p.home_team?.includes('Mariners') || p.away_team?.includes('Mariners')
   //   )
-  //   console.log(`🎮 [Available Games] 🔍 SEATTLE DEBUG: Found ${seattleProfiles.length} Seattle profiles:`)
-  //   seattleProfiles.forEach(p => {
-  //     console.log(`🎮 [Available Games] 🔍 SEATTLE: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
-  //     console.log(`🎮 [Available Games] 🔍 SEATTLE: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
-  //   })
-    
   //   // Look specifically for Josh Naylor late game
   //   const joshProfiles = hitRatesData.profiles.filter(p => 
   //     p.player_name?.includes('Josh Naylor') ||
   //     p.home_team?.includes('Arizona') || p.away_team?.includes('Arizona') ||
   //     p.home_team?.includes('Diamondbacks') || p.away_team?.includes('Diamondbacks')
   //   )
-  //   console.log(`🎮 [Available Games] 🔍 JOSH DEBUG: Found ${joshProfiles.length} Josh/Arizona profiles:`)
-  //   joshProfiles.forEach(p => {
-  //     console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} - ${p.home_team} vs ${p.away_team} at ${p.commence_time}`)
-  //     console.log(`🎮 [Available Games] 🔍 JOSH: Has required fields? odds_event_id=${!!p.odds_event_id}, home_team=${!!p.home_team}, away_team=${!!p.away_team}, commence_time=${!!p.commence_time}`)
-      
-  //     // Check if it passes time filtering
-  //     const gameTime = new Date(p.commence_time)
-  //     const isWithinWindow = gameTime <= futureTime
-  //     console.log(`🎮 [Available Games] 🔍 JOSH: ${p.player_name} time check - ${p.commence_time} -> ${gameTime.toISOString()} -> Within 24h? ${isWithinWindow}`)
-  //   })
     
   //   let processedCount = 0
   //   let excludedCount = 0
@@ -522,14 +457,11 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   //     // Check for missing required fields
   //     if (!profile.odds_event_id || !profile.home_team || !profile.away_team || !profile.commence_time) {
   //       missingFieldsCount++
-  //       console.log(`�� [Available Games] ❌ Missing fields for ${profile.player_name}: odds_event_id=${!!profile.odds_event_id}, home_team=${!!profile.home_team}, away_team=${!!profile.away_team}, commence_time=${!!profile.commence_time}`)
   //       return
   //     }
       
   //     const gameTime = new Date(profile.commence_time)
   //     const isWithinWindow = gameTime <= futureTime
-      
-  //     console.log(`🎮 [Available Games] ${profile.home_team} vs ${profile.away_team}: ${profile.commence_time} (${gameTime.toISOString()}) - Within window: ${isWithinWindow}`)
       
   //     if (isWithinWindow) {
   //       gamesMap.set(profile.odds_event_id, {
@@ -540,7 +472,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   //       })
   //     } else {
   //       timeFilteredCount++
-  //       console.log(`🎮 [Available Games] ⏰ Filtered out (beyond 24 hours): ${profile.home_team} vs ${profile.away_team}`)
   //     }
   //   })
     
@@ -548,16 +479,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
   //     const timeA = new Date(a.commence_time).getTime()
   //     const timeB = new Date(b.commence_time).getTime()
   //     return timeA - timeB
-  //   })
-    
-  //   console.log(`🎮 [Available Games] Summary:`)
-  //   console.log(`🎮 [Available Games] - Total profiles processed: ${processedCount}`)
-  //   console.log(`🎮 [Available Games] - Missing required fields: ${missingFieldsCount}`)
-  //   console.log(`🎮 [Available Games] - Filtered by time: ${timeFilteredCount}`)
-  //   console.log(`🎮 [Available Games] - Final unique games: ${games.length}`)
-    
-  //   games.forEach(game => {
-  //     console.log(`🎮 [Available Games] Final: ${game.home_team} vs ${game.away_team} at ${game.commence_time}`)
   //   })
     
   //   return games
@@ -582,7 +503,6 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
     // Only prefetch other markets' data
     allMarkets.forEach(market => {
       if (market !== currentMarket) {
-        console.log(`[HIT RATES V4] 🔄 Prefetching data for ${market}`)
         queryClient.prefetchQuery({
           queryKey: ['hitRates', sport, market],
           queryFn: () => fetchHitRatesData({
@@ -604,18 +524,16 @@ export default function HitRateDashboardV4({ sport }: HitRateDashboardV4Props) {
 
   // Sync currentMarket with URL changes without resetting data
   useEffect(() => {
-    console.log(`🔄 [CACHE TEST] URL market: ${initialMarket}, Current market: ${currentMarket}`)
     setCurrentMarket(initialMarket)
     // Only reset custom tier when market changes, preserve everything else
     if (initialMarket !== currentMarket) {
-      console.log(`📋 [CACHE TEST] Market changed from ${currentMarket} to ${initialMarket}, resetting custom tier only`)
       setCustomTier(null)
     }
   }, [initialMarket, currentMarket])
 
   // Log view mode changes
   useEffect(() => {
-    console.log(`👁️ [CACHE TEST] View mode: ${currentViewMode}`)
+    // View mode logging removed for production
   }, [currentViewMode])
 
   // Reset page when filters change

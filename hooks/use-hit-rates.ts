@@ -56,10 +56,8 @@ export const fetchHitRatesData = async ({ sport, market, page, limit = 25, sortF
     const response = await fetch(`/api/hit-rates-redis?${params}`);
     if (response.ok) {
       const data = await response.json();
-      console.log(`[useHitRates] ✅ Redis-first API returned ${data.profiles?.length || 0} profiles`);
       return data;
     }
-    console.log(`[useHitRates] Redis-first API failed, falling back to database API`);
   } catch (error) {
     console.error(`[useHitRates] Redis-first API error, falling back:`, error);
   }
@@ -70,7 +68,6 @@ export const fetchHitRatesData = async ({ sport, market, page, limit = 25, sortF
     throw new Error('Failed to fetch hit rates');
   }
   const data = await response.json();
-  console.log(`[useHitRates] Database fallback returned ${data.profiles?.length || 0} profiles`);
   return data;
 };
 
