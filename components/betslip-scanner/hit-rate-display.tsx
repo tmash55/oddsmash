@@ -38,12 +38,22 @@ export function HitRateDisplay({ hitRateData }: HitRateDisplayProps) {
       return Math.round((hits / gamesToAnalyze.length) * 100)
     }
 
+    console.log(`🔄 Recalculating hit rates for ${hitRateData.player_name}:`, {
+      isAlternateLine: hitRateData.is_alternate_line,
+      line,
+      betType: hitRateData.bet_type,
+      totalGames: recentGames.length,
+      originalL10: hitRateData.last_10_hit_rate
+    })
+
     const recalculated = {
       last_5_hit_rate: calculateHitRateForGames(recentGames, 5),
       last_10_hit_rate: calculateHitRateForGames(recentGames, 10),
       last_20_hit_rate: calculateHitRateForGames(recentGames, 20),
       season_hit_rate: calculateHitRateForGames(recentGames, recentGames.length)
     }
+
+    console.log(`✅ Recalculated rates:`, recalculated)
 
     return recalculated
   })()
