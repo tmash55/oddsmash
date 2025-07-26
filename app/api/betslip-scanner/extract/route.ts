@@ -814,7 +814,7 @@ Return only the JSON array, no other text.`
 
       const betSelection: BetSelection = {
         id: `${index + 1}`,
-        player: selection.player,
+        player: normalizePlayerNameForDisplay(selection.player),
         market: selection.market,
         line: line,
         betType: betType,
@@ -1509,6 +1509,21 @@ function normalizePlayerName(name: string): string {
     .trim()
 }
 
+// Helper function to normalize player names for display (preserve hyphens but fix spacing)
+function normalizePlayerNameForDisplay(name: string): string {
+  if (!name) return name
+  
+  return name
+    .trim()
+    // Remove extra spaces around hyphens: "Pete Crow - Armstrong" → "Pete Crow-Armstrong"
+    .replace(/\s*-\s*/g, '-')
+    // Remove extra spaces around periods: "Jr . " → "Jr."
+    .replace(/\s*\.\s*/g, '. ')
+    // Remove multiple consecutive spaces
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function extractPlayerNameVariations(playerName: string): string[] {
   const normalized = normalizePlayerName(playerName)
   const variations = [normalized]
@@ -2102,6 +2117,8 @@ function removeSuffixesFromName(name: string): string {
   return name
 }
 
+
+
 // Helper function to fetch hit rates for all selections
 async function fetchHitRatesForSelections(selections: BetSelection[]): Promise<Record<string, any>> {
   try {
@@ -2198,6 +2215,330 @@ async function fetchHitRatesForSelections(selections: BetSelection[]): Promise<R
     console.error('❌ Error in fetchHitRatesForSelections:', error)
     return {}
   }
+}
+
+// Helper function to normalize player names for fuzzy matching
+function normalizePlayerNameForTeamLookup(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim()
+}
+
+// Helper function to calculate string similarity (Levenshtein-based)
+function calculatePlayerNameSimilarity(str1: string, str2: string): number {
+  const len1 = str1.length
+  const len2 = str2.length
+  
+  if (len1 === 0) return len2 === 0 ? 1 : 0
+  if (len2 === 0) return 0
+  
+  const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(null))
+  
+  for (let i = 0; i <= len1; i++) matrix[i][0] = i
+  for (let j = 0; j <= len2; j++) matrix[0][j] = j
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,     // deletion
+        matrix[i][j - 1] + 1,     // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      )
+    }
+  }
+  
+  const maxLen = Math.max(len1, len2)
+  return (maxLen - matrix[len1][len2]) / maxLen
+}
+
+// Helper function to create name variations for fuzzy matching (similar to hit rate API)
+function createPlayerNameVariations(playerName: string): string[] {
+  const variations = new Set<string>()
+  
+  // Original name
+  variations.add(playerName)
+  
+  // Normalized version
+  const normalized = normalizePlayerNameForTeamLookup(playerName)
+  variations.add(normalized)
+  
+  // Without suffixes
+  const withoutSuffix = removeSuffixesFromName(normalized)
+  if (withoutSuffix !== normalized) {
+    variations.add(withoutSuffix)
+  }
+  
+  // First and last name only (for names with middle names/initials)
+  const words = normalized.split(' ')
+  if (words.length > 2) {
+    variations.add(`${words[0]} ${words[words.length - 1]}`)
+  }
+  
+  // Remove middle initials (e.g., "John A. Smith" -> "John Smith")
+  const withoutInitials = normalized.replace(/\s+[a-z]\s+/g, ' ').replace(/\s+/g, ' ')
+  if (withoutInitials !== normalized) {
+    variations.add(withoutInitials)
+  }
+  
+  return Array.from(variations)
+}
+
+// Enhanced function to get player team info using direct database fuzzy matching
+async function getPlayerTeamInfo(playerName: string): Promise<{
+  teamName: string | null
+  teamAbbreviation: string | null
+  confidence: number
+}> {
+  try {
+    console.log(`🔍 Looking up team info for player: "${playerName}" using fuzzy matching`)
+    
+    const supabase = createClient()
+    
+    // First try exact match (case-insensitive)
+    console.log(`[TEAM LOOKUP] Trying exact match for: "${playerName}"`)
+    let { data: exactMatch, error: exactError } = await supabase
+      .from('mlb_players')
+      .select(`
+        player_id,
+        full_name,
+        team_id,
+        mlb_teams!inner(
+          name,
+          abbreviation
+        )
+      `)
+      .ilike('full_name', playerName.trim())
+      .maybeSingle()
+
+    if (exactError) {
+      console.error(`❌ Database error in exact match: ${exactError.message}`)
+    }
+
+    if (exactMatch) {
+      const teamData = Array.isArray(exactMatch.mlb_teams) 
+        ? exactMatch.mlb_teams[0] 
+        : exactMatch.mlb_teams
+      
+      if (teamData) {
+        console.log(`[TEAM LOOKUP] ✅ Exact match found: ${exactMatch.full_name} → ${teamData.name}`)
+        return {
+          teamName: teamData.name,
+          teamAbbreviation: teamData.abbreviation,
+          confidence: 1.0
+        }
+      }
+    }
+
+    // If no exact match, try fuzzy matching
+    console.log(`[TEAM LOOKUP] No exact match, trying fuzzy matching...`)
+    
+    // Get all MLB players for fuzzy matching
+    const { data: allPlayers, error: allPlayersError } = await supabase
+      .from('mlb_players')
+      .select(`
+        player_id,
+        full_name,
+        team_id,
+        mlb_teams!inner(
+          name,
+          abbreviation
+        )
+      `)
+
+    if (allPlayersError) {
+      console.error(`❌ Error fetching all players: ${allPlayersError.message}`)
+      return { teamName: null, teamAbbreviation: null, confidence: 0 }
+    }
+
+    if (!allPlayers || allPlayers.length === 0) {
+      console.log(`[TEAM LOOKUP] No players found in database`)
+      return { teamName: null, teamAbbreviation: null, confidence: 0 }
+    }
+
+    console.log(`[TEAM LOOKUP] Found ${allPlayers.length} players in database for fuzzy matching`)
+
+    // Create variations of the search name
+    const searchVariations = createPlayerNameVariations(playerName)
+    console.log(`[TEAM LOOKUP] Search variations: ${searchVariations.join(', ')}`)
+
+    let bestMatch = null
+    let bestScore = 0
+    const minSimilarity = 0.7 // Minimum similarity threshold
+
+    // Try fuzzy matching against all players
+    for (const player of allPlayers) {
+      const dbPlayerVariations = createPlayerNameVariations(player.full_name)
+      
+      // Compare each search variation against each database variation
+      for (const searchVar of searchVariations) {
+        for (const dbVar of dbPlayerVariations) {
+          const similarity = calculatePlayerNameSimilarity(searchVar, dbVar)
+          
+          if (similarity > bestScore && similarity >= minSimilarity) {
+            bestScore = similarity
+            bestMatch = player
+            console.log(`[TEAM LOOKUP] New best match: "${player.full_name}" (${(similarity * 100).toFixed(1)}%) - "${searchVar}" vs "${dbVar}"`)
+          }
+        }
+      }
+    }
+
+    if (bestMatch) {
+      const teamData = Array.isArray(bestMatch.mlb_teams) 
+        ? bestMatch.mlb_teams[0] 
+        : bestMatch.mlb_teams
+      
+      if (teamData) {
+        console.log(`[TEAM LOOKUP] ✅ Fuzzy match found: "${bestMatch.full_name}" → ${teamData.name} with ${(bestScore * 100).toFixed(1)}% similarity`)
+        return {
+          teamName: teamData.name,
+          teamAbbreviation: teamData.abbreviation,
+          confidence: bestScore
+        }
+      }
+    }
+
+    console.log(`[TEAM LOOKUP] ❌ No confident matches found for player "${playerName}" (best score: ${(bestScore * 100).toFixed(1)}%)`)
+    return { teamName: null, teamAbbreviation: null, confidence: 0 }
+    
+  } catch (error) {
+    console.error(`❌ Error looking up team info for ${playerName}:`, error)
+    return { teamName: null, teamAbbreviation: null, confidence: 0 }
+  }
+}
+
+// Enhanced event matching function that infers team information from players
+async function enhancedFindMatchingGame(
+  games: Record<string, GameData>, 
+  selections: BetSelection[],
+  awayTeam?: string, 
+  homeTeam?: string
+): Promise<{ 
+  gameId: string | null
+  inferredAwayTeam?: string
+  inferredHomeTeam?: string
+  confidence: number
+}> {
+  
+  // If we have valid team information (not "N/A"), use the original function
+  if (awayTeam && homeTeam && awayTeam !== 'N/A' && homeTeam !== 'N/A') {
+    const matchedGame = findMatchingGame(games, awayTeam, homeTeam)
+    return {
+      gameId: matchedGame?.event_id || null,
+      confidence: matchedGame ? 1.0 : 0
+    }
+  }
+  
+  console.log(`🔄 No team info provided, attempting to infer from players...`)
+  
+  // Filter to player props only (skip game-level markets)
+  const gameLevelMarkets = ['Moneyline', 'Spread', 'Total']
+  const playerSelections = selections.filter(s => 
+    s.player && !gameLevelMarkets.includes(s.market)
+  )
+  
+  if (playerSelections.length === 0) {
+    console.log(`❌ No player selections available for team inference`)
+    return { gameId: null, confidence: 0 }
+  }
+  
+  console.log(`🎯 Attempting team inference from ${playerSelections.length} player selections`)
+  
+  // Look up team information for all players
+  const teamLookupPromises = playerSelections.map(async (selection) => {
+    const teamInfo = await getPlayerTeamInfo(selection.player!)
+    return {
+      player: selection.player!,
+      teamInfo
+    }
+  })
+  
+  const teamLookupResults = await Promise.all(teamLookupPromises)
+  
+  // Group players by their teams
+  const teamGroups: Record<string, string[]> = {}
+  const teamData: Record<string, { name: string; abbreviation: string }> = {}
+  
+  for (const result of teamLookupResults) {
+    if (result.teamInfo.teamName && result.teamInfo.confidence >= 0.7) { // Require 70% confidence
+      const teamKey = result.teamInfo.teamName
+      if (!teamGroups[teamKey]) {
+        teamGroups[teamKey] = []
+        teamData[teamKey] = {
+          name: result.teamInfo.teamName,
+          abbreviation: result.teamInfo.teamAbbreviation || ''
+        }
+      }
+      teamGroups[teamKey].push(result.player)
+    }
+  }
+  
+  const teamNames = Object.keys(teamGroups)
+  console.log(`📊 Found players from teams: ${teamNames.join(', ')}`)
+  
+  if (teamNames.length === 0) {
+    console.log(`❌ No teams identified from player lookups`)
+    return { gameId: null, confidence: 0 }
+  }
+  
+  if (teamNames.length === 1) {
+    // All players from same team - look for any game involving this team
+    const teamName = teamNames[0]
+    console.log(`🎯 All players from same team (${teamName}), looking for any game involving this team`)
+    
+    for (const [gameId, game] of Object.entries(games)) {
+      const homeTeamMatch = calculateTeamSimilarity(teamName, game.home_team.name) > 0.8
+      const awayTeamMatch = calculateTeamSimilarity(teamName, game.away_team.name) > 0.8
+      
+      if (homeTeamMatch || awayTeamMatch) {
+        console.log(`✅ Found game: ${game.away_team.name} @ ${game.home_team.name}`)
+        return {
+          gameId,
+          inferredAwayTeam: game.away_team.name,
+          inferredHomeTeam: game.home_team.name,
+          confidence: 0.85 // Good confidence for single-team inference
+        }
+      }
+    }
+  }
+  
+  if (teamNames.length === 2) {
+    // Players from two teams - perfect match scenario
+    console.log(`🎯 Players from two teams, looking for direct matchup`)
+    
+    const [team1, team2] = teamNames
+    
+    for (const [gameId, game] of Object.entries(games)) {
+      // Try both orientations
+      const match1 = (calculateTeamSimilarity(team1, game.away_team.name) > 0.8 && 
+                      calculateTeamSimilarity(team2, game.home_team.name) > 0.8)
+      const match2 = (calculateTeamSimilarity(team2, game.away_team.name) > 0.8 && 
+                      calculateTeamSimilarity(team1, game.home_team.name) > 0.8)
+      
+      if (match1 || match2) {
+        console.log(`✅ Perfect matchup found: ${game.away_team.name} @ ${game.home_team.name}`)
+        return {
+          gameId,
+          inferredAwayTeam: game.away_team.name,
+          inferredHomeTeam: game.home_team.name,
+          confidence: 0.95 // Very high confidence for two-team match
+        }
+      }
+    }
+  }
+  
+  if (teamNames.length > 2) {
+    console.log(`⚠️ Players from ${teamNames.length} teams - this might be a parlay across multiple games`)
+    // For multi-team parlays, we could potentially match each player to their respective game
+    // For now, we'll return no match and let individual player odds fetching handle it
+    return { gameId: null, confidence: 0 }
+  }
+  
+  console.log(`❌ Could not infer game from team information`)
+  return { gameId: null, confidence: 0 }
 }
 
 export async function POST(request: NextRequest) {
@@ -2306,7 +2647,38 @@ export async function POST(request: NextRequest) {
 
         // Fetch today's games for event matching (cached)
         const games = await getCachedGames(sportApiKey, today)
-        const matchedGame = findMatchingGame(games, selection.metadata.awayTeam, selection.metadata.homeTeam)
+        
+        // If team information is missing and we have a player name, try to infer team info
+        let awayTeam = selection.metadata.awayTeam
+        let homeTeam = selection.metadata.homeTeam
+        
+        // Check if team info is missing or marked as "N/A"
+        const isMissingTeamInfo = (!awayTeam || !homeTeam || awayTeam === 'N/A' || homeTeam === 'N/A')
+        
+        if (isMissingTeamInfo && selection.player && selection.market !== 'Moneyline' && selection.market !== 'Spread' && selection.market !== 'Total') {
+          console.log(`🔍 Missing team info for ${selection.player}, attempting lookup...`)
+          
+          const teamInfo = await getPlayerTeamInfo(selection.player)
+          
+          if (teamInfo.teamName && teamInfo.confidence >= 0.7) {
+            console.log(`✅ Found team for ${selection.player}: ${teamInfo.teamName}`)
+            
+            // Look for a game involving this team
+            for (const [gameId, game] of Object.entries(games)) {
+              const homeTeamMatch = calculateTeamSimilarity(teamInfo.teamName, game.home_team.name) > 0.8
+              const awayTeamMatch = calculateTeamSimilarity(teamInfo.teamName, game.away_team.name) > 0.8
+              
+              if (homeTeamMatch || awayTeamMatch) {
+                awayTeam = game.away_team.name
+                homeTeam = game.home_team.name
+                console.log(`✅ Inferred game from player team: ${awayTeam} @ ${homeTeam}`)
+                break
+              }
+            }
+          }
+        }
+        
+        const matchedGame = findMatchingGame(games, awayTeam, homeTeam)
 
         const processedSelection: BetSelection = {
           id: selection.id,
@@ -2320,7 +2692,11 @@ export async function POST(request: NextRequest) {
           gameId: matchedGame?.event_id,
           confidence: selection.confidence,
           rawText: selection.rawText,
-          metadata: selection.metadata
+          metadata: {
+            ...selection.metadata,
+            awayTeam: awayTeam || selection.metadata.awayTeam,
+            homeTeam: homeTeam || selection.metadata.homeTeam
+          }
         }
 
         if (matchedGame) {
