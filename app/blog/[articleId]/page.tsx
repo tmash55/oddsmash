@@ -9,9 +9,10 @@ import config from "@/config";
 export async function generateMetadata({
   params,
 }: {
-  params: { articleId: string };
+  params: Promise<{ articleId: string }>;
 }) {
-  const article = articles.find((article) => article.slug === params.articleId);
+  const { articleId } = await params;
+  const article = articles.find((article) => article.slug === articleId);
 
   return getSEOTags({
     title: article.title,
@@ -39,15 +40,16 @@ export async function generateMetadata({
 export default async function Article({
   params,
 }: {
-  params: { articleId: string };
+  params: Promise<{ articleId: string }>;
 }) {
-  const article = articles.find((article) => article.slug === params.articleId);
+  const { articleId } = await params;
+  const article = articles.find((article) => article.slug === articleId);
   const articlesRelated = articles
     .filter(
       (a) =>
-        a.slug !== params.articleId &&
+        a.slug !== articleId &&
         a.categories.some((c) =>
-          article.categories.map((c) => c.slug).includes(c.slug)
+          article?.categories.map((c) => c.slug).includes(c.slug)
         )
     )
     .sort(

@@ -13,7 +13,7 @@ export default async function LayoutPrivate({
 }: {
   children: ReactNode;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },

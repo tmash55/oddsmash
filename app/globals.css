@@ -1,6 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default;
+}
+
+@theme {
+  /* Custom animations and keyframes */
+  --animate-opacity: opacity 0.25s ease-in-out;
+  --animate-appear-from-right: appearFromRight 300ms ease-in-out;
+  --animate-wiggle: wiggle 1.5s ease-in-out infinite;
+  --animate-popup: popup 0.25s ease-in-out;
+  --animate-shimmer: shimmer 3s ease-out infinite alternate;
+  
+  /* Custom background gradient */
+  --color-gradient: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
+}
+
+/* Custom keyframes */
+@keyframes opacity {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes appearFromRight {
+  0% { opacity: 0.3; transform: translate(15%, 0px); }
+  100% { opacity: 1; transform: translate(0); }
+}
+
+@keyframes wiggle {
+  0%, 20%, 80%, 100% { transform: rotate(0deg); }
+  30%, 60% { transform: rotate(-2deg); }
+  40%, 70% { transform: rotate(2deg); }
+  45% { transform: rotate(-4deg); }
+  55% { transform: rotate(4deg); }
+}
+
+@keyframes popup {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 0 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
 html,
 body {

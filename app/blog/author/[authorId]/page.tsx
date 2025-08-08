@@ -7,9 +7,10 @@ import config from "@/config";
 export async function generateMetadata({
   params,
 }: {
-  params: { authorId: string };
+  params: Promise<{ authorId: string }>;
 }) {
-  const author = authors.find((author) => author.slug === params.authorId);
+  const { authorId } = await params;
+  const author = authors.find((author) => author.slug === authorId);
 
   return getSEOTags({
     title: `${author.name}, Author at ${config.appName}'s Blog`,
@@ -21,9 +22,10 @@ export async function generateMetadata({
 export default async function Author({
   params,
 }: {
-  params: { authorId: string };
+  params: Promise<{ authorId: string }>;
 }) {
-  const author = authors.find((author) => author.slug === params.authorId);
+  const { authorId } = await params;
+  const author = authors.find((author) => author.slug === authorId);
   const articlesByAuthor = articles
     .filter((article) => article.author.slug === author.slug)
     .sort(
