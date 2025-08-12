@@ -3,6 +3,7 @@ import { redis, generateOddsCacheKey } from "@/lib/redis"
 import { SPORTSBOOK_ID_MAP, REVERSE_SPORTSBOOK_MAP } from "@/lib/constants/sportsbook-mappings"
 import { sportsbooks as SPORTSBOOKS_LIST, type Sportsbook } from "@/data/sportsbooks"
 import { getMarketApiKey } from "@/lib/constants/game-markets"
+import { getStandardAbbreviation } from "@/lib/constants/team-mappings"
 
 interface Bookmaker {
   key: string;
@@ -26,43 +27,42 @@ const SPORT_KEY_MAP: Record<string, string> = {
   'baseball_mlb': 'mlb',
   'mlb': 'mlb',  // Add direct mapping
   'basketball_nba': 'nba',
-  'basketball_ncaab': 'ncaab'
+  'basketball_ncaab': 'ncaab',
+  // Football mappings
+  'football_nfl': 'nfl',
+  'americanfootball_nfl': 'nfl',
+  'football_ncaaf': 'ncaaf',
+  'americanfootball_ncaaf': 'ncaaf'
 }
 
-// MLB Team name to abbreviation mapping
-const MLB_TEAM_MAP: Record<string, string> = {
-  // American League
-  "Los Angeles Angels": "LAA",
-  "Baltimore Orioles": "BAL",
-  "Boston Red Sox": "BOS",
-  "Chicago White Sox": "CWS",
-  "Cleveland Guardians": "CLE",
-  "Detroit Tigers": "DET",
-  "Houston Astros": "HOU",
-  "Kansas City Royals": "KC",
-  "Minnesota Twins": "MIN",
-  "New York Yankees": "NYY",
-  "Oakland Athletics": "OAK",
-  "Seattle Mariners": "SEA",
-  "Tampa Bay Rays": "TB",
-  "Texas Rangers": "TEX",
-  "Toronto Blue Jays": "TOR",
-  // National League
-  "Arizona Diamondbacks": "ARI",
-  "Atlanta Braves": "ATL",
-  "Chicago Cubs": "CHC",
-  "Cincinnati Reds": "CIN",
-  "Colorado Rockies": "COL",
-  "Los Angeles Dodgers": "LAD",
-  "Miami Marlins": "MIA",
-  "Milwaukee Brewers": "MIL",
-  "New York Mets": "NYM",
-  "Philadelphia Phillies": "PHI",
-  "Pittsburgh Pirates": "PIT",
-  "San Diego Padres": "SD",
-  "San Francisco Giants": "SF",
-  "St. Louis Cardinals": "STL",
-  "Washington Nationals": "WSH"
+// Normalize sport for team abbreviation lookups
+function normalizeSportForAbbr(sport: string): string {
+  const lower = sport.toLowerCase()
+  if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
+  if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
+  if (lower === 'wnba' || lower === 'basketball_wnba') return 'basketball_wnba'
+  return sport
+}
+
+// Normalize sport for market key lookups
+function normalizeSportForMarkets(sport: string): string {
+  const lower = sport.toLowerCase()
+  if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
+  if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+  if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
+  if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
+  if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'
+  return sport
+}
+
+function normalizeMarketValue(m: string): string {
+  const v = (m || '').toLowerCase()
+  if (v === 'h2h' || v === 'moneyline' || v === 'ml') return 'moneyline'
+  if (v === 'spread' || v === 'spreads') return 'spread'
+  if (v === 'total' || v === 'totals') return 'total'
+  if (v === 'runline' || v === 'run_line') return 'run_line'
+  if (v === 'puckline' || v === 'puck_line') return 'puck_line'
+  return v
 }
 
 // Function to transform sportsbooks data
@@ -72,70 +72,103 @@ function transformSportsbooks(data: any, sport: string, market: string) {
     market_type: data.market_type,
     lines: Object.keys(data.lines)
   })
-  
-  const bookmakers: Bookmaker[] = []
-  
-  // Process each line
-  for (const [lineKey, lineData] of Object.entries<any>(data.lines)) {
-    const lineSportsbooks = lineData.sportsbooks || {}
-    
-    // Process each sportsbook for this line
-    for (const [book, bookData] of Object.entries<any>(lineSportsbooks)) {
-      // First normalize the sportsbook name using our mapping
-      const normalizedName = SPORTSBOOK_ID_MAP[book.toLowerCase()] || book.toLowerCase()
+
+  // Ensure we key the market with the normalized sport + market value
+  const marketKey = getMarketApiKey(normalizeSportForMarkets(sport), normalizeMarketValue(market))
+
+  // Build a map of bookmaker -> entry with a single market containing the full lines map
+  const bookmakerMap = new Map<string, Bookmaker>()
+
+  // Normalize sportsbook keys inside lines to our logoId mapping for consistent client lookups
+  const normalizedLines: Record<string, any> = {}
+  for (const [lineKey, lineData] of Object.entries<any>(data.lines || {})) {
+    const sb: Record<string, any> = {}
+    for (const [rawKey, sbData] of Object.entries<any>(lineData.sportsbooks || {})) {
+      const normalizedName = SPORTSBOOK_ID_MAP[rawKey.toLowerCase()] || rawKey.toLowerCase()
       const logoId = REVERSE_SPORTSBOOK_MAP[normalizedName]
-      
-      if (!logoId) {
-        console.warn(`[API] No logo ID mapping found for sportsbook: ${book}`)
-        continue
-      }
-      
-      // Find or create bookmaker entry
-      let bookmaker = bookmakers.find(b => b.key === logoId)
-      if (!bookmaker) {
+      if (!logoId) continue
+      sb[logoId] = sbData
+    }
+    normalizedLines[lineKey] = { ...lineData, sportsbooks: sb }
+  }
+
+  // Discover all sportsbooks present across all lines
+  for (const [, lineData] of Object.entries<any>(normalizedLines)) {
+    const lineSportsbooks = lineData.sportsbooks || {}
+    for (const [book, _bookData] of Object.entries<any>(lineSportsbooks)) {
+      const logoId = String(book)
+      if (!logoId) continue
+
+      if (!bookmakerMap.has(logoId)) {
         const sportsbookData = SPORTSBOOKS_LIST.find((sb: Sportsbook) => sb.id === logoId)
-        if (!sportsbookData) {
-          console.warn(`[API] No sportsbook data found for logoId: ${logoId}`)
-          continue
-        }
-        
-        bookmaker = {
+        if (!sportsbookData) continue
+        bookmakerMap.set(logoId, {
           key: logoId,
           title: sportsbookData.name,
           last_update: data.last_update,
-          markets: []
-        }
-        bookmakers.push(bookmaker)
-      }
-      
-      // Create market entry for this line
-      const outcomes = []
-      for (const [team, odds] of Object.entries<any>(bookData)) {
-        outcomes.push({
-          name: team.charAt(0).toUpperCase() + team.slice(1),
-          price: odds.price,
-          point: lineData.point,
-          link: odds.link,
-          sid: odds.sid
+          markets: [
+            {
+              key: marketKey,
+              line: data.primary_line ?? undefined,
+              outcomes: [],
+              // Attach the entire lines map so the client can resolve standard/selected per book
+              lines: normalizedLines,
+            } as any,
+          ],
         })
       }
-      
-      // Get the correct market key using getMarketApiKey
-      const marketKey = getMarketApiKey(sport, market)
-      
-      bookmaker.markets.push({
-        key: marketKey,
-        line: lineData.point,
-        outcomes
-      })
     }
   }
-  
+
+  // For h2h, also populate outcomes per bookmaker from their standard line
+  if (marketKey === 'h2h') {
+    bookmakerMap.forEach((bookmaker, logoId) => {
+      const marketEntry = bookmaker.markets.find((m: any) => m.key === 'h2h') as any
+      if (!marketEntry) return
+
+      // Find the standard line for this bookmaker or fall back to primary_line or '0'
+      let selectedLineKey: string | undefined
+      for (const [lk, ld] of Object.entries<any>(normalizedLines)) {
+        if (ld?.sportsbooks?.[logoId]?.is_standard) {
+          selectedLineKey = lk
+          break
+        }
+      }
+      if (!selectedLineKey) selectedLineKey = data.primary_line || '0'
+
+      const sbRecord = (normalizedLines?.[selectedLineKey]?.sportsbooks || {}) as Record<string, any>
+      const sbData = sbRecord[logoId]
+      if (!sbData) return
+
+      const outcomes: any[] = []
+      if (sbData?.away_team?.price !== undefined) {
+        outcomes.push({
+          name: data.away_team,
+          price: sbData.away_team.price,
+          point: null,
+          link: sbData.away_team.link ?? undefined,
+          sid: sbData.away_team.sid ?? undefined,
+        })
+      }
+      if (sbData?.home_team?.price !== undefined) {
+        outcomes.push({
+          name: data.home_team,
+          price: sbData.home_team.price,
+          point: null,
+          link: sbData.home_team.link ?? undefined,
+          sid: sbData.home_team.sid ?? undefined,
+        })
+      }
+      marketEntry.outcomes = outcomes
+    })
+  }
+
+  const bookmakers = Array.from(bookmakerMap.values())
   console.log('[API] Final transformed bookmakers:', {
     count: bookmakers.length,
     bookmakerKeys: bookmakers.map(b => b.key)
   })
-  
+
   return bookmakers
 }
 
@@ -158,6 +191,8 @@ function transformGameData(data: any, sport: string, market: string) {
     const homeTeam = capitalizeTeamName(data.home_team);
     const awayTeam = capitalizeTeamName(data.away_team);
 
+    const normalizedSport = normalizeSportForAbbr(sport)
+
     const transformed = {
       ...data,
       event_id: data.event_id || `${data.home_team}_${data.away_team}`,
@@ -165,11 +200,11 @@ function transformGameData(data: any, sport: string, market: string) {
       commence_time: data.commence_time || new Date().toISOString(),
       home_team: {
         name: homeTeam,
-        abbreviation: MLB_TEAM_MAP[homeTeam] || homeTeam
+        abbreviation: getStandardAbbreviation(homeTeam, normalizedSport)
       },
       away_team: {
         name: awayTeam,
-        abbreviation: MLB_TEAM_MAP[awayTeam] || awayTeam
+        abbreviation: getStandardAbbreviation(awayTeam, normalizedSport)
       },
       bookmakers: transformSportsbooks(data, sport, market),
       primary_line: data.primary_line
@@ -189,11 +224,32 @@ export async function GET(
   try {
     const { sport, market } = params
 
+    const normalizeSportForMarkets = (s: string): string => {
+      const lower = s.toLowerCase()
+      if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
+      if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+      if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
+      if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
+      if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'
+      return s
+    }
+
+    const normalizeMarketValue = (m: string): string => {
+      const v = (m || '').toLowerCase()
+      if (v === 'h2h' || v === 'moneyline' || v === 'ml') return 'moneyline'
+      // Keep sport-specific values so getMarketApiKey can map correctly
+      if (v === 'spread' || v === 'spreads') return 'spread'
+      if (v === 'runline' || v === 'run_line') return 'run_line'
+      if (v === 'puckline' || v === 'puck_line') return 'puck_line'
+      if (v === 'total' || v === 'totals') return 'total'
+      return v
+    }
+
     // Convert sport name to Redis key format
     const sportKey = SPORT_KEY_MAP[sport] || sport
 
     // Get the correct market key for Redis
-    const marketKey = getMarketApiKey(sport === 'mlb' ? 'baseball_mlb' : sport, market)
+    const marketKey = getMarketApiKey(normalizeSportForMarkets(sport), normalizeMarketValue(market))
     console.log('Market mapping:', { sport, market, marketKey })
 
     // For game lines, we want to get all games for the sport

@@ -719,6 +719,33 @@ export const GAME_MARKETS: GameMarkets = {
     ]
   },
 
+  football_ncaaf: {
+    gameLines: [
+      {
+        value: "moneyline",
+        label: "Moneyline",
+        apiKey: "h2h",
+        description: "Pick the winner of the game",
+      },
+      {
+        value: "spread",
+        label: "Point Spread",
+        apiKey: "spreads",
+        description: "Bet with a point spread",
+        hasAlternates: true,
+        alternateKey: "alternate_spreads",
+      },
+      {
+        value: "total",
+        label: "Total Points",
+        apiKey: "totals",
+        description: "Combined points scored by both teams",
+        hasAlternates: true,
+        alternateKey: "alternate_totals",
+      },
+    ],
+  },
+
   icehockey_nhl: {
     gameLines: [
       {
@@ -900,9 +927,29 @@ export function getMarketApiKey(
   marketValue: string,
   useAlternate: boolean = false
 ): string {
+  // Normalize sport aliases
+  const s = (() => {
+    const lower = sport.toLowerCase()
+    if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
+    if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
+    if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'
+    if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+    if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
+    return sport
+  })()
+  // Normalize market aliases for VALUE matching (not API key)
+  const v = (() => {
+    const m = (marketValue || '').toLowerCase()
+    if (m === 'h2h' || m === 'moneyline' || m === 'ml') return 'moneyline'
+    if (m === 'total' || m === 'totals') return 'total'
+    if (m === 'spread' || m === 'spreads') return 'spread'
+    if (m === 'runline') return 'run_line'
+    if (m === 'puckline') return 'puck_line'
+    return m
+  })()
   // Check game lines
-  const gameLines = getGameLinesForSport(sport);
-  const gameLine = gameLines.find((m) => m.value === marketValue);
+  const gameLines = getGameLinesForSport(s);
+  const gameLine = gameLines.find((m) => m.value === v);
   if (gameLine) {
     if (useAlternate && gameLine.hasAlternates && gameLine.alternateKey) {
       return gameLine.alternateKey;
@@ -911,15 +958,15 @@ export function getMarketApiKey(
   }
 
   // Check team props
-  const teamProps = getTeamPropsForSport(sport);
-  const teamProp = teamProps.find((m) => m.value === marketValue);
+  const teamProps = getTeamPropsForSport(s);
+  const teamProp = teamProps.find((m) => m.value === v);
   if (teamProp) {
     return teamProp.apiKey;
   }
 
   // Check futures
-  const futures = getFuturesForSport(sport);
-  const future = futures.find((m) => m.value === marketValue);
+  const futures = getFuturesForSport(s);
+  const future = futures.find((m) => m.value === v);
   if (future) {
     return future.apiKey;
   }

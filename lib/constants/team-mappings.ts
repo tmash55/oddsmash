@@ -118,7 +118,9 @@ export const NFL_TEAM_MAP: Record<string, string> = {
   SEA: "SEA", // Seattle Seahawks
   TB: "TB",   // Tampa Bay Buccaneers
   TEN: "TEN", // Tennessee Titans
-  WAS: "WAS"  // Washington Commanders
+  // Washington: logo files use WSH; accept both WAS and WSH inputs
+  WAS: "WSH",
+  WSH: "WSH"
 }
 
 // WNBA Team Mappings

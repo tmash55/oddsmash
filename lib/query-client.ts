@@ -22,3 +22,12 @@ export async function prefetchPropComparison(sport: string, market: string) {
     staleTime: 30 * 60 * 1000, // 30 minutes
   })
 } 
+
+// Helper to prefetch game lines data
+export async function prefetchGameLines(sport: string, market: string) {
+  await queryClient.prefetchQuery({
+    queryKey: ["gameLinesV2", sport, market],
+    queryFn: () => fetch(`/api/odds/${sport}/${market}`).then(res => res.json()),
+    staleTime: 30 * 60 * 1000,
+  })
+}

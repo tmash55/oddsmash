@@ -45,6 +45,8 @@ import {
   HelpCircle,
   BookOpen,
   Target,
+  Trophy,
+  Users,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
@@ -187,6 +189,16 @@ export function Header() {
     return "User"
   }
 
+  // Fantasy items (for both public and authenticated users)
+  const fantasyItems = [
+    {
+      title: "ADP Tool",
+      description: "Compare Average Draft Position across platforms",
+      href: "/fantasy/football/adp-smashboard",
+      icon: <Trophy className="h-4 w-4 text-purple-600" />,
+    },
+  ]
+
   // Public navigation items (when user is not signed in)
   const publicNavigationItems = [
     {
@@ -223,8 +235,16 @@ export function Header() {
       ],
     },
     {
-      title: "How It Works",
-      href: "#how-it-works",
+      title: "Fantasy",
+      href: "#",
+      icon: <Users className="h-5 w-5 text-purple-600" />,
+      isActive: pathname?.startsWith("/fantasy"),
+      description: "Fantasy football tools and analytics",
+      children: fantasyItems,
+    },
+    {
+      title: "How It Works", 
+      href: pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works",
       icon: <BookOpen className="h-5 w-5 text-green-600" />,
       isActive: false,
       description: "Learn how to get started",
@@ -306,6 +326,14 @@ export function Header() {
       children: trackerItems,
     },
     {
+      title: "Fantasy",
+      href: "#",
+      icon: <Users className="h-5 w-5 text-purple-600" />,
+      isActive: pathname?.startsWith("/fantasy"),
+      description: "Fantasy football tools and analytics",
+      children: fantasyItems,
+    },
+    {
       title: "History",
       href: "/history",
       icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
@@ -351,6 +379,14 @@ export function Header() {
       isActive: pathname?.startsWith("/trackers"),
       description: "DraftKings King of the * trackers",
       children: trackerItems,
+    },
+    {
+      title: "Fantasy",
+      href: "#",
+      icon: <Users className="h-5 w-5 text-purple-600" />,
+      isActive: pathname?.startsWith("/fantasy"),
+      description: "Fantasy football tools and analytics",
+      children: fantasyItems,
     },
     {
       title: "History",
@@ -495,7 +531,6 @@ export function Header() {
                           )}
                           title="Compare every book in seconds to find your edge"
                         >
-                          <Target className="w-4 h-4 mr-1.5" />
                           Smash Screen
                         </NavigationMenuLink>
                       </Link>
@@ -511,7 +546,6 @@ export function Header() {
                           )}
                           title="Track player prop hit rates and trends"
                         >
-                          <Activity className="w-4 h-4 mr-1.5" />
                           Hit Rate
                         </NavigationMenuLink>
                       </Link>
@@ -526,7 +560,6 @@ export function Header() {
                               "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
                           )}
                         >
-                          <LineChart className="w-4 h-4 mr-1.5" />
                           Parlay
                         </NavigationMenuLink>
                       </Link>
@@ -541,7 +574,6 @@ export function Header() {
                               "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
                           )}
                         >
-                          <Sparkles className="w-4 h-4 mr-1.5" />
                           Scanner
                         </NavigationMenuLink>
                       </Link>
@@ -555,7 +587,6 @@ export function Header() {
                             "bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300",
                         )}
                       >
-                        <Crown className="w-4 h-4 mr-1.5" />
                         Trackers
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
@@ -653,6 +684,112 @@ export function Header() {
                         )}
                       </NavigationMenuContent>
                     </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 data-[state=open]:bg-purple-50 dark:data-[state=open]:bg-purple-950/50 text-sm",
+                          pathname?.startsWith("/fantasy") &&
+                            "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                        )}
+                      >
+                        Fantasy
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        {isMobile ? (
+                          <div className="w-[500px] p-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/fantasy"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                                          <Users className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
+                                          Fantasy Tools
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
+                                        Fantasy football analytics and tools
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {fantasyItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-[500px] p-4"
+                          >
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/fantasy"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                                          <Users className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
+                                          Fantasy Tools
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
+                                        Fantasy football analytics and tools
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {fantasyItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
                   </>
                 ) : (
                   // Public Navigation
@@ -663,7 +800,6 @@ export function Header() {
                           "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
                         )}
                       >
-                        <Star className="w-4 h-4 mr-1.5" />
                         Features
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
@@ -763,13 +899,118 @@ export function Header() {
                     </NavigationMenuItem>
 
                     <NavigationMenuItem>
-                      <Link href="#how-it-works" legacyBehavior passHref>
+                      <NavigationMenuTrigger
+                        className={cn(
+                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 data-[state=open]:bg-purple-50 dark:data-[state=open]:bg-purple-950/50 text-sm",
+                          pathname?.startsWith("/fantasy") &&
+                            "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                        )}
+                      >
+                        Fantasy
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        {isMobile ? (
+                          <div className="w-[500px] p-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/fantasy"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                                          <Users className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
+                                          Fantasy Tools
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
+                                        Fantasy football analytics and tools
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {fantasyItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-[500px] p-4"
+                          >
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
+                                  <NavigationMenuLink asChild>
+                                    <Link
+                                      href="/fantasy"
+                                      className="block space-y-2 no-underline outline-none transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                                          <Users className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
+                                          Fantasy Tools
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
+                                        Fantasy football analytics and tools
+                                      </p>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {fantasyItems.map((item) => (
+                                  <NavigationMenuLink key={item.title} asChild>
+                                    <Link
+                                      href={item.href}
+                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
+                                    >
+                                      {item.icon}
+                                      <div>
+                                        <div className="font-medium text-sm">{item.title}</div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                                      </div>
+                                    </Link>
+                                  </NavigationMenuLink>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <Link href={pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works"} legacyBehavior passHref>
                         <NavigationMenuLink
                           className={cn(
                             "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
                           )}
                         >
-                          <BookOpen className="w-4 h-4 mr-1.5" />
                           How It Works
                         </NavigationMenuLink>
                       </Link>
@@ -782,7 +1023,6 @@ export function Header() {
                             "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
                           )}
                         >
-                          <Sparkles className="w-4 h-4 mr-1.5" />
                           Founders Beta
                         </NavigationMenuLink>
                       </Link>

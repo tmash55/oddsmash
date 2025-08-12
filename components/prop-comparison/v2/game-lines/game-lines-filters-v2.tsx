@@ -40,28 +40,32 @@ interface GameLinesFiltersV2Props {
   sport: string
   selectedMarket: string
   onMarketChange: (market: string) => void
-  selectedLine: string | null
-  onLineChange: (line: string | null) => void
   selectedSportsbook: string | null
   onSportsbookChange: (sportsbook: string | null) => void
   selectedPeriod: string
   onPeriodChange: (period: string) => void
   selectedGames: string[] | null
   onGamesChange: (games: string[] | null) => void
+  // New props
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
+  availableGames?: Array<{ event_id: string; home_team: string; away_team: string; commence_time: string }>
 }
 
 export function GameLinesFiltersV2({
   sport,
   selectedMarket,
   onMarketChange,
-  selectedLine,
-  onLineChange,
   selectedSportsbook,
   onSportsbookChange,
   selectedPeriod,
   onPeriodChange,
   selectedGames,
   onGamesChange,
+  searchQuery,
+  onSearchChange,
+  
+  availableGames = [],
 }: GameLinesFiltersV2Props) {
   const isMobile = useMediaQuery("(max-width: 768px)")
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
@@ -107,20 +111,31 @@ export function GameLinesFiltersV2({
         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
           {/* Primary Filters */}
           <div className="p-4 flex flex-wrap items-center gap-3">
+            {/* Market */}
             <Select value={selectedMarket} onValueChange={onMarketChange}>
-              <SelectTrigger className="w-[200px] h-10 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+              <SelectTrigger className="w-[220px] h-10 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
                 <SelectValue placeholder="Select market" />
               </SelectTrigger>
               <SelectContent>
                 {(() => {
                   const sportApiId = pathToApiId[sport]
-                  const markets = getGameLinesForSport(sportApiId)
-                  return markets.map((market) => (
-                    <SelectItem key={market.value} value={market.value}>
+                  const normalizeSportForMarkets = (s: string): string => {
+                    switch (s) {
+                      case "americanfootball_nfl":
+                        return "football_nfl"
+                      case "americanfootball_ncaaf":
+                        return "football_ncaaf"
+                      default:
+                        return s
+                    }
+                  }
+                  const markets = getGameLinesForSport(normalizeSportForMarkets(sportApiId))
+                  return markets.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
                       <div className="flex flex-col">
-                        <span>{market.label}</span>
-                        {market.description && (
-                          <span className="text-xs text-slate-500">{market.description}</span>
+                        <span>{m.label}</span>
+                        {m.description && (
+                          <span className="text-xs text-slate-500">{m.description}</span>
                         )}
                       </div>
                     </SelectItem>
@@ -129,7 +144,55 @@ export function GameLinesFiltersV2({
               </SelectContent>
             </Select>
 
-            {/* Add other filters here */}
+            {/* Line selector removed: always display standard lines */}
+
+            {/* Sportsbook filter */}
+            <Select value={selectedSportsbook || "all"} onValueChange={(v) => onSportsbookChange?.(v === "all" ? null : v)}>
+              <SelectTrigger className="w-[200px] h-10 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                <SelectValue placeholder="Sportsbook" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sportsbooks</SelectItem>
+                {activeSportsbooks.map((book) => (
+                  <SelectItem key={book.id} value={book.id}>
+                    <div className="flex items-center gap-2">
+                      <Image src={book.logo} alt={book.name} width={18} height={18} className="object-contain" />
+                      <span>{book.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Games (single-select for now) */}
+            <Select
+              value={selectedGames?.[0] || "all"}
+              onValueChange={(v) => onGamesChange?.(v === "all" ? null : [v])}
+            >
+              <SelectTrigger className="w-[260px] h-10 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                <SelectValue placeholder="All Games" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Games</SelectItem>
+                {availableGames.map((g) => (
+                  <SelectItem key={g.event_id} value={g.event_id}>
+                    {g.away_team} @ {g.home_team}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search teams..."
+                value={searchQuery || ""}
+                onChange={(e) => onSearchChange?.(e.target.value)}
+                className="pl-10 h-10 w-[220px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm"
+              />
+            </div>
           </div>
         </Card>
       )}

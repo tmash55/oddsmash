@@ -6,6 +6,8 @@ import { ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, Plus } from "lucide-react
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { sportsbooks } from "@/data/sportsbooks"
+import type { TransformedGameOdds } from "@/hooks/use-game-lines-transforms"
+import type { GameOddsBookmaker, GameOddsMarket, GameOddsOutcome } from "@/types/game-lines"
 import { useMemo, useState } from "react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -21,7 +23,7 @@ import { getPlayerHeadshotUrl, getTeamLogoUrl } from '@/lib/constants/sport-asse
 function getTeamLogoPath(sport: string): string {
   switch(sport) {
     case "football_nfl":
-      return "nfl-teams"
+      return "team-logos/nfl"
     case "basketball_wnba":
       return "team-logos/wnba"
     case "baseball_mlb":
@@ -80,6 +82,14 @@ function formatGameDateTime(date: string) {
   })
 }
 
+function formatGameDate(date: string) {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+  })
+}
+
 // Format odds to always show + for positive odds
 function formatOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : odds.toString()
@@ -126,73 +136,22 @@ function formatTotalLine(point: number | undefined, price: number, isOver: boole
   return `${isOver ? 'o' : 'u'}${point} ${formatOdds(price)}`
 }
 
-interface GameOdds {
-  event_id: string
-  sport_key: string
-  commence_time: string
-  home_team: {
-    name: string
-    abbreviation: string
-  }
-  away_team: {
-    name: string
-    abbreviation: string
-  }
-  bookmakers: {
-    key: string
-    title: string
-    last_update: string
-    markets: {
-      key: string
-      outcomes: {
-        name: string
-        price: number
-        point?: number
-        link?: string
-        sid?: string
-        line?: string
-      }[]
-      line?: string
-      is_standard?: boolean
-      lines?: {
-        [key: string]: {
-          point: number
-          sportsbooks: {
-            [key: string]: {
-              is_standard: boolean
-              over?: {
-                price: number
-                link?: string
-                sid?: string
-              }
-              under?: {
-                price: number
-                link?: string
-                sid?: string
-              }
-            }
-          }
-        }
-      }
-    }[]
-  }[]
-  last_update: string
-  primary_line?: string
-}
+// Using TransformedGameOdds from hooks, which extends the base GameOdds with
+// derived fields: best, average, evPct, and activeLine.
 
 interface GameLinesTableV2Props {
-  data: GameOdds[]
+  data: TransformedGameOdds[]
   sport: string
   sortField: "time" | "home" | "away" | "odds"
   sortDirection: "asc" | "desc"
   onSortChange: (field: "time" | "home" | "away" | "odds", direction: "asc" | "desc") => void
   evMethod?: "market-average" | "no-vig"
   selectedLine?: string | null
-  selectedMarket: string  // Add this line
+  selectedMarket: string
 }
 
 // Add function to calculate average odds for a team
-function calculateAverageOdds(game: GameOdds, teamName: string): number | null {
+function calculateAverageOdds(game: TransformedGameOdds, teamName: string): number | null {
   let totalOdds = 0
   let count = 0
 
@@ -271,7 +230,11 @@ export function GameLinesTableV2({
   }
 
   // Function to get best odds for a team from bookmakers
-  const getBestOdds = (game: GameOdds, teamName: string, line?: string | null): { price: number; bookmaker: string; link?: string } | null => {
+  const getBestOdds = (
+    game: TransformedGameOdds,
+    teamName: string,
+    line?: string | null,
+  ): { price: number; bookmaker: string; link?: string } | null => {
     let bestOdds: number | null = null
     let bestBook: string | null = null
     let bestLink: string | undefined
@@ -282,27 +245,41 @@ export function GameLinesTableV2({
       line
     })
 
-    game.bookmakers.forEach((bookmaker) => {
-      // For moneyline, we just need to find the h2h market
-      const market = bookmaker.markets.find(m => m.key === "h2h")
-
-      if (market) {
-        const teamOutcome = market.outcomes.find(o => o.name.toLowerCase() === teamName.toLowerCase())
-        // Only consider standard lines unless a specific line is requested
-        const isStandardLine = line ? line === market.line : market.is_standard
-        
-        console.log(`[Component] Checking ${bookmaker.key}:`, {
-          hasMarket: !!market,
-          outcomeFound: !!teamOutcome,
-          price: teamOutcome?.price,
-          isStandardLine
-        })
-        
+    game.bookmakers.forEach((bookmaker: GameOddsBookmaker) => {
+      // H2H path (preferred)
+      const h2h = bookmaker.markets.find((m: GameOddsMarket) => m.key === "h2h")
+      if (h2h?.outcomes?.length) {
+        const teamOutcome = h2h.outcomes.find((o: GameOddsOutcome) => o.name.toLowerCase() === teamName.toLowerCase())
+        const isStandardLine = line ? String(line) === String(h2h.line) : true
         if (teamOutcome && isStandardLine && (!bestOdds || teamOutcome.price > bestOdds)) {
           bestOdds = teamOutcome.price
           bestBook = bookmaker.key
           bestLink = teamOutcome.link
         }
+        return
+      }
+
+      // Spreads path: team-specific entries in lines map
+      const spreads = bookmaker.markets.find((m: GameOddsMarket) => m.key === "spreads")
+      if (spreads?.lines) {
+        const activeAbs = line != null && !Number.isNaN(Number(line)) ? Math.abs(Number(line)) : NaN
+        const entries = Object.entries(spreads.lines as Record<string, any>).filter(([, ld]: [string, any]) => {
+          const isAbsMatch = String(Math.abs(Number(ld.point))) === String(activeAbs)
+          const isStd = !!ld.sportsbooks?.[bookmaker.key]?.is_standard
+          return line ? isAbsMatch : isStd
+        })
+        for (const [, ld] of entries as [string, any][]) {
+          const sb = (ld.sportsbooks || {})[bookmaker.key] as any
+          if (!sb) continue
+          if (sb?.team && sb.team.toLowerCase() === teamName.toLowerCase() && typeof sb.price === 'number') {
+            if (bestOdds === null || sb.price > bestOdds) {
+              bestOdds = sb.price
+              bestBook = bookmaker.key
+              bestLink = sb.link
+            }
+          }
+        }
+        return
       }
     })
 
@@ -311,24 +288,183 @@ export function GameLinesTableV2({
     return result
   }
 
+  // Spreads helpers
+  const formatSignedPoint = (point: number | null | undefined) => {
+    if (point == null || Number.isNaN(Number(point))) return ""
+    const n = Number(point)
+    return n > 0 ? `+${n}` : `${n}`
+  }
+
+  const getBookSpreadStandard = (
+    game: TransformedGameOdds,
+    bookId: string,
+  ): { away?: { point: number; price: number; link?: string }; home?: { point: number; price: number; link?: string } } => {
+    const spreadsMarket = game.bookmakers.find((b) => b.key === bookId)?.markets.find((m) => m.key === "spreads")
+    const result: { away?: { point: number; price: number; link?: string }; home?: { point: number; price: number; link?: string } } = {}
+    if (!spreadsMarket?.lines) return result
+    // Determine consensus abs point in this game for spreads
+    const absCounts: Record<string, number> = {}
+    game.bookmakers.forEach((b) => {
+      const m = b.markets.find((mm) => mm.key === 'spreads')
+      if (!m?.lines) return
+      for (const [, ld] of Object.entries<any>(m.lines)) {
+        const k = String(Math.abs(Number(ld.point)))
+        absCounts[k] = (absCounts[k] || 0) + 1
+      }
+    })
+    const consensusAbs = Object.entries(absCounts).sort((a, b) => b[1] - a[1]).map(([k]) => k)[0]
+
+    for (const [, ld] of Object.entries<any>(spreadsMarket.lines)) {
+      const sb = ld.sportsbooks?.[bookId]
+      const isStd = !!sb?.is_standard
+      const matchesConsensus = consensusAbs != null && String(Math.abs(Number(ld.point))) === String(consensusAbs)
+      if (!sb || (!isStd && !matchesConsensus)) continue
+      const team = (sb.team || "").toLowerCase()
+      if (team === game.away_team.name.toLowerCase() && typeof sb.price === "number") {
+        const point = typeof ld.point === 'number' ? ld.point : Number(ld.point)
+        result.away = { point, price: sb.price, link: sb.link }
+      } else if (team === game.home_team.name.toLowerCase() && typeof sb.price === "number") {
+        const point = typeof ld.point === 'number' ? ld.point : Number(ld.point)
+        result.home = { point, price: sb.price, link: sb.link }
+      }
+    }
+    return result
+  }
+
+  // For spreads, “better” means the number closer to + for the favorite you want to back.
+  // We treat:
+  // - Favorite (negative spread): lower absolute value (e.g., -4.5 is better than -5.5)
+  // - Underdog (positive spread): higher absolute value (e.g., +5.5 is better than +4.5)
+  const getBestSpreadAcrossBooks = (game: TransformedGameOdds) => {
+    let bestHome: { price: number; book: string; point: number; link?: string } | null = null
+    let bestAway: { price: number; book: string; point: number; link?: string } | null = null
+
+    game.bookmakers.forEach((b) => {
+      const res = getBookSpreadStandard(game, b.key)
+      if (res.home) {
+        const cur = { price: res.home.price, book: b.key, point: res.home.point, link: res.home.link }
+        if (!bestHome) bestHome = cur
+        else {
+          const a = bestHome.point
+          const c = cur.point
+          // If both negative, prefer the one closer to zero (greater point)
+          // If both positive, prefer the larger positive
+          // If signs differ, prefer positive (underdog) as more favorable line
+          const pointBetter = (a < 0 && c < 0) ? c > a : (a > 0 && c > 0) ? c > a : c > a
+          if (pointBetter) {
+            bestHome = cur
+          } else if (c === a && cur.price > bestHome.price) {
+            // Tie-break on price
+            bestHome = cur
+          }
+        }
+      }
+      if (res.away) {
+        const cur = { price: res.away.price, book: b.key, point: res.away.point, link: res.away.link }
+        if (!bestAway) bestAway = cur
+        else {
+          const a = bestAway.point
+          const c = cur.point
+          const pointBetter = (a < 0 && c < 0) ? c > a : (a > 0 && c > 0) ? c > a : c > a
+          if (pointBetter) {
+            bestAway = cur
+          } else if (c === a && cur.price > bestAway.price) {
+            bestAway = cur
+          }
+        }
+      }
+    })
+    return { home: bestHome, away: bestAway }
+  }
+
+const getAverageSpreadAcrossBooks = (game: TransformedGameOdds) => {
+    const home: number[] = []
+    const away: number[] = []
+    game.bookmakers.forEach((b) => {
+      const res = getBookSpreadStandard(game, b.key)
+      if (res.home) home.push(res.home.price)
+      if (res.away) away.push(res.away.price)
+    })
+    const toAmericanAvg = (arr: number[]) => {
+      if (arr.length === 0) return null
+      const decs = arr.map(americanToDecimal)
+      const avg = decs.reduce((s, d) => s + d, 0) / decs.length
+      return decimalToAmerican(avg)
+    }
+    return { home: toAmericanAvg(home), away: toAmericanAvg(away) }
+  }
+
+  // Compute best totals across books based on most favorable point threshold:
+  // - Over: choose the lowest point; tie-break by highest price
+  // - Under: choose the highest point; tie-break by highest price
+  const getBestTotalsAcrossBooks = (
+    game: TransformedGameOdds,
+  ): {
+    over?: { price: number; book: string; link?: string; point: number }
+    under?: { price: number; book: string; link?: string; point: number }
+  } => {
+    // Build consensus point across books (use most common is_standard point, else most common presence)
+    const countStandard: Record<string, number> = {}
+    const countPresence: Record<string, number> = {}
+    game.bookmakers.forEach((b) => {
+      const totals = b.markets.find((m) => m.key === 'totals')
+      if (!totals?.lines) return
+      for (const [, ld] of Object.entries<any>(totals.lines)) {
+        const key = String(ld.point)
+        let anyStandard = false
+        for (const sb of Object.values<any>(ld.sportsbooks || {})) {
+          countPresence[key] = (countPresence[key] || 0) + 1
+          if (sb?.is_standard) anyStandard = true
+        }
+        if (anyStandard) countStandard[key] = (countStandard[key] || 0) + 1
+      }
+    })
+    const pickMaxKey = (counts: Record<string, number>) => Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k]) => k)[0]
+    const consensusPoint = pickMaxKey(countStandard) || pickMaxKey(countPresence)
+
+    let bestOver: { price: number; book: string; link?: string; point: number } | undefined
+    let bestUnder: { price: number; book: string; link?: string; point: number } | undefined
+
+    game.bookmakers.forEach((b) => {
+      const totals = b.markets.find((m) => m.key === 'totals')
+      if (!totals?.lines) return
+      for (const [, ld] of Object.entries<any>(totals.lines)) {
+        const sb = ld.sportsbooks?.[b.key]
+        // Prefer standard; if none, allow consensus-matched points to compete
+        if (!sb?.is_standard) {
+          if (consensusPoint == null || String(ld.point) !== String(consensusPoint)) continue
+        }
+        if (!sb) continue
+        const point = Number(ld.point)
+        if (Number.isNaN(point)) continue
+        if (sb.over && (bestOver === undefined || point < bestOver.point || (point === bestOver.point && sb.over.price > bestOver.price))) {
+          bestOver = { price: sb.over.price, book: b.key, link: sb.over.link, point }
+        }
+        if (sb.under && (bestUnder === undefined || point > bestUnder.point || (point === bestUnder.point && sb.under.price > bestUnder.price))) {
+          bestUnder = { price: sb.under.price, book: b.key, link: sb.under.link, point }
+        }
+      }
+    })
+
+    return { over: bestOver, under: bestUnder }
+  }
+
   // Function to get average odds for a team
-  const getAverageOdds = (game: GameOdds, teamName: string, line?: string | null) => {
+const getAverageOdds = (game: TransformedGameOdds, teamName: string, line?: string | null) => {
     let totalDecimalOdds = 0
     let count = 0
 
     game.bookmakers.forEach((bookmaker) => {
       const h2hMarket = bookmaker.markets.find((m) => m.key === "h2h")
-      if (h2hMarket) {
+      if (h2hMarket?.outcomes?.length) {
         const teamOutcome = h2hMarket.outcomes.find((o) => o.name.toLowerCase() === teamName.toLowerCase())
-        // Only consider standard lines unless a specific line is requested
         const isStandardLine = line ? line === h2hMarket.line : h2hMarket.is_standard
-        
         if (teamOutcome && isStandardLine) {
-          // Convert to decimal odds for averaging
           totalDecimalOdds += americanToDecimal(teamOutcome.price)
           count++
         }
       }
+      // Else if backend only sent lines map for spreads/totals, there is no team outcome to average for h2h
     })
 
     if (count === 0) return null
@@ -352,7 +488,7 @@ export function GameLinesTableV2({
   }
 
   // Function to create betslip selection
-  const createBetslipSelection = (game: GameOdds, team: "home" | "away") => {
+  const createBetslipSelection = (game: TransformedGameOdds, team: "home" | "away") => {
     const teamData = team === "home" ? game.home_team : game.away_team
     const bestOdds = getBestOdds(game, teamData.name)
 
@@ -369,10 +505,10 @@ export function GameLinesTableV2({
       commence_time: game.commence_time,
       home_team: game.home_team.name,
       away_team: game.away_team.name,
-      odds_data: game.bookmakers.reduce((acc, bookmaker) => {
-        const h2hMarket = bookmaker.markets.find((m) => m.key === "h2h")
+      odds_data: game.bookmakers.reduce<Record<string, any>>((acc, bookmaker: GameOddsBookmaker) => {
+        const h2hMarket = bookmaker.markets.find((m: GameOddsMarket) => m.key === "h2h")
         if (h2hMarket) {
-          const teamOutcome = h2hMarket.outcomes.find((o) => o.name === teamData.name)
+          const teamOutcome = h2hMarket.outcomes.find((o: GameOddsOutcome) => o.name === teamData.name)
           if (teamOutcome) {
             acc[bookmaker.key] = {
               price: teamOutcome.price,
@@ -383,14 +519,14 @@ export function GameLinesTableV2({
           }
         }
         return acc
-      }, {} as Record<string, any>),
+      }, {}),
       market_display: "Moneyline",
       selection: teamData.name,
     }
   }
 
   // Function to handle adding to betslip
-  const handleAddToBetslip = (game: GameOdds, team: "home" | "away") => {
+  const handleAddToBetslip = (game: TransformedGameOdds, team: "home" | "away") => {
     const selection = createBetslipSelection(game, team)
     if (selection) {
       setPendingSelection(selection)
@@ -400,41 +536,49 @@ export function GameLinesTableV2({
 
   // Sort the data
   const sortedData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return [];
-    
+    if (!data || !Array.isArray(data)) return []
     return [...data].sort((a, b) => {
       try {
         if (sortField === "time") {
-          const aTime = new Date(a.commence_time).getTime();
-          const bTime = new Date(b.commence_time).getTime();
-          return sortDirection === "asc" ? aTime - bTime : bTime - aTime;
+          const aTime = new Date(a.commence_time).getTime()
+          const bTime = new Date(b.commence_time).getTime()
+          return sortDirection === "asc" ? aTime - bTime : bTime - aTime
         }
-
         if (sortField === "home") {
-          const aName = a.home_team?.name || '';
-          const bName = b.home_team?.name || '';
-          return sortDirection === "asc" ? aName.localeCompare(bName) : bName.localeCompare(aName);
+          const aName = a.home_team?.name || ""
+          const bName = b.home_team?.name || ""
+          return sortDirection === "asc" ? aName.localeCompare(bName) : bName.localeCompare(aName)
         }
-
         if (sortField === "away") {
-          const aName = a.away_team?.name || '';
-          const bName = b.away_team?.name || '';
-          return sortDirection === "asc" ? aName.localeCompare(bName) : bName.localeCompare(aName);
+          const aName = a.away_team?.name || ""
+          const bName = b.away_team?.name || ""
+          return sortDirection === "asc" ? aName.localeCompare(bName) : bName.localeCompare(aName)
         }
-
         if (sortField === "odds") {
-          const aOdds = getBestOdds(a, a.home_team?.name || '', a.primary_line || "standard")?.price || 0;
-          const bOdds = getBestOdds(b, b.home_team?.name || '', b.primary_line || "standard")?.price || 0;
-          return sortDirection === "asc" ? aOdds - bOdds : bOdds - aOdds;
+          let aOdds = 0
+          let bOdds = 0
+          const isSpreadSelected = selectedMarket === 'spread' || selectedMarket === 'run_line' || selectedMarket === 'puck_line'
+          if (isSpreadSelected) {
+            aOdds = getBestSpreadAcrossBooks(a).home?.price || 0
+            bOdds = getBestSpreadAcrossBooks(b).home?.price || 0
+          } else if (selectedMarket === "total") {
+            const aMax = Math.max(a.best.over?.price ?? -Infinity, a.best.under?.price ?? -Infinity)
+            const bMax = Math.max(b.best.over?.price ?? -Infinity, b.best.under?.price ?? -Infinity)
+            aOdds = Number.isFinite(aMax) ? aMax : 0
+            bOdds = Number.isFinite(bMax) ? bMax : 0
+          } else {
+            aOdds = getBestOdds(a, a.home_team?.name || "", a.primary_line || "standard")?.price || 0
+            bOdds = getBestOdds(b, b.home_team?.name || "", b.primary_line || "standard")?.price || 0
+          }
+          return sortDirection === "asc" ? aOdds - bOdds : bOdds - aOdds
         }
-
-        return 0;
-      } catch (error) {
-        console.error('Error sorting data:', error);
-        return 0;
+        return 0
+      } catch (e) {
+        console.error("Error sorting data:", e)
+        return 0
       }
-    });
-  }, [data, sortField, sortDirection, getBestOdds]);
+    })
+  }, [data, sortField, sortDirection, selectedMarket])
 
   return (
     <>
@@ -472,10 +616,9 @@ export function GameLinesTableV2({
                     </Button>
                   </div>
                 </TableHead>
-                <TableHead className="w-[120px] bg-slate-950 text-slate-200 font-semibold sticky top-0">Best Odds</TableHead>
-                <TableHead className="w-[120px] bg-slate-950 text-slate-200 font-semibold sticky top-0">Average</TableHead>
-                <TableHead className="w-[100px] bg-slate-950 text-slate-200 font-semibold sticky top-0 text-center">EV%</TableHead>
-                {activeSportsbooks.map((book) => (
+                <TableHead className="w-[110px] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">Date / Time</TableHead>
+                <TableHead className="w-[160px] bg-slate-950 text-slate-200 font-semibold sticky top-0">Best</TableHead>
+                 {activeSportsbooks.map((book) => (
                   <TableHead key={book.id} className="text-center w-[80px] bg-slate-950 sticky top-0">
                     <TooltipProvider>
                       <Tooltip>
@@ -496,7 +639,7 @@ export function GameLinesTableV2({
                       </Tooltip>
                     </TooltipProvider>
                   </TableHead>
-                ))}
+                    ))}
                 <TableHead className="w-[60px] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
                   Actions
                 </TableHead>
@@ -509,17 +652,29 @@ export function GameLinesTableV2({
                 const awayTeamAbbr = game.away_team.abbreviation
                 const currentLine = game.primary_line || "standard"
 
-                // Get best odds for both teams at the current line
-                const homeBestOdds = getBestOdds(game, game.home_team.name, currentLine)
-                const awayBestOdds = getBestOdds(game, game.away_team.name, currentLine)
+                // Treat MLB run_line and NHL puck_line as spreads in UI handling
+                const isSpreadSelected = selectedMarket === 'spread' || selectedMarket === 'run_line' || selectedMarket === 'puck_line'
+                // Best based on selected market
+                const spreadBest = isSpreadSelected ? getBestSpreadAcrossBooks(game) : null
 
-                // Get average odds for both teams at the current line
-                const homeAvgOdds = getAverageOdds(game, game.home_team.name, currentLine)
-                const awayAvgOdds = getAverageOdds(game, game.away_team.name, currentLine)
+                // Moneyline/spread best-odds references
+                const homeBestOdds = isSpreadSelected
+                  ? (spreadBest?.home ? { price: spreadBest.home.price, bookmaker: spreadBest.home.book, link: spreadBest.home.link } : null)
+                  : selectedMarket === 'total'
+                    ? null
+                    : getBestOdds(game, game.home_team.name, currentLine)
+                const awayBestOdds = isSpreadSelected
+                  ? (spreadBest?.away ? { price: spreadBest.away.price, bookmaker: spreadBest.away.book, link: spreadBest.away.link } : null)
+                  : selectedMarket === 'total'
+                    ? null
+                    : getBestOdds(game, game.away_team.name, currentLine)
 
-                // Calculate EV for both teams
-                const homeEV = homeAvgOdds && homeBestOdds ? calculateEVPercentage(homeBestOdds.price, homeAvgOdds) : null
-                const awayEV = awayAvgOdds && awayBestOdds ? calculateEVPercentage(awayBestOdds.price, awayAvgOdds) : null
+                // Totals best-odds (from transformed hook)
+                const totalsBest = selectedMarket === 'total' ? getBestTotalsAcrossBooks(game) : null
+
+                const hideTeamLogos = sport === 'ncaaf' || sport === 'football_ncaaf' || sport === 'americanfootball_ncaaf'
+
+                // Averages/EV not used in game-lines table
 
                 return (
                   <TableRow key={game.event_id} className="border-slate-800 hover:bg-slate-900/50">
@@ -529,23 +684,27 @@ export function GameLinesTableV2({
                           <TooltipTrigger className="w-full">
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-2">
-                                <Image
-                                  src={getTeamLogoUrl(awayTeamAbbr, sport)}
-                                  alt={awayTeamAbbr}
-                                  width={16}
-                                  height={16}
-                                  className="h-4 w-4"
-                                />
+                                {!hideTeamLogos && (
+                                  <Image
+                                    src={getTeamLogoUrl(awayTeamAbbr, sport)}
+                                    alt={awayTeamAbbr}
+                                    width={16}
+                                    height={16}
+                                    className="h-4 w-4"
+                                  />
+                                )}
                                 <span className="font-medium text-slate-200">{game.away_team.name}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Image
-                                  src={getTeamLogoUrl(homeTeamAbbr, sport)}
-                                  alt={homeTeamAbbr}
-                                  width={16}
-                                  height={16}
-                                  className="h-4 w-4"
-                                />
+                                {!hideTeamLogos && (
+                                  <Image
+                                    src={getTeamLogoUrl(homeTeamAbbr, sport)}
+                                    alt={homeTeamAbbr}
+                                    width={16}
+                                    height={16}
+                                    className="h-4 w-4"
+                                  />
+                                )}
                                 <span className="font-medium text-slate-200">{game.home_team.name}</span>
                               </div>
                             </div>
@@ -556,82 +715,130 @@ export function GameLinesTableV2({
                         </Tooltip>
                       </TooltipProvider>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center gap-1 text-slate-300">
+                        <span className="text-xs">{formatGameDate(game.commence_time)}</span>
+                        <span className="text-xs">{formatGameDateTime(game.commence_time)}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
-                          {awayBestOdds ? (
-                            <div className="flex items-center justify-between w-full">
-                              <OddsDisplay odds={awayBestOdds.price} link={awayBestOdds.link} className="text-sm text-slate-200 hover:underline" />
-                              {awayBestOdds.bookmaker && (
-                                <Image
-                                  src={sportsbooks.find((b) => b.id === awayBestOdds.bookmaker)?.logo || ""}
-                                  alt={awayBestOdds.bookmaker}
-                                  width={20}
-                                  height={20}
-                                  className="h-5 w-5"
-                                />
-                              )}
-                            </div>
+                          {selectedMarket === 'total' ? (
+                            totalsBest?.over ? (
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-sm text-slate-200 mr-2">o{totalsBest.over.point}</span>
+                                <OddsDisplay odds={totalsBest.over.price} link={totalsBest.over.link} className="text-sm text-slate-200 hover:underline" />
+                                {totalsBest.over.book && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === totalsBest.over.book)?.logo || ""}
+                                    alt={totalsBest.over.book}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
+                          ) : isSpreadSelected ? (
+                            spreadBest?.away ? (
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-sm text-slate-200 mr-2">{formatSignedPoint(spreadBest.away.point)}</span>
+                                <OddsDisplay odds={spreadBest.away.price} link={spreadBest.away.link} className="text-sm text-slate-200 hover:underline" />
+                                {spreadBest.away.book && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === spreadBest.away.book)?.logo || ""}
+                                    alt={spreadBest.away.book}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
                           ) : (
-                            <span className="text-sm text-slate-400">-</span>
+                            awayBestOdds ? (
+                              <div className="flex items-center justify-between w-full">
+                                <OddsDisplay odds={awayBestOdds.price} link={awayBestOdds.link} className="text-sm text-slate-200 hover:underline" />
+                                {awayBestOdds.bookmaker && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === awayBestOdds.bookmaker)?.logo || ""}
+                                    alt={awayBestOdds.bookmaker}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
                           )}
                         </div>
                         <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-800/50">
-                          {homeBestOdds ? (
-                            <div className="flex items-center justify-between w-full">
-                              <OddsDisplay odds={homeBestOdds.price} link={homeBestOdds.link} className="text-sm text-slate-200 hover:underline" />
-                              {homeBestOdds.bookmaker && (
-                                <Image
-                                  src={sportsbooks.find((b) => b.id === homeBestOdds.bookmaker)?.logo || ""}
-                                  alt={homeBestOdds.bookmaker}
-                                  width={20}
-                                  height={20}
-                                  className="h-5 w-5"
-                                />
-                              )}
-                            </div>
+                          {selectedMarket === 'total' ? (
+                            totalsBest?.under ? (
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-sm text-slate-200 mr-2">u{totalsBest.under.point}</span>
+                                <OddsDisplay odds={totalsBest.under.price} link={totalsBest.under.link} className="text-sm text-slate-200 hover:underline" />
+                                {totalsBest.under.book && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === totalsBest.under.book)?.logo || ""}
+                                    alt={totalsBest.under.book}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
+                          ) : isSpreadSelected ? (
+                            spreadBest?.home ? (
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-sm text-slate-200 mr-2">{formatSignedPoint(spreadBest.home.point)}</span>
+                                <OddsDisplay odds={spreadBest.home.price} link={spreadBest.home.link} className="text-sm text-slate-200 hover:underline" />
+                                {spreadBest.home.book && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === spreadBest.home.book)?.logo || ""}
+                                    alt={spreadBest.home.book}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
                           ) : (
-                            <span className="text-sm text-slate-400">-</span>
+                            homeBestOdds ? (
+                              <div className="flex items-center justify-between w-full">
+                                <OddsDisplay odds={homeBestOdds.price} link={homeBestOdds.link} className="text-sm text-slate-200 hover:underline" />
+                                {homeBestOdds.bookmaker && (
+                                  <Image
+                                    src={sportsbooks.find((b) => b.id === homeBestOdds.bookmaker)?.logo || ""}
+                                    alt={homeBestOdds.bookmaker}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )
                           )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
-                          {awayAvgOdds ? (
-                            <OddsDisplay odds={awayAvgOdds} className="text-sm text-slate-400" />
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
-                          {homeAvgOdds ? (
-                            <OddsDisplay odds={homeAvgOdds} className="text-sm text-slate-400" />
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
-                          {awayEV ? (
-                            <span className="text-sm text-green-500">+{awayEV.toFixed(1)}%</span>
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
-                          {homeEV ? (
-                            <span className="text-sm text-green-500">+{homeEV.toFixed(1)}%</span>
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
+                    
+                    
                     {activeSportsbooks.map((book) => {
                       const bookId = book.id.toLowerCase()
                       
@@ -661,14 +868,33 @@ export function GameLinesTableV2({
                         let standardUnderOdds = null
                         
                         if (totalsMarket?.lines) {
-                          // Look through all lines to find the standard one for this sportsbook
-                          Object.entries(totalsMarket.lines).forEach(([line, lineData]) => {
-                            if (lineData.sportsbooks[bookId]?.is_standard) {
+                          // First pass: prefer the book's standard line
+                          for (const [, lineData] of Object.entries(totalsMarket.lines)) {
+                            const sb = lineData.sportsbooks?.[bookId]
+                            if (sb?.is_standard) {
                               standardLine = lineData.point
-                              standardOverOdds = lineData.sportsbooks[bookId].over?.price
-                              standardUnderOdds = lineData.sportsbooks[bookId].under?.price
+                              standardOverOdds = sb.over?.price ?? null
+                              standardUnderOdds = sb.under?.price ?? null
+                              break
                             }
-                          })
+                          }
+                          // Fallback: use selectedLine or game's primary_line point match
+                          if (standardLine == null) {
+                            const targetPoint = selectedLine != null ? Number(selectedLine) : (typeof game.primary_line === 'string' ? Number(game.primary_line) : Number(game.primary_line))
+                            if (!Number.isNaN(targetPoint)) {
+                              for (const [, lineData] of Object.entries(totalsMarket.lines)) {
+                                if (Number(lineData.point) === Number(targetPoint)) {
+                                  const sb = lineData.sportsbooks?.[bookId]
+                                  if (sb) {
+                                    standardLine = lineData.point
+                                    standardOverOdds = sb.over?.price ?? null
+                                    standardUnderOdds = sb.under?.price ?? null
+                                  }
+                                  break
+                                }
+                              }
+                            }
+                          }
                         }
 
                         console.log(`[Component] Standard line for ${book.name}:`, {
@@ -677,27 +903,23 @@ export function GameLinesTableV2({
                           standardUnderOdds
                         })
 
+                        const isBestOver = totalsBest?.over && standardLine != null && Number(standardLine) === Number(totalsBest.over.point) && standardOverOdds != null && Number(standardOverOdds) === Number(totalsBest.over.price)
+                        const isBestUnder = totalsBest?.under && standardLine != null && Number(standardLine) === Number(totalsBest.under.point) && standardUnderOdds != null && Number(standardUnderOdds) === Number(totalsBest.under.price)
                         return (
                           <TableCell key={book.id} className="text-center">
                             <div className="flex flex-col gap-2">
                               {standardLine ? (
                                 <>
-                                  <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
+                                  <div className={cn("flex items-center justify-center px-2 py-1 rounded", isBestOver ? "bg-emerald-500/20" : "bg-slate-800/50") }>
                                     <span className="text-sm text-slate-200">o{standardLine}</span>
                                     {standardOverOdds && (
-                                      <OddsDisplay 
-                                        odds={standardOverOdds}
-                                        className="text-sm text-slate-200 ml-1"
-                                      />
+                                      <OddsDisplay odds={standardOverOdds} className={cn("text-sm ml-1", isBestOver ? "text-emerald-400" : "text-slate-200")} />
                                     )}
                                   </div>
-                                  <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-800/50">
+                                  <div className={cn("flex items-center justify-center px-2 py-1 rounded", isBestUnder ? "bg-emerald-500/20" : "bg-slate-800/50") }>
                                     <span className="text-sm text-slate-200">u{standardLine}</span>
                                     {standardUnderOdds && (
-                                      <OddsDisplay 
-                                        odds={standardUnderOdds}
-                                        className="text-sm text-slate-200 ml-1"
-                                      />
+                                      <OddsDisplay odds={standardUnderOdds} className={cn("text-sm ml-1", isBestUnder ? "text-emerald-400" : "text-slate-200")} />
                                     )}
                                   </div>
                                 </>
@@ -711,6 +933,59 @@ export function GameLinesTableV2({
                                   </div>
                                 </>
                               )}
+                            </div>
+                          </TableCell>
+                        )
+                       } else if (selectedMarket === "spread" || selectedMarket === 'run_line' || selectedMarket === 'puck_line') {
+                        // Handle spreads market
+                        const spreadsMarket = bookmaker?.markets.find((m) => m.key === "spreads")
+                        let homeOdds: number | null = null
+                        let homePoint: number | null = null
+                        let awayOdds: number | null = null
+                        let awayPoint: number | null = null
+                        if (spreadsMarket?.lines) {
+                          Object.entries(spreadsMarket.lines).forEach(([lk, ld]) => {
+                            const sb = ld.sportsbooks?.[bookId]
+                            if (!sb?.is_standard) return
+                            if (sb.team?.toLowerCase() === game.home_team.name.toLowerCase()) {
+                              homeOdds = typeof sb.price === 'number' ? sb.price : homeOdds
+                              homePoint = typeof ld.point === 'number' ? ld.point : homePoint
+                            }
+                            if (sb.team?.toLowerCase() === game.away_team.name.toLowerCase()) {
+                              awayOdds = typeof sb.price === 'number' ? sb.price : awayOdds
+                              awayPoint = typeof ld.point === 'number' ? ld.point : awayPoint
+                            }
+                          })
+                        }
+                         const isBestAway = spreadBest?.away && awayPoint != null && Number(awayPoint) === Number(spreadBest.away.point) && typeof awayOdds === 'number' && awayOdds === spreadBest.away.price
+                         const isBestHome = spreadBest?.home && homePoint != null && Number(homePoint) === Number(spreadBest.home.point) && typeof homeOdds === 'number' && homeOdds === spreadBest.home.price
+                        return (
+                          <TableCell key={book.id} className="text-center">
+                            <div className="flex flex-col gap-2">
+                              <div className={cn("flex items-center justify-center px-2 py-1 rounded", isBestAway ? "bg-emerald-500/20" : "bg-slate-800/50") }>
+                                {awayPoint != null ? (
+                                  <span className={cn("text-sm mr-1", isBestAway ? "text-emerald-400" : "text-slate-200")}>{formatSignedPoint(awayPoint)}</span>
+                                ) : (
+                                  <span className="text-sm text-slate-400 ml-1">-</span>
+                                )}
+                                {typeof awayOdds === 'number' ? (
+                                  <OddsDisplay odds={awayOdds} className={cn("text-sm", isBestAway ? "text-emerald-400" : "text-slate-200")} />
+                                ) : (
+                                  <span className="text-sm text-slate-400">-</span>
+                                )}
+                              </div>
+                              <div className={cn("flex items-center justify-center px-2 py-1 rounded", isBestHome ? "bg-emerald-500/20" : "bg-slate-800/50") }>
+                                {homePoint != null ? (
+                                  <span className={cn("text-sm mr-1", isBestHome ? "text-emerald-400" : "text-slate-200")}>{formatSignedPoint(homePoint)}</span>
+                                ) : (
+                                  <span className="text-sm text-slate-400 ml-1">-</span>
+                                )}
+                                {typeof homeOdds === 'number' ? (
+                                  <OddsDisplay odds={homeOdds} className={cn("text-sm", isBestHome ? "text-emerald-400" : "text-slate-200")} />
+                                ) : (
+                                  <span className="text-sm text-slate-400">-</span>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         )

@@ -27,7 +27,8 @@ const sportAssetConfig: Record<string, SportAssetConfig> = {
   football_nfl: {
     playerHeadshotUrl: (playerId: string) => 
       `https://static.www.nfl.com/image/private/t_player_profile_landscape/f_auto/league/${playerId}`,
-    teamLogoPath: 'nfl-teams',
+    // Match public/images/team-logos/nfl
+    teamLogoPath: 'team-logos/nfl',
     defaultPlayerImage: '/placeholder.svg'
   },
   basketball_wnba: {
