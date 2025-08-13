@@ -116,7 +116,7 @@ export function StickyCTABanner() {
                   size={isMobile ? "default" : "lg"}
                   className="group"
                 >
-                  <Link href="//mlb/props">
+                  <Link href="/mlb/odds/player-props?market=home+runs">
                     <Search className="mr-2 h-4 w-4" />
                     Compare Props
                     <ArrowRight className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />

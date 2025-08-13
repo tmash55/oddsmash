@@ -1,18 +1,13 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { Search, RefreshCw, Grid3X3, List, X, ArrowUpDown } from "lucide-react"
+import { Search, Filter } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { sportsbooks } from "@/data/sportsbooks"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { cn } from "@/lib/utils"
-import Image from "next/image"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Filter } from "lucide-react"
 import { getGameLinesForSport } from "@/lib/constants/game-markets"
 import { pathToApiId } from "@/data/sport-mappings"
 
@@ -56,8 +51,6 @@ export function GameLinesFiltersV2({
   sport,
   selectedMarket,
   onMarketChange,
-  selectedSportsbook,
-  onSportsbookChange,
   selectedPeriod,
   onPeriodChange,
   selectedGames,
@@ -68,10 +61,9 @@ export function GameLinesFiltersV2({
   availableGames = [],
 }: GameLinesFiltersV2Props) {
   const isMobile = useMediaQuery("(max-width: 768px)")
-  const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
 
   // Calculate active filter count for mobile badge
-  const activeFilterCount = [selectedGames, selectedSportsbook].filter(Boolean).length
+  const activeFilterCount = [selectedGames].filter(Boolean).length
 
   return (
     <div className="w-full space-y-4">
@@ -145,24 +137,6 @@ export function GameLinesFiltersV2({
             </Select>
 
             {/* Line selector removed: always display standard lines */}
-
-            {/* Sportsbook filter */}
-            <Select value={selectedSportsbook || "all"} onValueChange={(v) => onSportsbookChange?.(v === "all" ? null : v)}>
-              <SelectTrigger className="w-[200px] h-10 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                <SelectValue placeholder="Sportsbook" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sportsbooks</SelectItem>
-                {activeSportsbooks.map((book) => (
-                  <SelectItem key={book.id} value={book.id}>
-                    <div className="flex items-center gap-2">
-                      <Image src={book.logo} alt={book.name} width={18} height={18} className="object-contain" />
-                      <span>{book.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             {/* Games (single-select for now) */}
             <Select

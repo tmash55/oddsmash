@@ -20,6 +20,7 @@ import {
   Table,
 } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 const features = [
   {
@@ -741,7 +742,7 @@ export default function LandingFeaturesSection() {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="lg:col-span-2 lg:row-span-2"
           >
-            <Card className="group h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-blue-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10 overflow-hidden">
+            <Card className="group relative h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-blue-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 dark:hover:shadow-blue-400/10 overflow-hidden">
               <CardContent className="p-0 h-full flex flex-col">
                 <div className="relative aspect-[16/10] lg:aspect-[16/12] bg-gradient-to-br from-blue-500/10 to-cyan-500/10 dark:from-blue-400/10 dark:to-cyan-400/10 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
@@ -775,6 +776,7 @@ export default function LandingFeaturesSection() {
                   </motion.div>
                 </div>
               </CardContent>
+              <Link href="/mlb/odds/player-props?market=home+runs" aria-label="Open SmashBoard" className="absolute inset-0"><span className="sr-only">Open SmashBoard</span></Link>
             </Card>
           </motion.div>
 
@@ -786,7 +788,7 @@ export default function LandingFeaturesSection() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="lg:col-span-1 lg:row-span-1"
           >
-            <Card className="group h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-green-400/10 overflow-hidden">
+            <Card className="group relative h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/10 dark:hover:shadow-green-400/10 overflow-hidden">
               <CardContent className="p-0 h-full flex flex-col">
                 <div className="relative aspect-square bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-400/10 dark:to-emerald-400/10">
                   {/* Single target icon positioned to not overlap */}
@@ -812,6 +814,7 @@ export default function LandingFeaturesSection() {
                   </div>
                 </div>
               </CardContent>
+              <Link href="/mlb/hit-rates?market=hits" aria-label="Open Hit Rates" className="absolute inset-0"><span className="sr-only">Open Hit Rates</span></Link>
             </Card>
           </motion.div>
 
@@ -823,7 +826,7 @@ export default function LandingFeaturesSection() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="lg:col-span-1 lg:row-span-1"
           >
-            <Card className="group h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-purple-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 dark:hover:shadow-purple-400/10 overflow-hidden">
+            <Card className="group relative h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-purple-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 dark:hover:shadow-purple-400/10 overflow-hidden">
               <CardContent className="p-0 h-full flex flex-col">
                 <div className="relative aspect-square bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-400/10 dark:to-violet-400/10">
                   <ScannerAnimation />
@@ -846,6 +849,7 @@ export default function LandingFeaturesSection() {
                   </div>
                 </div>
               </CardContent>
+              <Link href="/betslip-scanner" aria-label="Open Betslip Scanner" className="absolute inset-0"><span className="sr-only">Open Betslip Scanner</span></Link>
             </Card>
           </motion.div>
 
@@ -857,7 +861,7 @@ export default function LandingFeaturesSection() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="lg:col-span-2 lg:row-span-1"
           >
-            <Card className="group h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-orange-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-orange-500/10 dark:hover:shadow-orange-400/10 overflow-hidden">
+            <Card className="group relative h-full bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-2 border-border/50 hover:border-orange-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-orange-500/10 dark:hover:shadow-orange-400/10 overflow-hidden">
               <CardContent className="p-0 h-full flex flex-col lg:flex-row">
                 <div className="relative aspect-[16/10] lg:aspect-square lg:w-56 bg-gradient-to-br from-orange-500/10 to-red-500/10 dark:from-orange-400/10 dark:to-red-400/10 flex-shrink-0">
                   <SmartBetslipAnimation />
@@ -887,6 +891,7 @@ export default function LandingFeaturesSection() {
                   </motion.div>
                 </div>
               </CardContent>
+              <Link href="/betslip" aria-label="Open Parlay Builder" className="absolute inset-0"><span className="sr-only">Open Parlay Builder</span></Link>
             </Card>
           </motion.div>
         </div>

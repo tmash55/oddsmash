@@ -31,22 +31,10 @@ const faqData = [
     category: "Technical",
   },
   {
-    question: "What is the Promo Calendar?",
-    answer:
-      "Our upcoming Promo Calendar will highlight the best sportsbook recurring promotions available each day — so you never miss a bonus or boost again.",
-    category: "Features",
-  },
-  {
     question: "Can I bet directly on OddSmash?",
     answer:
       "No, OddSmash doesn't take bets — we show you where the best lines are, then link you directly to the sportsbook to place your bet. Always double check your bet with the sportsbook before placing a bet.",
     category: "General",
-  },
-  {
-    question: "How accurate are your EV calculations?",
-    answer:
-      "Our EV calculations use market-average pricing and no-vig methods to identify value. While no system is perfect, our algorithms help surface potentially profitable betting opportunities.",
-    category: "Technical",
   },
   {
     question: "Do I need to create an account?",
@@ -183,7 +171,7 @@ export function FaqSection() {
                   Contact Support
                 </a>
                 <a
-                  href="/mlb/odds"
+                  href="/mlb/odds/player-props?market=home+runs"
                   className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
                 >
                   Try OddSmash Now
