@@ -280,6 +280,8 @@ export function Header() {
     },
   ]
 
+  const activeTrackerItems = trackerItems.filter((item) => !/kotp|kotc|pra/i.test(item.href))
+
   // Authenticated navigation items
   const authenticatedNavigationItems = [
     {
@@ -323,7 +325,7 @@ export function Header() {
       icon: <Crown className="h-5 w-5 text-yellow-600" />,
       isActive: pathname?.startsWith("/trackers"),
       description: "DraftKings King of the * trackers",
-      children: trackerItems,
+      children: activeTrackerItems,
     },
     {
       title: "Fantasy",
@@ -332,13 +334,6 @@ export function Header() {
       isActive: pathname?.startsWith("/fantasy"),
       description: "Fantasy football tools and analytics",
       children: fantasyItems,
-    },
-    {
-      title: "History",
-      href: "/history",
-      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
-      isActive: pathname?.startsWith("/history"),
-      description: "View your betslip history",
     },
   ]
 
@@ -378,7 +373,7 @@ export function Header() {
       icon: <Crown className="h-5 w-5 text-yellow-600" />,
       isActive: pathname?.startsWith("/trackers"),
       description: "DraftKings King of the * trackers",
-      children: trackerItems,
+      children: activeTrackerItems,
     },
     {
       title: "Fantasy",
@@ -387,13 +382,6 @@ export function Header() {
       isActive: pathname?.startsWith("/fantasy"),
       description: "Fantasy football tools and analytics",
       children: fantasyItems,
-    },
-    {
-      title: "History",
-      href: "/history",
-      icon: <BookOpen className="h-5 w-5 text-indigo-600" />,
-      isActive: pathname?.startsWith("/history"),
-      description: "View your betslip history",
     },
   ]
 
@@ -518,517 +506,157 @@ export function Header() {
           <div className="flex justify-center">
             <NavigationMenu>
               <NavigationMenuList className="flex space-x-1">
-                {user ? (
-                  // Authenticated Navigation
-                  <>
-                    <NavigationMenuItem>
-                      <Link href="/mlb/odds/player-props?market=home+runs" legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm whitespace-nowrap group relative",
-                            pathname?.includes("/odds/player-props") &&
-                              "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
-                          )}
-                          title="Compare every book in seconds to find your edge"
-                        >
-                          Smash Screen
+                {/* Betting */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger
+                    className={cn(
+                      "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
+                      (pathname?.includes("/odds/") || pathname?.startsWith("/parlay-builder") || pathname?.startsWith("/betslip-scanner") || pathname?.startsWith("/history")) &&
+                        "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
+                    )}
+                  >
+                    Betting
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[380px] p-3">
+                      <div className="space-y-2">
+                        <NavigationMenuLink asChild>
+                          <Link href={`/mlb/odds/player-props?market=home+runs`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <BarChart3 className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium text-sm">Smash Screen</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Player Props and Game Lines</p>
+                            </div>
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <Link href="/mlb/hit-rates?market=hits" legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
-                            (pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets")) &&
-                              "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
-                          )}
-                          title="Track player prop hit rates and trends"
-                        >
-                          Hit Rate
+                        <NavigationMenuLink asChild>
+                          <Link href={`/mlb/odds/game-lines?market=h2h`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <LineChart className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium text-sm">Game Lines</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Moneyline, Spread, Totals</p>
+                            </div>
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <Link href="/parlay-builder" legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 inline-flex items-center text-sm whitespace-nowrap",
-                            pathname?.startsWith("/parlay-builder") &&
-                              "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
-                          )}
-                        >
-                          Parlay
+                        <NavigationMenuLink asChild>
+                          <Link href="/parlay-builder" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <LineChart className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium text-sm">Parlay Builder</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Build and compare parlays</p>
+                            </div>
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <Link href="/betslip-scanner" legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-orange-50 dark:hover:bg-orange-950/50 inline-flex items-center text-sm",
-                            pathname?.startsWith("/betslip-scanner") &&
-                              "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
-                          )}
-                        >
-                          Scanner
+                        <NavigationMenuLink asChild>
+                          <Link href="/betslip-scanner" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <Sparkles className="h-4 w-4 text-orange-600" />
+                            <div>
+                              <div className="font-medium text-sm">Betslip Scanner</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Scan and analyze slips</p>
+                            </div>
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
+                      </div>
+                    </motion.div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-50 dark:hover:bg-yellow-950/50 data-[state=open]:bg-yellow-50 dark:data-[state=open]:bg-yellow-950/50 text-sm",
-                          pathname?.startsWith("/trackers") &&
-                            "bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300",
-                        )}
-                      >
-                        Trackers
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        {isMobile ? (
-                          <div className="w-[500px] p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/trackers"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
-                                          <Crown className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-yellow-900 dark:text-yellow-100">
-                                          Stat Trackers
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
-                                        Live leaderboards and competition tracking
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {trackerItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
+                {/* Insights */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger
+                    className={cn(
+                      "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 data-[state=open]:bg-green-50 dark:data-[state=open]:bg-green-950/50 text-sm",
+                      (pathname?.includes("/hit-rates") || pathname?.startsWith("/trackers")) &&
+                        "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300",
+                    )}
+                  >
+                    Insights
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[380px] p-3">
+                      <div className="space-y-2">
+                        <NavigationMenuLink asChild>
+                          <Link href={`/mlb/hit-rates?market=hits`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <Activity className="h-4 w-4 text-green-600" />
+                            <div>
+                              <div className="font-medium text-sm">Hit Rates</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Player prop trends</p>
                             </div>
-                          </div>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-[500px] p-4"
-                          >
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/50 dark:to-orange-950/50 border border-yellow-200/50 dark:border-yellow-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/trackers"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-yellow-600 flex items-center justify-center">
-                                          <Crown className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-yellow-900 dark:text-yellow-100">
-                                          Stat Trackers
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
-                                        Live leaderboards and competition tracking
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {trackerItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 data-[state=open]:bg-purple-50 dark:data-[state=open]:bg-purple-950/50 text-sm",
-                          pathname?.startsWith("/fantasy") &&
-                            "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
-                        )}
-                      >
-                        Fantasy
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        {isMobile ? (
-                          <div className="w-[500px] p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/fantasy"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                                          <Users className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
-                                          Fantasy Tools
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
-                                        Fantasy football analytics and tools
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {fantasyItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-[500px] p-4"
-                          >
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/fantasy"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                                          <Users className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
-                                          Fantasy Tools
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
-                                        Fantasy football analytics and tools
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {fantasyItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </>
-                ) : (
-                  // Public Navigation
-                  <>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/50 text-sm",
-                        )}
-                      >
-                        Features
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        {isMobile ? (
-                          <div className="w-[500px] p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="#features"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                          <Target className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-blue-900 dark:text-blue-100">
-                                          All Features
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                        Discover all our powerful betting tools and analytics
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {publicFeatures.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-[500px] p-4"
-                          >
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="#features"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                          <Target className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-blue-900 dark:text-blue-100">
-                                          All Features
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                        Discover all our powerful betting tools and analytics
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {publicFeatures.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 data-[state=open]:bg-purple-50 dark:data-[state=open]:bg-purple-950/50 text-sm",
-                          pathname?.startsWith("/fantasy") &&
-                            "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
-                        )}
-                      >
-                        Fantasy
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        {isMobile ? (
-                          <div className="w-[500px] p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/fantasy"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                                          <Users className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
-                                          Fantasy Tools
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
-                                        Fantasy football analytics and tools
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {fantasyItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-[500px] p-4"
-                          >
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border border-purple-200/50 dark:border-purple-800/50">
-                                  <NavigationMenuLink asChild>
-                                    <Link
-                                      href="/fantasy"
-                                      className="block space-y-2 no-underline outline-none transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                                          <Users className="w-4 h-4 text-white" />
-                                        </div>
-                                        <div className="font-semibold text-purple-900 dark:text-purple-100">
-                                          Fantasy Tools
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-purple-700 dark:text-purple-300 leading-relaxed">
-                                        Fantasy football analytics and tools
-                                      </p>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {fantasyItems.map((item) => (
-                                  <NavigationMenuLink key={item.title} asChild>
-                                    <Link
-                                      href={item.href}
-                                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none"
-                                    >
-                                      {item.icon}
-                                      <div>
-                                        <div className="font-medium text-sm">{item.title}</div>
-                                        <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                      </div>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-
-                    <NavigationMenuItem>
-                      <Link href={pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works"} legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950/50 inline-flex items-center text-sm whitespace-nowrap",
-                          )}
-                        >
-                          How It Works
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
+                        {activeTrackerItems.map((item) => (
+                          <NavigationMenuLink key={item.title} asChild>
+                            <Link href={item.href} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                              {item.icon}
+                              <div>
+                                <div className="font-medium text-sm">{item.title}</div>
+                                <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                              </div>
+                            </Link>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
-                    <NavigationMenuItem>
-                      <Link href="#founders-beta" legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            "px-4 py-2 h-11 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 inline-flex items-center text-sm",
-                          )}
-                        >
-                          Founders Beta
+                {/* Fantasy */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger
+                    className={cn(
+                      "px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 data-[state=open]:bg-purple-50 dark:data-[state=open]:bg-purple-950/50 text-sm",
+                      pathname?.startsWith("/fantasy") && "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300",
+                    )}
+                  >
+                    Fantasy
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[380px] p-3">
+                      <div className="space-y-2">
+                        {fantasyItems.map((item) => (
+                          <NavigationMenuLink key={item.title} asChild>
+                            <Link href={item.href} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                              {item.icon}
+                              <div>
+                                <div className="font-medium text-sm">{item.title}</div>
+                                <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                              </div>
+                            </Link>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                {/* Learn */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-muted inline-flex items-center text-sm")}>Learn</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[340px] p-3">
+                      <div className="space-y-2">
+                        <NavigationMenuLink asChild>
+                          <Link href={pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works"} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <BookOpen className="h-4 w-4 text-green-600" />
+                            <div>
+                              <div className="font-medium text-sm">How It Works</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Understand the tools</p>
+                            </div>
+                          </Link>
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-                  </>
-                )}
+                        <NavigationMenuLink asChild>
+                          <Link href="#founders-beta" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <Sparkles className="h-4 w-4 text-purple-600" />
+                            <div>
+                              <div className="font-medium text-sm">Founders Beta</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Join early access</p>
+                            </div>
+                          </Link>
+                        </NavigationMenuLink>
+                      </div>
+                    </motion.div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>

@@ -640,9 +640,7 @@ const getAverageOdds = (game: TransformedGameOdds, teamName: string, line?: stri
                     </TooltipProvider>
                   </TableHead>
                     ))}
-                <TableHead className="w-[60px] text-center bg-slate-950 text-slate-200 font-semibold sticky top-0">
-                  Actions
-                </TableHead>
+                {/** Actions column hidden for now **/}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1046,64 +1044,7 @@ const getAverageOdds = (game: TransformedGameOdds, teamName: string, line?: stri
                         )
                       }
                     })}
-                    <TableCell className="p-1">
-                      <div className="flex flex-col gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "w-full min-w-[40px] px-2",
-                                  "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
-                                  "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
-                                  "border-emerald-500/20",
-                                  !awayBestOdds && "opacity-50 cursor-not-allowed",
-                                )}
-                                onClick={() => handleAddToBetslip(game, "away")}
-                                disabled={!awayBestOdds}
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                {awayTeamAbbr}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {awayBestOdds
-                                ? "Add to betslip to compare across sportsbooks"
-                                : "No odds available"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "w-full min-w-[40px] px-2",
-                                  "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
-                                  "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
-                                  "border-emerald-500/20",
-                                  !homeBestOdds && "opacity-50 cursor-not-allowed",
-                                )}
-                                onClick={() => handleAddToBetslip(game, "home")}
-                                disabled={!homeBestOdds}
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                {homeTeamAbbr}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {homeBestOdds
-                                ? "Add to betslip to compare across sportsbooks"
-                                : "No odds available"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
+                    {/** Actions cell hidden for now **/}
                   </TableRow>
                 )
               })}
