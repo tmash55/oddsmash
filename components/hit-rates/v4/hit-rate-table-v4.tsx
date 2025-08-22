@@ -33,7 +33,7 @@ import { type SportMarket } from "@/types/sports"
 import OddsComparison from "@/components/shared/odds-comparison"
 import type { BetslipSelection } from "@/types/betslip"
 import { sportsbooks } from "@/data/sportsbooks"
-import { getTeamAbbreviation as getTeamAbbr } from "@/lib/constants/team-mappings"
+import { getTeamAbbreviation as getTeamAbbr, getTeamLogoFilename as getLogoFilename } from "@/lib/constants/team-mappings"
 import { useBetActions } from "@/hooks/use-bet-actions"
 import { BetslipDialog } from "@/components/betting/betslip-dialog"
 
@@ -117,23 +117,7 @@ const getTrendIndicator = (trend: "up" | "down" | "neutral") => {
   }
 }
 
-// Team logo helper functions (from V2)
-function getTeamLogoFilename(abbr: string): string {
-  if (!abbr) return "default"
-  const teamAbbreviationMap: Record<string, string> = {
-    ARI: "AZ", // Arizona Diamondbacks
-    AT: "OAK", // Oakland Athletics
-  }
-  const upperAbbr = abbr.toUpperCase()
-  return teamAbbreviationMap[upperAbbr] || abbr
-}
-
-function getStandardAbbreviation(abbr: string): string {
-  const map: Record<string, string> = {
-    AT: "OAK",
-  }
-  return map[abbr] || abbr
-}
+// Removed local team logo helpers; use centralized mappings from team-mappings
 
 const getSortIcon = (field: string, currentSortField: string, currentSortDirection: "asc" | "desc") => {
   if (field !== currentSortField) {
@@ -748,7 +732,8 @@ export default function HitRateTableV4({
         <TableBody>
           {profiles.map((profile, index) => {
             const playerData = getPlayerData(profile.player_id)
-            const teamAbbreviation = playerData?.teamAbbreviation || profile.team_name
+            const teamAbbreviationRaw = playerData?.teamAbbreviation || profile.team_name
+            const teamAbbreviation = getTeamAbbr(teamAbbreviationRaw)
             const positionAbbreviation = playerData?.positionAbbreviation || "N/A"
 
             const hitRateL5 = calculateHitRate(profile, "5_games")
@@ -803,7 +788,7 @@ export default function HitRateTableV4({
                       <div className="absolute -bottom-1 -right-1">
                         <div className="relative w-5 h-5 rounded-full overflow-hidden border-2 border-white dark:border-slate-900 shadow-sm bg-white dark:bg-slate-900">
                           <Image
-                            src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(teamAbbreviation))}.svg`}
+                            src={`/images/mlb-teams/${getLogoFilename(teamAbbreviation, "baseball_mlb")}.svg`}
                             alt={teamAbbreviation}
                             width={20}
                             height={20}
@@ -815,7 +800,7 @@ export default function HitRateTableV4({
                               if (parent) {
                                 const fallback = document.createElement('div');
                                 fallback.className = 'w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-[8px] font-bold';
-                                fallback.textContent = getStandardAbbreviation(teamAbbreviation)?.substring(0, 2) || '?';
+                                fallback.textContent = teamAbbreviation?.substring(0, 2) || '?';
                                 parent.appendChild(fallback);
                               }
                             }}
@@ -839,7 +824,7 @@ export default function HitRateTableV4({
                                 <span>vs</span>
                                 <div className="w-4 h-4 relative flex-shrink-0">
                                   <Image
-                                    src={`/images/mlb-teams/${getTeamLogoFilename(getTeamAbbr(profile.away_team))}.svg`}
+                                    src={`/images/mlb-teams/${getLogoFilename(getTeamAbbr(profile.away_team), "baseball_mlb")}.svg`}
                                     alt={getTeamAbbr(profile.away_team)}
                                     width={16}
                                     height={16}
@@ -863,7 +848,7 @@ export default function HitRateTableV4({
                                 <span>@</span>
                                 <div className="w-4 h-4 relative flex-shrink-0">
                                   <Image
-                                    src={`/images/mlb-teams/${getTeamLogoFilename(getTeamAbbr(profile.home_team))}.svg`}
+                                    src={`/images/mlb-teams/${getLogoFilename(getTeamAbbr(profile.home_team), "baseball_mlb")}.svg`}
                                     alt={getTeamAbbr(profile.home_team)}
                                     width={16}
                                     height={16}
@@ -1029,7 +1014,7 @@ export default function HitRateTableV4({
                                           <span className="mx-1">{game.opponent}</span>
                                           <div className="w-4 h-4 relative flex-shrink-0" data-team-logo={game.opponent}>
                                             <Image
-                                              src={`/images/mlb-teams/${getTeamLogoFilename(getStandardAbbreviation(game.opponent))}.svg`}
+                                              src={`/images/mlb-teams/${getLogoFilename(game.opponent, "baseball_mlb")}.svg`}
                                               alt={game.opponent || "Team"}
                                               width={16}
                                               height={16}
@@ -1037,7 +1022,7 @@ export default function HitRateTableV4({
                                               onError={() => {
                                                 const fallback = document.createElement("div")
                                                 fallback.className = "w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded text-[8px] font-bold"
-                                                fallback.textContent = getStandardAbbreviation(game.opponent)?.substring(0, 2) || "?"
+                                                fallback.textContent = getTeamAbbr(game.opponent)?.substring(0, 2) || "?"
                                                 
                                                 const imgContainer = document.querySelector(`[data-team-logo="${game.opponent}"]`)
                                                 if (imgContainer) {

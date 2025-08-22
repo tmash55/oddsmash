@@ -1,6 +1,6 @@
 "use client"
 
-import React, { ReactElement } from "react";
+import type { ReactElement } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,95 +12,105 @@ import { sportsbooks } from "@/data/sportsbooks"
 import { useMemo, useState } from "react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { decimalToAmerican } from "@/lib/prop-ev-calculator"
 import { OddsDisplay } from "@/components/shared/odds-display"
 import { motion } from "framer-motion"
 import { useBetActions } from "@/hooks/use-bet-actions"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BetslipDialog } from "@/components/betting/betslip-dialog"
-import { 
-  getTeamLogoFilename, 
-  getStandardAbbreviation, 
-  getPlayerImageUrl,
-  formatGameDateTime,
-  getSportSpecificStyles
-} from "@/lib/constants/team-mappings"
-import {
-  SPORTSBOOK_ID_MAP,
-  REVERSE_SPORTSBOOK_MAP,
-  getNormalizedBookmakerId,
-  getBookmakerLogoId
-} from "@/lib/constants/sportsbook-mappings"
-import { 
-  getTeamLogoUrl,
-  getPlayerHeadshotUrl,
-  getDefaultPlayerImage
-} from "@/lib/constants/sport-assets"
-import { createBetslipSelection } from "@/lib/betslip-utils";
+import { getStandardAbbreviation, getSportSpecificStyles } from "@/lib/constants/team-mappings"
+import { SPORTSBOOK_ID_MAP, REVERSE_SPORTSBOOK_MAP } from "@/lib/constants/sportsbook-mappings"
+import { getTeamLogoUrl, getPlayerHeadshotUrl } from "@/lib/constants/sport-assets"
+import { createBetslipSelection } from "@/lib/betslip-utils"
+import { Badge } from "@/components/ui/badge"
 
 // Format odds to always show + for positive odds
 function formatOdds(odds: number): string {
-  return odds >= 0 ? `+${odds}` : odds.toString();
+  return odds >= 0 ? `+${odds}` : odds.toString()
 }
 
 // Convert American odds to decimal
 function americanToDecimal(americanOdds: number): number {
   if (americanOdds >= 0) {
-    return (americanOdds / 100) + 1;
+    return americanOdds / 100 + 1
   }
-  return (100 / Math.abs(americanOdds)) + 1;
+  return 100 / Math.abs(americanOdds) + 1
+}
+
+// Helper: identify yes/no markets (touchdown scorer)
+function isYesNoMarket(market: string): boolean {
+  const m = (market || "").toLowerCase()
+  return m === "anytime touchdown scorer" || m === "1st touchdown scorer" || m === "last touchdown scorer"
+}
+
+// Add helpers to format date and time like game lines table
+function formatShortDate(date: string): string {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+  })
+}
+
+function formatShortTime(date: string): string {
+  return new Date(date).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
 }
 
 // Function to get Value% from pre-calculated metrics
 function getValuePercent(item: PlayerOdds, activeLine: string, type: "over" | "under"): number | null {
-  // Only use pre-calculated metrics from Redis
-  const metrics = item.metrics?.[activeLine]?.[type];
-  return metrics?.value_pct !== undefined ? Math.round(metrics.value_pct * 10) / 10 : null;
+  // Use pre-calculated metrics from Redis; fallback to yes/no for scorer markets
+  const path: any = item.metrics?.[activeLine]
+  const val = path?.[type]?.value_pct ?? (type === "over" ? path?.yes?.value_pct : path?.no?.value_pct)
+  return val !== undefined ? Math.round(val * 10) / 10 : null
 }
 
 // Function to get average odds from pre-calculated metrics
 function getAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): number | null {
-  return item.metrics?.[activeLine]?.[type]?.avg_price ?? null;
+  const path: any = item.metrics?.[activeLine]
+  return path?.[type]?.avg_price ?? (type === "over" ? path?.yes?.avg_price : path?.no?.avg_price) ?? null
 }
 
 // Function to render average odds cell with both over/under
 function renderAverageOddsCell(item: PlayerOdds, activeLine: string): ReactElement {
-  const overAvgOdds = getAverageOdds(item, activeLine, "over");
-  const underAvgOdds = getAverageOdds(item, activeLine, "under");
+  const overAvgOdds = getAverageOdds(item, activeLine, "over")
+  const underAvgOdds = getAverageOdds(item, activeLine, "under")
 
   return (
     <td className="px-2 py-2">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
+        <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 min-w-[80px]">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
-            <span className="text-sm text-gray-700 dark:text-slate-300">
-              {overAvgOdds ? formatOdds(Math.round(overAvgOdds)) : "-"}
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">O</span>
+            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              {overAvgOdds ? formatOdds(Math.round(overAvgOdds)) : "—"}
             </span>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
+        <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200/50 dark:border-purple-800/50 min-w-[80px]">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
-            <span className="text-sm text-gray-700 dark:text-slate-300">
-              {underAvgOdds ? formatOdds(Math.round(underAvgOdds)) : "-"}
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">U</span>
+            <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+              {underAvgOdds ? formatOdds(Math.round(underAvgOdds)) : "—"}
             </span>
           </div>
         </div>
       </div>
     </td>
-  );
+  )
 }
 
 // Update helper function to get max EV using only pre-calculated metrics
 function getMaxEV(item: ProcessedPlayerOdds): number {
   // Only use pre-calculated metrics
-  const metrics = item.metrics?.[item.activeLine];
-  if (!metrics) return 0;
+  const metrics = item.metrics?.[item.activeLine]
+  if (!metrics) return 0
 
-  const overValue = metrics.over?.value_pct || 0;
-  const underValue = metrics.under?.value_pct || 0;
-  return Math.max(overValue, underValue);
+  const overValue = metrics.over?.value_pct || 0
+  const underValue = metrics.under?.value_pct || 0
+  return Math.max(overValue, underValue)
 }
 
 interface ProcessedPlayerOdds extends PlayerOdds {
@@ -116,58 +126,46 @@ interface ProcessedPlayerOdds extends PlayerOdds {
 // Update the renderClickableOdds function
 function renderClickableOdds(
   odds: OddsPrice | null | undefined,
-  type: "over" | "under" | null = null
-): ReactElement | null {  if (!odds) {
-    return <span className="text-sm text-muted-foreground">-</span>
+  type: "over" | "under" | null = null,
+): ReactElement | null {
+  if (!odds) {
+    return <span className="text-sm text-muted-foreground">—</span>
   }
 
-  return <OddsDisplay odds={odds.price} link={odds.link} className="text-sm" />
+  return <OddsDisplay odds={odds.price} link={odds.link} className="text-sm font-semibold" />
 }
 
 // Update the renderEV function with consistent width
-function renderEV(
-  item: PlayerOdds,
-  activeLine: string,
-  type: "over" | "under",
-): ReactElement | null {
+function renderEV(item: PlayerOdds, activeLine: string, type: "over" | "under"): ReactElement | null {
   // Get Value% from pre-calculated metrics only
-  const valuePercent = getValuePercent(item, activeLine, type);
-  
-  const containerClasses = "flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50 min-w-[80px]";
-  const contentClasses = "flex items-center gap-1 w-full justify-center";
-  
+  const valuePercent = getValuePercent(item, activeLine, type)
+
   if (!valuePercent || valuePercent <= 0) {
     return (
-      <div className={containerClasses}>
-        <div className={contentClasses}>
-          <span className="text-gray-500 w-full text-center">-</span>
-        </div>
+      <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
+        <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
       </div>
-    );
+    )
   }
 
   // Get metrics for tooltip
-  const metrics = item.metrics?.[activeLine]?.[type];
+  const metrics = item.metrics?.[activeLine]?.[type]
   if (!metrics) {
     return (
-      <div className={containerClasses}>
-        <div className={contentClasses}>
-          <span className="text-gray-500 w-full text-center">-</span>
-        </div>
+      <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
+        <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
       </div>
-    );
+    )
   }
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={containerClasses}>
-            <div className={contentClasses}>
-              <span className={`text-sm font-medium ${valuePercent > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                +{valuePercent.toFixed(1)}%
-              </span>
-            </div>
+          <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/30 border border-emerald-200/50 dark:border-emerald-800/50 min-w-[80px] cursor-help">
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+              +{valuePercent.toFixed(1)}%
+            </span>
           </div>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
@@ -181,38 +179,29 @@ function renderEV(
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }
 
 // Update the average odds cell with consistent width
 function renderAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): ReactElement | null {
-  const avgOdds = getAverageOdds(item, activeLine, type);
-  
-  const containerClasses = "flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50 min-w-[80px]";
-  const contentClasses = "flex items-center gap-1 w-full justify-center";
-  
+  const avgOdds = getAverageOdds(item, activeLine, type)
+
   if (!avgOdds) {
     return (
-      <div className={containerClasses}>
-        <div className={contentClasses}>
-          <span className="text-gray-500 w-full text-center">-</span>
-        </div>
+      <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
+        <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
       </div>
-    );
+    )
   }
 
   // Round to nearest whole number
-  const roundedOdds = Math.round(avgOdds);
+  const roundedOdds = Math.round(avgOdds)
 
   return (
-    <div className={containerClasses}>
-      <div className={contentClasses}>
-        <span className="text-gray-600 dark:text-gray-300">
-          {formatOdds(roundedOdds)}
-        </span>
-      </div>
+    <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 min-w-[80px]">
+      <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{formatOdds(roundedOdds)}</span>
     </div>
-  );
+  )
 }
 
 // Update the table cell to show both over/under values with consistent styling
@@ -220,17 +209,17 @@ function renderValueCell(item: PlayerOdds, activeLine: string): ReactElement {
   return (
     <td className="px-2 py-2">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-slate-400 w-4">O</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium w-4">O</span>
           {renderEV(item, activeLine, "over")}
         </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-slate-400 w-4">U</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-purple-600 dark:text-purple-400 font-medium w-4">U</span>
           {renderEV(item, activeLine, "under")}
         </div>
       </div>
     </td>
-  );
+  )
 }
 
 // Helper function to format odds list for tooltip
@@ -274,7 +263,7 @@ export function PropComparisonTableV2({
   onSortChange,
   bestOddsFilter,
   globalLine,
-  sport
+  sport,
 }: PropComparisonTableV2Props) {
   const activeSportsbooks = sportsbooks.filter((book) => book.isActive)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -309,8 +298,8 @@ export function PropComparisonTableV2({
         globalLineExists: !!(globalLine && item.lines?.[globalLine]),
         usingGlobalLine: !!(globalLine && item.lines?.[globalLine]),
         firstAvailableLine: Object.keys(item.lines || {})[0],
-        finalActiveLine: activeLine
-      }
+        finalActiveLine: activeLine,
+      },
     })
 
     const selection = createBetslipSelection({
@@ -326,8 +315,8 @@ export function PropComparisonTableV2({
       commence_time: item.commence_time,
       home_team: item.home_team || "",
       away_team: item.away_team || "",
-      odds_data: lineOdds
-    });
+      odds_data: lineOdds,
+    })
 
     // Debug the output
     console.log(`[PropComparison] Created selection:`, {
@@ -336,7 +325,7 @@ export function PropComparisonTableV2({
       market_display: selection.market_display,
       selection: selection.selection,
       bet_type: selection.bet_type,
-      hasOddsData: Object.keys(selection.odds_data).length > 0
+      hasOddsData: Object.keys(selection.odds_data).length > 0,
     })
 
     return selection
@@ -352,6 +341,7 @@ export function PropComparisonTableV2({
   // Process data to include best odds for each selection
   const processedData: ProcessedPlayerOdds[] = useMemo(() => {
     return data.map((item) => {
+      const yesNo = isYesNoMarket(item.market)
       // When using standard lines, use the primary_line from Redis if available
       // Otherwise, use global line if available and the player has odds for that line
       const activeLine =
@@ -363,7 +353,7 @@ export function PropComparisonTableV2({
 
       const lineOdds = item.lines?.[activeLine] || {}
 
-      // Find best odds for over/under
+      // Find best odds for over/under (or yes/no for scorer markets)
       let bestOverOdds: OddsPrice | null = null
       let bestUnderOdds: OddsPrice | null = null
       let bestOverPrice = Number.NEGATIVE_INFINITY
@@ -374,20 +364,22 @@ export function PropComparisonTableV2({
       // Process odds for each sportsbook
       Object.entries(lineOdds).forEach(([bookId, bookOdds]) => {
         const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
-        if (bookOdds.over && bookOdds.over.price > bestOverPrice) {
-          bestOverPrice = bookOdds.over.price
+        const overObj: any = yesNo ? (bookOdds as any).yes : (bookOdds as any).over
+        const underObj: any = yesNo ? (bookOdds as any).no : (bookOdds as any).under
+        if (overObj && overObj.price > bestOverPrice) {
+          bestOverPrice = overObj.price
           bestOverBook = mappedId
           bestOverOdds = {
-            ...bookOdds.over,
-            sid: bookOdds.over.sid || "default",
+            ...overObj,
+            sid: overObj.sid || "default",
           }
         }
-        if (bookOdds.under && bookOdds.under.price > bestUnderPrice) {
-          bestUnderPrice = bookOdds.under.price
+        if (underObj && underObj.price > bestUnderPrice) {
+          bestUnderPrice = underObj.price
           bestUnderBook = mappedId
           bestUnderOdds = {
-            ...bookOdds.under,
-            sid: bookOdds.under.sid || "default",
+            ...underObj,
+            sid: underObj.sid || "default",
           }
         }
       })
@@ -418,7 +410,7 @@ export function PropComparisonTableV2({
     const sizes = {
       sm: 20,
       md: 24,
-      lg: 32
+      lg: 32,
     }
 
     return (
@@ -447,28 +439,31 @@ export function PropComparisonTableV2({
 
   // Update the mobile row renderer
   const renderMobileRow = (item: ProcessedPlayerOdds) => {
-    const odds = item.lines[item.activeLine];
-    const teamAbbr = getStandardAbbreviation(item.team, sport);
-    const isExpanded = expandedRows.has(item.player_id.toString());
-    
+    const odds = item.lines[item.activeLine]
+    const teamAbbr = getStandardAbbreviation(item.team, sport)
+    const yesNo = isYesNoMarket(item.market)
+    const isExpanded = expandedRows.has(item.player_id.toString())
+
     // Get average odds from metrics
-    const overAvgOdds = getAverageOdds(item, item.activeLine, "over");
-    const underAvgOdds = getAverageOdds(item, item.activeLine, "under");
+    const overAvgOdds = getAverageOdds(item, item.activeLine, "over")
+    const underAvgOdds = getAverageOdds(item, item.activeLine, "under")
 
     return (
       <>
-        <TableRow
+        <motion.tr
           key={item.player_id.toString()}
-          className="cursor-pointer hover:bg-muted/50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="cursor-pointer hover:bg-gradient-to-r hover:from-muted/20 hover:to-muted/10 transition-all duration-200 border-border/50"
           onClick={() => toggleRow(item.player_id)}
         >
           <TableCell>
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col">
-                <span className="font-medium">{item.description}</span>
+                <span className="font-medium text-foreground">{item.description}</span>
                 <div className="flex items-center gap-1">
                   <Image
-                    src={getTeamLogoUrl(teamAbbr, sport)}
+                    src={getTeamLogoUrl(teamAbbr, sport) || "/placeholder.svg"}
                     alt={teamAbbr}
                     width={16}
                     height={16}
@@ -488,20 +483,22 @@ export function PropComparisonTableV2({
             </div>
           </TableCell>
           <TableCell className="text-center">
-            <span className="font-medium">{item.activeLine}</span>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              {item.activeLine}
+            </Badge>
           </TableCell>
           <TableCell className="text-center">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50">
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">O</span>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{yesNo ? "Y" : "O"}</span>
                   {renderClickableOdds(item.bestOverOdds, "over")}
                 </div>
                 {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
               </div>
-              <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200/50 dark:border-purple-800/50">
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">U</span>
+                  <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{yesNo ? "N" : "U"}</span>
                   {renderClickableOdds(item.bestUnderOdds, "under")}
                 </div>
                 {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
@@ -509,18 +506,10 @@ export function PropComparisonTableV2({
             </div>
           </TableCell>
           <TableCell>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger className="w-full">
-                    <div className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
-                      {renderEV(
-                        item,
-                        item.activeLine,
-                        "over",
-                      )}
-                    </div>
-                  </TooltipTrigger>
+                  <TooltipTrigger className="w-full">{renderEV(item, item.activeLine, "over")}</TooltipTrigger>
                   <TooltipContent>
                     <p>{getFairOddsExplanation(item.lines[item.activeLine], "over")}</p>
                   </TooltipContent>
@@ -528,15 +517,7 @@ export function PropComparisonTableV2({
               </TooltipProvider>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger className="w-full">
-                    <div className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900">
-                      {renderEV(
-                        item,
-                        item.activeLine,
-                        "under",
-                      )}
-                    </div>
-                  </TooltipTrigger>
+                  <TooltipTrigger className="w-full">{renderEV(item, item.activeLine, "under")}</TooltipTrigger>
                   <TooltipContent>
                     <p>{getFairOddsExplanation(item.lines[item.activeLine], "under")}</p>
                   </TooltipContent>
@@ -545,77 +526,84 @@ export function PropComparisonTableV2({
             </div>
           </TableCell>
           <TableCell className="text-center">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    key={`${item.player_id}-over`}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "w-full min-w-[40px] px-2",
-                      "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
-                      "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
-                      "border-emerald-500/20",
-                      !item.bestOverOdds && "opacity-50 cursor-not-allowed",
-                    )}
-                    onClick={() => handleAddToBetslip(item, "over")}
-                    disabled={!item.bestOverOdds}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    O
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {item.bestOverOdds
-                    ? "Add Over to betslip to compare across sportsbooks"
-                    : "No odds available for Over"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    key={`${item.player_id}-under`}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "w-full min-w-[40px] px-2",
-                      "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400",
-                      "dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 dark:hover:text-red-300",
-                      "border-red-500/20",
-                      !item.bestUnderOdds && "opacity-50 cursor-not-allowed",
-                    )}
-                    onClick={() => handleAddToBetslip(item, "under")}
-                    disabled={!item.bestUnderOdds}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    U
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {item.bestUnderOdds
-                    ? "Add Under to betslip to compare across sportsbooks"
-                    : "No odds available for Under"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex flex-col gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      key={`${item.player_id}-over`}
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "w-full min-w-[40px] px-2",
+                        "bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-600 hover:from-emerald-500/20 hover:to-green-500/20 hover:text-emerald-700",
+                        "dark:from-emerald-500/20 dark:to-green-500/20 dark:text-emerald-400 dark:hover:from-emerald-500/30 dark:hover:to-green-500/30 dark:hover:text-emerald-300",
+                        "border-emerald-500/30 shadow-sm",
+                        !item.bestOverOdds && "opacity-50 cursor-not-allowed",
+                      )}
+                      onClick={() => handleAddToBetslip(item, "over")}
+                      disabled={!item.bestOverOdds}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />O
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {item.bestOverOdds
+                      ? "Add Over to betslip to compare across sportsbooks"
+                      : "No odds available for Over"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      key={`${item.player_id}-under`}
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "w-full min-w-[40px] px-2",
+                        "bg-gradient-to-r from-red-500/10 to-pink-500/10 text-red-600 hover:from-red-500/20 hover:to-pink-500/20 hover:text-red-700",
+                        "dark:from-red-500/20 dark:to-pink-500/20 dark:text-red-400 dark:hover:from-red-500/30 dark:hover:to-pink-500/30 dark:hover:text-red-300",
+                        "border-red-500/30 shadow-sm",
+                        !item.bestUnderOdds && "opacity-50 cursor-not-allowed",
+                      )}
+                      onClick={() => handleAddToBetslip(item, "under")}
+                      disabled={!item.bestUnderOdds}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />U
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {item.bestUnderOdds
+                      ? "Add Under to betslip to compare across sportsbooks"
+                      : "No odds available for Under"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </TableCell>
-        </TableRow>
+        </motion.tr>
         {isExpanded && (
-          <TableRow className="bg-muted/30">
+          <TableRow className="bg-gradient-to-r from-muted/30 to-muted/20 border-border/50">
             <TableCell colSpan={4} className="p-4">
-              <div className="border-t border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
-                <div className="p-2 sm:p-4">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3 flex items-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border-t border-border/50 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-950/80 dark:to-slate-950/40 backdrop-blur-xl rounded-xl"
+              >
+                <div className="p-4">
+                  <div className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     Compare Odds Across Books
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Over Odds</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {isYesNoMarket(item.market) ? "Yes Odds" : "Over Odds"}
+                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {activeSportsbooks
                           .map((book) => {
@@ -623,7 +611,9 @@ export function PropComparisonTableV2({
                             const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
                             const bookOdds =
                               odds[mappedId] || odds[bookId] || odds[SPORTSBOOK_ID_MAP[bookId]] || odds[book.id]
-                            const overOdds = bookOdds?.over
+                            const overOdds = isYesNoMarket(item.market)
+                              ? (bookOdds as any)?.yes
+                              : (bookOdds as any)?.over
                             const hasOverBestOdds = book.id === item.bestOverBook
 
                             if (!overOdds) return null
@@ -640,22 +630,20 @@ export function PropComparisonTableV2({
                             <button
                               key={`${book.id}-${item.player_id}-over`}
                               className={cn(
-                                "flex items-center gap-2 p-2 rounded-lg border transition-all duration-200",
+                                "flex items-center gap-2 p-3 rounded-xl border transition-all duration-200 shadow-sm",
                                 "hover:scale-105 hover:shadow-md active:scale-95",
                                 hasOverBestOdds
-                                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 dark:border-emerald-800"
-                                  : "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800 dark:to-gray-700 dark:border-gray-600",
+                                  ? "bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200 dark:from-emerald-950/30 dark:to-green-900/30 dark:border-emerald-800"
+                                  : "bg-gradient-to-br from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
                               )}
                             >
-                              <div className="w-6 h-6 bg-white dark:bg-gray-800 rounded-md shadow-sm flex items-center justify-center flex-shrink-0 border border-gray-200 dark:border-gray-600">
+                              <div className="w-6 h-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm flex items-center justify-center flex-shrink-0 border border-border/50">
                                 {renderSportsbookLogo(book.id, "sm")}
                               </div>
                               <span
                                 className={cn(
-                                  "text-sm font-medium",
-                                  hasOverBestOdds
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-gray-900 dark:text-white",
+                                  "text-sm font-semibold",
+                                  hasOverBestOdds ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
                                 )}
                               >
                                 {formatOdds(overOdds.price)}
@@ -666,7 +654,9 @@ export function PropComparisonTableV2({
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Under Odds</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {isYesNoMarket(item.market) ? "No Odds" : "Under Odds"}
+                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {activeSportsbooks
                           .map((book) => {
@@ -674,7 +664,9 @@ export function PropComparisonTableV2({
                             const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
                             const bookOdds =
                               odds[mappedId] || odds[bookId] || odds[SPORTSBOOK_ID_MAP[bookId]] || odds[book.id]
-                            const underOdds = bookOdds?.under
+                            const underOdds = isYesNoMarket(item.market)
+                              ? (bookOdds as any)?.no
+                              : (bookOdds as any)?.under
                             const hasUnderBestOdds = book.id === item.bestUnderBook
 
                             if (!underOdds) return null
@@ -691,22 +683,20 @@ export function PropComparisonTableV2({
                             <button
                               key={`${book.id}-${item.player_id}-under`}
                               className={cn(
-                                "flex items-center gap-2 p-2 rounded-lg border transition-all duration-200",
+                                "flex items-center gap-2 p-3 rounded-xl border transition-all duration-200 shadow-sm",
                                 "hover:scale-105 hover:shadow-md active:scale-95",
                                 hasUnderBestOdds
-                                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 dark:border-emerald-800"
-                                  : "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800 dark:to-gray-700 dark:border-gray-600",
+                                  ? "bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200 dark:from-emerald-950/30 dark:to-green-900/30 dark:border-emerald-800"
+                                  : "bg-gradient-to-br from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
                               )}
                             >
-                              <div className="w-6 h-6 bg-white dark:bg-gray-800 rounded-md shadow-sm flex items-center justify-center flex-shrink-0 border border-gray-200 dark:border-gray-600">
+                              <div className="w-6 h-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm flex items-center justify-center flex-shrink-0 border border-border/50">
                                 {renderSportsbookLogo(book.id, "sm")}
                               </div>
                               <span
                                 className={cn(
-                                  "text-sm font-medium",
-                                  hasUnderBestOdds
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-gray-900 dark:text-white",
+                                  "text-sm font-semibold",
+                                  hasUnderBestOdds ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
                                 )}
                               >
                                 {formatOdds(underOdds.price)}
@@ -717,7 +707,7 @@ export function PropComparisonTableV2({
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </TableCell>
           </TableRow>
         )}
@@ -731,320 +721,391 @@ export function PropComparisonTableV2({
       if (sortField === "name") {
         return sortDirection === "asc"
           ? a.description.localeCompare(b.description)
-          : b.description.localeCompare(a.description);
+          : b.description.localeCompare(a.description)
       }
-      
+
       if (sortField === "line") {
-        const aLine = parseFloat(a.activeLine);
-        const bLine = parseFloat(b.activeLine);
-        return sortDirection === "asc"
-          ? aLine - bLine
-          : bLine - aLine;
+        const aLine = Number.parseFloat(a.activeLine)
+        const bLine = Number.parseFloat(b.activeLine)
+        return sortDirection === "asc" ? aLine - bLine : bLine - aLine
       }
-      
+
       if (sortField === "edge") {
-        const type = bestOddsFilter?.type || 'over';
-        const aValue = getValuePercent(a, a.activeLine, type) || 0;
-        const bValue = getValuePercent(b, b.activeLine, type) || 0;
-        return sortDirection === "asc"
-          ? aValue - bValue
-          : bValue - aValue;
+        const type = bestOddsFilter?.type || "over"
+        const aValue = getValuePercent(a, a.activeLine, type) || 0
+        const bValue = getValuePercent(b, b.activeLine, type) || 0
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
       }
-      
+
       if (sortField === "odds") {
-        const aMetrics = a.metrics?.[a.activeLine]?.over;
-        const bMetrics = b.metrics?.[b.activeLine]?.over;
-        const aBestPrice = aMetrics?.best_price || 0;
-        const bBestPrice = bMetrics?.best_price || 0;
-        return sortDirection === "asc"
-          ? aBestPrice - bBestPrice
-          : bBestPrice - aBestPrice;
+        const aMetrics = a.metrics?.[a.activeLine]?.over
+        const bMetrics = b.metrics?.[b.activeLine]?.over
+        const aBestPrice = aMetrics?.best_price || 0
+        const bBestPrice = bMetrics?.best_price || 0
+        return sortDirection === "asc" ? aBestPrice - bBestPrice : bBestPrice - aBestPrice
       }
 
       if (sortField === "ev") {
-        const aValue = getMaxEV(a);
-        const bValue = getMaxEV(b);
-        return sortDirection === "asc"
-          ? aValue - bValue
-          : bValue - aValue;
+        const aValue = getMaxEV(a)
+        const bValue = getMaxEV(b)
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
       }
 
-      return 0;
-    });
-  }, [processedData, sortField, sortDirection, bestOddsFilter?.type]);
+      return 0
+    })
+  }, [processedData, sortField, sortDirection, bestOddsFilter?.type])
 
   return (
     <>
-    <div
-      className={cn(
-        "rounded-md border bg-white/80 dark:bg-slate-950/50 backdrop-blur-sm border-gray-200 dark:border-slate-800",
-        isMobile && "-mx-4 border-x-0 rounded-none",
-      )}
-    >
-      <div className="relative h-[70vh] overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 z-30 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 shadow-lg">
-            <TableRow className="hover:bg-transparent border-gray-200 dark:border-slate-800">
-              {isMobile ? (
-                <>
-                  <TableHead className="w-[35%] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">Player</TableHead>
-                  <TableHead className="w-[15%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    Line
-                  </TableHead>
-                  <TableHead className="w-[30%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    Odds
-                  </TableHead>
-                  <TableHead className="w-[20%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    Value%
-                  </TableHead>
-                  <TableHead className="w-[10%] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    Act
-                  </TableHead>
-                </>
-              ) : (
-                <>
-                  <TableHead className="w-[300px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span>Player</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                        onClick={() =>
-                          onSortChange(
-                            "name",
-                            sortField === "name" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                          )
-                        }
-                      >
-                        {sortField === "name" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-[80px] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span>Line</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                        onClick={() =>
-                          onSortChange(
-                            "line",
-                            sortField === "line" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                          )
-                        }
-                      >
-                        {sortField === "line" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-[120px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span>Best Odds</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                        onClick={() =>
-                          onSortChange(
-                            "odds",
-                            sortField === "odds" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                          )
-                        }
-                      >
-                        {sortField === "odds" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-[100px] bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    <span>Avg Odds</span>
-                  </TableHead>
-                  <TableHead className="bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    <div className="flex items-center justify-end gap-1">
-                      <span>Value%</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                        onClick={() =>
-                          onSortChange("ev", sortField === "ev" ? (sortDirection === "asc" ? "desc" : "asc") : "desc")
-                        }
-                      >
-                        {sortField === "ev" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
-                  {activeSportsbooks.map((book) => (
-                    <TableHead key={`header-${book.id}`} className="text-center w-[80px] bg-white dark:bg-slate-950 sticky top-0">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="flex justify-center">
-                              {renderSportsbookLogo(book.id, "lg")}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{book.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "rounded-2xl border bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-950/80 dark:to-slate-950/40 backdrop-blur-xl border-border/50 shadow-xl",
+          isMobile && "-mx-4 border-x-0 rounded-none",
+        )}
+      >
+        <div className="relative h-[70vh] overflow-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-30 bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 backdrop-blur-xl border-b border-border/50 shadow-sm">
+              <TableRow className="hover:bg-transparent border-border/50 divide-x divide-border/30">
+                {isMobile ? (
+                  <>
+                    <TableHead className="w-[35%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Player
                     </TableHead>
-                  ))}
-                  <TableHead className="w-[60px] text-center bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-200 font-semibold sticky top-0">
-                    Actions
-                  </TableHead>
-                </>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.map((item) => {
-              if (isMobile) {
-                return renderMobileRow(item)
-              }
-
-              const odds = item.lines[item.activeLine]
-              const teamAbbr = getStandardAbbreviation(item.team, sport)
-              const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
-              const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
-              const isHomeTeam = teamAbbr === homeTeamAbbr
-              const avgOdds = getAverageOdds(item, item.activeLine, "over")
-
-              return (
-                <TableRow key={item.player_id} className="border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/50">
-                                      {/* Player cell */}
-                    <TableCell className="text-gray-900 dark:text-slate-200">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className={getSportSpecificStyles(sport).avatarSize}>
-                          <AvatarImage
-                            src={getPlayerHeadshotUrl(item.player_id.toString(), sport)}
-                            alt={item.description}
-                            className="object-cover"
-                          />
-                          <AvatarFallback className="bg-slate-800 text-slate-200">
-                            {item.description
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-1 -right-1">
-                          <Image
-                            src={getTeamLogoUrl(teamAbbr, sport)}
-                            alt={teamAbbr}
-                            width={20}
-                            height={20}
-                            className={getSportSpecificStyles(sport).teamLogoSize}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-900 dark:text-slate-200">{item.description}</span>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-                          <span>{formatGameDateTime(item.commence_time, sport)}</span>
-                          <div className="flex items-center gap-1">
-                            {isHomeTeam ? (
-                              <>
-                                <span className="text-xs">vs</span>
-                                <Image
-                                  src={getTeamLogoUrl(awayTeamAbbr, sport)}
-                                  alt={awayTeamAbbr}
-                                  width={24}
-                                  height={24}
-                                  className="h-6 w-6"
-                                />
-                              </>
+                    <TableHead className="w-[15%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Line
+                    </TableHead>
+                    <TableHead className="w-[30%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Odds
+                    </TableHead>
+                    <TableHead className="w-[20%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Value%
+                    </TableHead>
+                    <TableHead className="w-[10%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Act
+                    </TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead className="w-[120px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>Date / Time</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          onClick={() =>
+                            onSortChange(
+                              "name", // keep existing default sort; optional: wire a dedicated time sort in parent later
+                              sortField === "name" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                            )
+                          }
+                        >
+                          {sortField === "name" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
                             ) : (
-                              <>
-                                <span className="text-xs">@</span>
-                                <Image
-                                  src={getTeamLogoUrl(homeTeamAbbr, sport)}
-                                  alt={homeTeamAbbr}
-                                  width={24}
-                                  height={24}
-                                  className="h-6 w-6"
-                                />
-                              </>
-                            )}
-                          </div>
-                        </div>
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3" />
+                          )}
+                        </Button>
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableHead>
+                    <TableHead className="w-[380px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>Player</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          onClick={() =>
+                            onSortChange(
+                              "name",
+                              sortField === "name" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                            )
+                          }
+                        >
+                          {sortField === "name" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[80px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>Line</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          onClick={() =>
+                            onSortChange(
+                              "line",
+                              sortField === "line" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                            )
+                          }
+                        >
+                          {sortField === "line" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[120px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span>Best Odds</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          onClick={() =>
+                            onSortChange(
+                              "odds",
+                              sortField === "odds" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                            )
+                          }
+                        >
+                          {sortField === "odds" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[100px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <span>Avg Odds</span>
+                    </TableHead>
+                    <TableHead className="bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      <div className="flex items-center justify-end gap-1">
+                        <span>Value%</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          onClick={() =>
+                            onSortChange("ev", sortField === "ev" ? (sortDirection === "asc" ? "desc" : "asc") : "desc")
+                          }
+                        >
+                          {sortField === "ev" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableHead>
+                    {activeSportsbooks.map((book) => (
+                      <TableHead
+                        key={`header-${book.id}`}
+                        className="text-center w-[80px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 sticky top-0"
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="flex justify-center">{renderSportsbookLogo(book.id, "lg")}</div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{book.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                    ))}
+                    <TableHead className="w-[60px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                      Actions
+                    </TableHead>
+                  </>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedData.map((item, index) => {
+                if (isMobile) {
+                  return renderMobileRow(item)
+                }
+
+                const odds = item.lines[item.activeLine]
+                const yesNo = isYesNoMarket(item.market)
+                const teamAbbr = getStandardAbbreviation(item.team, sport)
+                const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
+                const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
+                const isHomeTeam = teamAbbr === homeTeamAbbr
+                const avgOdds = getAverageOdds(item, item.activeLine, "over")
+
+                return (
+                  <motion.tr
+                    key={item.player_id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.02 }}
+                    className="border-border/50 hover:bg-gradient-to-r hover:from-muted/20 hover:to-muted/10 transition-all duration-200 divide-x divide-border/30"
+                  >
+                    {/* New Date/Time cell */}
+                    <TableCell className="text-center py-4">
+                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                        <span className="text-xs font-medium">{formatShortDate(item.commence_time)}</span>
+                        <span className="text-xs">{formatShortTime(item.commence_time)}</span>
+                      </div>
+                    </TableCell>
+                    {/* Player cell */}
+                    <TableCell className="text-foreground py-4">
+                      {(() => {
+                        const isFootball = [
+                          "football_nfl",
+                          "americanfootball_nfl",
+                          "nfl",
+                          "football_ncaaf",
+                          "americanfootball_ncaaf",
+                          "ncaaf",
+                        ].includes(sport)
+
+                        if (isFootball) {
+                          const awayFull = item.away_team || awayTeamAbbr
+                          const homeFull = item.home_team || homeTeamAbbr
+                          return (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">{item.description}</span>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>
+                                  {awayFull} @ {homeFull}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className={getSportSpecificStyles(sport).avatarSize}>
+                                <AvatarImage
+                                  src={getPlayerHeadshotUrl(item.player_id.toString(), sport) || "/placeholder.svg"}
+                                  alt={item.description}
+                                  className="object-cover"
+                                />
+                                <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-foreground">
+                                  {item.description
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              {!["baseball_mlb", "mlb"].includes(sport) && (
+                                <div className="absolute -bottom-1 -right-1">
+                                  <Image
+                                    src={getTeamLogoUrl(teamAbbr, sport) || "/placeholder.svg"}
+                                    alt={teamAbbr}
+                                    width={20}
+                                    height={20}
+                                    className={getSportSpecificStyles(sport).teamLogoSize}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">{item.description}</span>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  {isHomeTeam ? (
+                                    <>
+                                      <span className="text-xs">vs</span>
+                                      <Image
+                                        src={getTeamLogoUrl(awayTeamAbbr, sport) || "/placeholder.svg"}
+                                        alt={awayTeamAbbr}
+                                        width={24}
+                                        height={24}
+                                        className="h-6 w-6"
+                                      />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-xs">@</span>
+                                      <Image
+                                        src={getTeamLogoUrl(homeTeamAbbr, sport) || "/placeholder.svg"}
+                                        alt={homeTeamAbbr}
+                                        width={24}
+                                        height={24}
+                                        className="h-6 w-6"
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </TableCell>
                     {/* Line cell */}
-                    <TableCell className="text-center">
-                      <span className="font-medium text-gray-900 dark:text-slate-200">{item.activeLine}</span>
+                    <TableCell className="text-center py-4">
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
+                      >
+                        {item.activeLine}
+                      </Badge>
                     </TableCell>
                     {/* Best Odds cell */}
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-500 dark:text-slate-400">O</span>
-                              {item.bestOverOdds ? (
-                                <OddsDisplay 
-                                  odds={item.bestOverOdds.price} 
-                                  link={item.bestOverOdds.link} 
-                                  className="text-sm text-gray-900 dark:text-slate-200 hover:underline" 
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
-                              )}
-                            </div>
-                            {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              {yesNo ? "Y" : "O"}
+                            </span>
+                            {item.bestOverOdds ? (
+                              <OddsDisplay
+                                odds={item.bestOverOdds.price}
+                                link={item.bestOverOdds.link}
+                                className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                              />
+                            ) : (
+                              <span className="text-sm text-muted-foreground font-medium">—</span>
+                            )}
                           </div>
+                          {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
                         </div>
-                        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-slate-800/50">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-500 dark:text-slate-400">U</span>
-                              {item.bestUnderOdds ? (
-                                <OddsDisplay 
-                                  odds={item.bestUnderOdds.price} 
-                                  link={item.bestUnderOdds.link} 
-                                  className="text-sm text-gray-900 dark:text-slate-200 hover:underline" 
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
-                              )}
-                            </div>
-                            {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200/50 dark:border-purple-800/50">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                              {yesNo ? "N" : "U"}
+                            </span>
+                            {item.bestUnderOdds ? (
+                              <OddsDisplay
+                                odds={item.bestUnderOdds.price}
+                                link={item.bestUnderOdds.link}
+                                className="text-sm font-semibold text-purple-700 dark:text-purple-300 hover:underline"
+                              />
+                            ) : (
+                              <span className="text-sm text-muted-foreground font-medium">—</span>
+                            )}
                           </div>
+                          {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
                         </div>
                       </div>
                     </TableCell>
@@ -1056,7 +1117,7 @@ export function PropComparisonTableV2({
                     {activeSportsbooks.map((book) => {
                       const bookId = book.id.toLowerCase()
                       const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
-                      
+
                       // Try all possible variations of the sportsbook ID
                       const possibleIds = [
                         mappedId,
@@ -1077,49 +1138,55 @@ export function PropComparisonTableV2({
                         return found || (foundOdds as BookmakerOdds)
                       }, null)
 
-                      // Normalize the IDs before comparison
-                      const normalizedBookId = SPORTSBOOK_ID_MAP[book.id.toLowerCase()] || book.id.toLowerCase()
-                      const normalizedBestOverBook = SPORTSBOOK_ID_MAP[item.bestOverBook?.toLowerCase()] || item.bestOverBook?.toLowerCase()
-                      const normalizedBestUnderBook = SPORTSBOOK_ID_MAP[item.bestUnderBook?.toLowerCase()] || item.bestUnderBook?.toLowerCase()
-
-                      const isOverBest = normalizedBookId === normalizedBestOverBook
-                      const isUnderBest = normalizedBookId === normalizedBestUnderBook
+                      // Highlight all books that match the best price (ties included)
+                      const overPrice = yesNo ? (bookOdds as any)?.yes?.price : (bookOdds as any)?.over?.price
+                      const underPrice = yesNo ? (bookOdds as any)?.no?.price : (bookOdds as any)?.under?.price
+                      const isOverBest = overPrice != null && overPrice === item.bestOverPrice
+                      const isUnderBest = underPrice != null && underPrice === item.bestUnderPrice
 
                       return (
-                        <TableCell key={`${item.player_id}-${book.id}`} className="text-center">
+                        <TableCell key={`${item.player_id}-${book.id}`} className="text-center py-4">
                           <div className="flex flex-col gap-2">
-                            <div className={cn(
-                              "flex items-center justify-center px-2 py-1 rounded",
-                              isOverBest ? "bg-emerald-500/20" : "bg-gray-100 dark:bg-slate-800/50"
-                            )}>
-                              {bookOdds?.over ? (
-                                <OddsDisplay 
-                                  odds={bookOdds.over.price} 
-                                  link={bookOdds.over.link} 
+                            <div
+                              className={cn(
+                                "flex items-center justify-center px-3 py-2 rounded-xl border shadow-sm",
+                                isOverBest
+                                  ? "bg-gradient-to-r from-emerald-50 to-green-100 border-emerald-200/50 dark:from-emerald-950/30 dark:to-green-900/30 dark:border-emerald-800/50"
+                                  : "bg-gradient-to-r from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
+                              )}
+                            >
+                              {(yesNo ? (bookOdds as any)?.yes : (bookOdds as any)?.over) ? (
+                                <OddsDisplay
+                                  odds={yesNo ? (bookOdds as any).yes.price : (bookOdds as any).over.price}
+                                  link={yesNo ? (bookOdds as any).yes.link : (bookOdds as any).over.link}
                                   className={cn(
-                                    "text-sm",
-                                    isOverBest ? "text-emerald-400" : "text-gray-900 dark:text-slate-200"
-                                  )} 
+                                    "text-sm font-semibold",
+                                    isOverBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                                  )}
                                 />
                               ) : (
-                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
+                                <span className="text-sm text-muted-foreground font-medium">—</span>
                               )}
                             </div>
-                            <div className={cn(
-                              "flex items-center justify-center px-2 py-1 rounded",
-                              isUnderBest ? "bg-emerald-500/20" : "bg-gray-100 dark:bg-slate-800/50"
-                            )}>
-                              {bookOdds?.under ? (
-                                <OddsDisplay 
-                                  odds={bookOdds.under.price} 
-                                  link={bookOdds.under.link} 
+                            <div
+                              className={cn(
+                                "flex items-center justify-center px-3 py-2 rounded-xl border shadow-sm",
+                                isUnderBest
+                                  ? "bg-gradient-to-r from-emerald-50 to-green-100 border-emerald-200/50 dark:from-emerald-950/30 dark:to-green-900/30 dark:border-emerald-800/50"
+                                  : "bg-gradient-to-r from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
+                              )}
+                            >
+                              {(yesNo ? (bookOdds as any)?.no : (bookOdds as any)?.under) ? (
+                                <OddsDisplay
+                                  odds={yesNo ? (bookOdds as any).no.price : (bookOdds as any).under.price}
+                                  link={yesNo ? (bookOdds as any).no.link : (bookOdds as any).under.link}
                                   className={cn(
-                                    "text-sm",
-                                    isUnderBest ? "text-emerald-400" : "text-gray-900 dark:text-slate-200"
-                                  )} 
+                                    "text-sm font-semibold",
+                                    isUnderBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                                  )}
                                 />
                               ) : (
-                                <span className="text-sm text-gray-500 dark:text-slate-400">-</span>
+                                <span className="text-sm text-muted-foreground font-medium">—</span>
                               )}
                             </div>
                           </div>
@@ -1127,7 +1194,7 @@ export function PropComparisonTableV2({
                       )
                     })}
                     {/* Add Actions cell at the end */}
-                    <TableCell className="p-1">
+                    <TableCell className="p-2 py-4">
                       <div className="flex flex-col gap-1">
                         <TooltipProvider>
                           <Tooltip>
@@ -1137,16 +1204,15 @@ export function PropComparisonTableV2({
                                 size="sm"
                                 className={cn(
                                   "w-full min-w-[40px] px-2",
-                                  "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:text-emerald-400",
-                                  "dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 dark:hover:text-emerald-300",
-                                  "border-emerald-500/20",
+                                  "bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-600 hover:from-emerald-500/20 hover:to-green-500/20 hover:text-emerald-700",
+                                  "dark:from-emerald-500/20 dark:to-green-500/20 dark:text-emerald-400 dark:hover:from-emerald-500/30 dark:hover:to-green-500/30 dark:hover:text-emerald-300",
+                                  "border-emerald-500/30 shadow-sm",
                                   !item.bestOverOdds && "opacity-50 cursor-not-allowed",
                                 )}
                                 onClick={() => handleAddToBetslip(item, "over")}
                                 disabled={!item.bestOverOdds}
                               >
-                                <Plus className="w-3 h-3 mr-1" />
-                                O
+                                <Plus className="w-3 h-3 mr-1" />O
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1164,16 +1230,15 @@ export function PropComparisonTableV2({
                                 size="sm"
                                 className={cn(
                                   "w-full min-w-[40px] px-2",
-                                  "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400",
-                                  "dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 dark:hover:text-red-300",
-                                  "border-red-500/20",
+                                  "bg-gradient-to-r from-red-500/10 to-pink-500/10 text-red-600 hover:from-red-500/20 hover:to-pink-500/20 hover:text-red-700",
+                                  "dark:from-red-500/20 dark:to-pink-500/20 dark:text-red-400 dark:hover:from-red-500/30 dark:hover:to-pink-500/30 dark:hover:text-red-300",
+                                  "border-red-500/30 shadow-sm",
                                   !item.bestUnderOdds && "opacity-50 cursor-not-allowed",
                                 )}
                                 onClick={() => handleAddToBetslip(item, "under")}
                                 disabled={!item.bestUnderOdds}
                               >
-                                <Plus className="w-3 h-3 mr-1" />
-                                U
+                                <Plus className="w-3 h-3 mr-1" />U
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1185,25 +1250,18 @@ export function PropComparisonTableV2({
                         </TooltipProvider>
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </motion.tr>
                 )
               })}
             </TableBody>
           </Table>
         </div>
-      </div>
+      </motion.div>
 
-      <BetslipDialog 
-        open={showBetslipDialog} 
-        onOpenChange={setShowBetslipDialog} 
-        selection={pendingSelection} 
-      />
+      <BetslipDialog open={showBetslipDialog} onOpenChange={setShowBetslipDialog} selection={pendingSelection} />
 
       {/* Conflict Resolution Dialog */}
-      <Dialog 
-        open={conflictingSelection !== null} 
-        onOpenChange={() => handleResolveConflict(false)}
-      >
+      <Dialog open={conflictingSelection !== null} onOpenChange={() => handleResolveConflict(false)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Replace Existing Selection?</DialogTitle>

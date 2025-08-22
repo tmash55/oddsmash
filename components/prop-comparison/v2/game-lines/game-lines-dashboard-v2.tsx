@@ -64,6 +64,9 @@ export function GameLinesDashboardV2({ sport }: GameLinesDashboardV2Props) {
   // View state (table/grid)
   const [viewMode, setViewMode] = useState<"table" | "grid">(isMobile ? "grid" : "table")
 
+  // Pre-Match / Live mode (Live locked for now)
+  const [mode, setMode] = useState<"prematch" | "live">("prematch")
+
   // Filter states
   const normalizeMarket = (raw: string | null): string => {
     const v = (raw || "").toLowerCase()
@@ -110,6 +113,15 @@ export function GameLinesDashboardV2({ sport }: GameLinesDashboardV2Props) {
       sortField,
       sortDirection,
     })
+
+  // Pre-match count from processed/filtered games
+  const preMatchCount = useMemo(() => {
+    const now = Date.now()
+    return (sortedData || []).filter((g) => {
+      const t = new Date(g.commence_time).getTime()
+      return isFinite(t) && t > now
+    }).length
+  }, [sortedData])
 
   // Update sort direction when field changes
   useEffect(() => {
@@ -226,6 +238,10 @@ export function GameLinesDashboardV2({ sport }: GameLinesDashboardV2Props) {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             availableGames={availableGames}
+            // Pre-Match / Live control
+            mode={mode}
+            onModeChange={setMode}
+            preMatchCount={preMatchCount}
           />
         </div>
       </Card>

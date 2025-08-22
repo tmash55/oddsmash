@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Filter } from "lucide-react"
+import { Search, Filter, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -45,6 +45,11 @@ interface GameLinesFiltersV2Props {
   searchQuery?: string
   onSearchChange?: (query: string) => void
   availableGames?: Array<{ event_id: string; home_team: string; away_team: string; commence_time: string }>
+  // Pre-match / Live toggle (Live locked for now)
+  mode?: "prematch" | "live"
+  onModeChange?: (mode: "prematch" | "live") => void
+  preMatchCount?: number
+  liveCount?: number
 }
 
 export function GameLinesFiltersV2({
@@ -59,6 +64,10 @@ export function GameLinesFiltersV2({
   onSearchChange,
   
   availableGames = [],
+  mode = "prematch",
+  onModeChange,
+  preMatchCount = 0,
+  liveCount = 0,
 }: GameLinesFiltersV2Props) {
   const isMobile = useMediaQuery("(max-width: 768px)")
 
@@ -117,6 +126,8 @@ export function GameLinesFiltersV2({
                         return "football_nfl"
                       case "americanfootball_ncaaf":
                         return "football_ncaaf"
+                      case "basketball_wnba":
+                        return "basketball_wnba"
                       default:
                         return s
                     }
@@ -148,11 +159,21 @@ export function GameLinesFiltersV2({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Games</SelectItem>
-                {availableGames.map((g) => (
-                  <SelectItem key={g.event_id} value={g.event_id}>
-                    {g.away_team} @ {g.home_team}
-                  </SelectItem>
-                ))}
+                {availableGames.map((g) => {
+                  const date = new Date(g.commence_time)
+                  const dateStr = date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })
+                  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+                  return (
+                    <SelectItem key={g.event_id} value={g.event_id}>
+                      <div className="flex flex-col w-full">
+                        <div className="flex items-center w-full">
+                          <span>{g.away_team} @ {g.home_team}</span>
+                        </div>
+                        <span className="text-[11px] text-slate-500">{dateStr} at {timeStr}</span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
 
@@ -169,6 +190,28 @@ export function GameLinesFiltersV2({
             </div>
           </div>
         </Card>
+      )}
+      {/* Second row: Pre-Match / Live next to view toggles area */}
+      {!isMobile && (
+        <div className="px-4 pb-4 flex items-center gap-3">
+          <div className="flex items-center rounded-2xl border px-1 py-1 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              className={`px-3 py-1.5 rounded-xl text-sm font-medium ${mode !== 'live' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow' : 'text-slate-600 dark:text-slate-300'}`}
+              onClick={() => onModeChange?.('prematch')}
+            >
+              Pre-Match <span className="ml-1 tabular-nums">{preMatchCount}</span>
+            </button>
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 rounded-xl text-sm font-medium text-slate-400 dark:text-slate-500 inline-flex items-center gap-1"
+              title="Live game lines coming soon"
+            >
+              Live <Lock className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -27,6 +27,8 @@ const SPORT_KEY_MAP: Record<string, string> = {
   'baseball_mlb': 'mlb',
   'mlb': 'mlb',  // Add direct mapping
   'basketball_nba': 'nba',
+  'basketball_wnba': 'wnba',
+  'wnba': 'wnba',
   'basketball_ncaab': 'ncaab',
   // Football mappings
   'football_nfl': 'nfl',
@@ -49,6 +51,7 @@ function normalizeSportForMarkets(sport: string): string {
   const lower = sport.toLowerCase()
   if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
   if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+  if (lower === 'wnba' || lower === 'basketball_wnba') return 'basketball_wnba'
   if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
   if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
   if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'
@@ -85,8 +88,7 @@ function transformSportsbooks(data: any, sport: string, market: string) {
     const sb: Record<string, any> = {}
     for (const [rawKey, sbData] of Object.entries<any>(lineData.sportsbooks || {})) {
       const normalizedName = SPORTSBOOK_ID_MAP[rawKey.toLowerCase()] || rawKey.toLowerCase()
-      const logoId = REVERSE_SPORTSBOOK_MAP[normalizedName]
-      if (!logoId) continue
+      const logoId = REVERSE_SPORTSBOOK_MAP[normalizedName] || normalizedName
       sb[logoId] = sbData
     }
     normalizedLines[lineKey] = { ...lineData, sportsbooks: sb }
@@ -228,6 +230,7 @@ export async function GET(
       const lower = s.toLowerCase()
       if (lower === 'mlb' || lower === 'baseball_mlb') return 'baseball_mlb'
       if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+      if (lower === 'wnba' || lower === 'basketball_wnba') return 'basketball_wnba'
       if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
       if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
       if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'

@@ -450,6 +450,33 @@ export const GAME_MARKETS: GameMarkets = {
     ]
   },
 
+  basketball_wnba: {
+    gameLines: [
+      {
+        value: "moneyline",
+        label: "Moneyline",
+        apiKey: "h2h",
+        description: "Pick the winner of the game"
+      },
+      {
+        value: "spread",
+        label: "Point Spread",
+        apiKey: "spreads",
+        description: "Bet with a point spread",
+        hasAlternates: true,
+        alternateKey: "alternate_spreads"
+      },
+      {
+        value: "total",
+        label: "Total Points",
+        apiKey: "totals",
+        description: "Combined points scored by both teams",
+        hasAlternates: true,
+        alternateKey: "alternate_totals"
+      }
+    ],
+  },
+
   football_nfl: {
     gameLines: [
       {
@@ -934,6 +961,7 @@ export function getMarketApiKey(
     if (lower === 'nfl' || lower === 'football_nfl' || lower === 'americanfootball_nfl') return 'football_nfl'
     if (lower === 'ncaaf' || lower === 'football_ncaaf' || lower === 'americanfootball_ncaaf') return 'football_ncaaf'
     if (lower === 'nba' || lower === 'basketball_nba') return 'basketball_nba'
+    if (lower === 'wnba' || lower === 'basketball_wnba') return 'basketball_wnba'
     if (lower === 'nhl' || lower === 'icehockey_nhl') return 'icehockey_nhl'
     return sport
   })()

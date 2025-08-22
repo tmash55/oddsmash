@@ -55,8 +55,15 @@ export const SPORTSBOOK_ID_MAP: Record<string, string> = {
 
   // Others
   novig: "novig",
+  rebet: "rebet",
+  prophetx: "prophetx",
+  fliff: "fliff",
+  betonline: "betonline",
+  betopenly: "betopenly",
   superbook: "superbook",
   bet365: "bet365",
+  "bet365 us": "bet365",
+  unibet: "unibet",
 }
 
 // Reverse mapping for logo lookups
@@ -74,8 +81,14 @@ export const REVERSE_SPORTSBOOK_MAP: Record<string, string> = {
   fanatics: "fanatics",
   pinnacle: "pinnacle",
   novig: "novig",
+  rebet: "rebet",
+  prophetx: "prophetx",
+  fliff: "fliff",
+  betonline: "betonline",
+  betopenly: "betopenly",
   superbook: "superbook",
-  bet365: "bet365",
+  bet365: "bet365_us",
+  unibet: "unibet",
 }
 
 // Get normalized sportsbook ID

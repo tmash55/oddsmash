@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, RefreshCw, Grid3X3, List, X, Zap, ArrowUpDown, BarChart3, Info, Check, ChevronDown } from "lucide-react"
+import { Search, RefreshCw, Grid3X3, List, X, Zap, ArrowUpDown, BarChart3, Info, ChevronDown, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Settings } from "lucide-react"
-import { getTeamLogoUrl } from '@/lib/constants/sport-assets'
+ 
 
 const ALL_SPORTSBOOKS = "all_sportsbooks"
 const ALL_LINES = "all_lines"
@@ -67,6 +67,11 @@ interface PropComparisonFiltersV2Props {
   viewMode: "table" | "grid"
   onViewModeChange: (mode: "table" | "grid") => void
   lastUpdated?: string // Add optional lastUpdated prop
+  // Pre-Match / Live (locked) toggle
+  mode?: "prematch" | "live"
+  onModeChange?: (mode: "prematch" | "live") => void
+  preMatchCount?: number
+  liveCount?: number
 }
 
 // Add formatLastUpdated helper function
@@ -244,6 +249,10 @@ export function PropComparisonFiltersV2({
   viewMode,
   onViewModeChange,
   lastUpdated,
+  mode = "prematch",
+  onModeChange,
+  preMatchCount = 0,
+  liveCount = 0,
 }: PropComparisonFiltersV2Props) {
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
   const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
@@ -359,43 +368,24 @@ export function PropComparisonFiltersV2({
         value={selectedGame || "all"}
         onValueChange={(value) => handleGameSelect(value === "all" ? null : value)}
       >
-        <SelectTrigger className="h-10 w-[180px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
+        <SelectTrigger className="h-10 w-[260px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow">
           <SelectValue>
             {selectedGame ? (
-              availableGames.find(g => g.odds_event_id === selectedGame) ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {(() => {
-                      const game = availableGames.find(g => g.odds_event_id === selectedGame)!;
-                      const awayAbbr = getStandardAbbreviation(getTeamAbbreviation(game.away_team));
-                      const homeAbbr = getStandardAbbreviation(getTeamAbbreviation(game.home_team));
-                      return (
-                        <>
-                          <Image
-                            src={getTeamLogoUrl(awayAbbr, sport)}
-                            alt={awayAbbr}
-                            width={24}
-                            height={24}
-                            className="object-contain"
-                          />
-                          <span className="font-medium text-sm">{awayAbbr}</span>
-                          <span className="text-slate-400">@</span>
-                          <Image
-                            src={getTeamLogoUrl(homeAbbr, sport)}
-                            alt={homeAbbr}
-                            width={24}
-                            height={24}
-                            className="object-contain"
-                          />
-                          <span className="font-medium text-sm">{homeAbbr}</span>
-                        </>
-                      );
-                    })()}
+              (() => {
+                const game = availableGames.find(g => g.odds_event_id === selectedGame);
+                if (!game) return "All Games";
+                const date = new Date(game.commence_time);
+                const dateStr = date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" });
+                const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+                return (
+                  <div className="flex flex-col w-full">
+                    <div className="flex items-center w-full">
+                      <span>{game.away_team} @ {game.home_team}</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">{dateStr} at {timeStr}</span>
                   </div>
-                </div>
-              ) : (
-                "All Games"
-              )
+                );
+              })()
             ) : (
               "All Games"
             )}
@@ -405,46 +395,21 @@ export function PropComparisonFiltersV2({
           <SelectItem value="all">
             <div className="flex items-center justify-between w-full">
               <span>All Games</span>
-              {!selectedGame && <Check className="h-4 w-4 ml-2" />}
             </div>
           </SelectItem>
           <SelectSeparator />
           {availableGames.map((game) => {
-            const awayAbbr = getStandardAbbreviation(getTeamAbbreviation(game.away_team));
-            const homeAbbr = getStandardAbbreviation(getTeamAbbreviation(game.home_team));
-            const gameTime = formatGameTime(game.commence_time);
-            const isSelected = game.odds_event_id === selectedGame;
+            const date = new Date(game.commence_time);
+            const dateStr = date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" });
+            const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
             return (
               <SelectItem key={game.odds_event_id} value={game.odds_event_id}>
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <Image
-                        src={getTeamLogoUrl(awayAbbr, sport)}
-                        alt={awayAbbr}
-                        width={24}
-                        height={24}
-                        className="object-contain"
-                      />
-                      <span className="font-medium">{awayAbbr}</span>
-                    </div>
-                    <span className="text-slate-400">@</span>
-                    <div className="flex items-center gap-1">
-                      <Image
-                        src={getTeamLogoUrl(homeAbbr, sport)}
-                        alt={homeAbbr}
-                        width={24}
-                        height={24}
-                        className="object-contain"
-                      />
-                      <span className="font-medium">{homeAbbr}</span>
-                    </div>
+                <div className="flex flex-col w-full">
+                  <div className="flex items-center w-full">
+                    <span>{game.away_team} @ {game.home_team}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{gameTime}</span>
-                    {isSelected && <Check className="h-4 w-4 ml-2" />}
-                  </div>
+                  <span className="text-[11px] text-slate-500">{dateStr} at {timeStr}</span>
                 </div>
               </SelectItem>
             );
@@ -773,6 +738,24 @@ export function PropComparisonFiltersV2({
           {/* Secondary Filters */}
           <div className="px-4 pb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Pre-Match / Live (locked) */}
+              <div className="flex items-center rounded-2xl border px-1 py-1 bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium ${mode !== 'live' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow' : 'text-slate-600 dark:text-slate-300'}`}
+                  onClick={() => onModeChange?.('prematch')}
+                >
+                  Pre-Match <span className="ml-1 tabular-nums">{preMatchCount}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1.5 rounded-xl text-sm font-medium text-slate-400 dark:text-slate-500 inline-flex items-center gap-1"
+                  title="Live props coming soon"
+                >
+                  Live <Lock className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

@@ -199,38 +199,63 @@ export function Header() {
     },
   ]
 
-  // Public navigation items (when user is not signed in)
+  // Public navigation items (when user is not signed in) - mobile sheet uses these
   const publicNavigationItems = [
     {
-      title: "Features",
-      href: "#features",
+      title: "Betting",
+      href: "#",
       icon: <Star className="h-5 w-5 text-blue-600" />,
-      isActive: false,
+      isActive:
+        pathname?.includes("/odds/") ||
+        pathname?.startsWith("/betslip-scanner") ||
+        pathname?.startsWith("/positive-ev") ||
+        pathname?.startsWith("/arbitrage"),
       description: "Discover our powerful tools",
       children: [
         {
-          title: "Player Props",
-          description: "Compare odds across all major sportsbooks",
-          href: "#features",
+          title: "Smash Screen",
+          description: "Player Props and Game Lines",
+          href: `/mlb/odds/player-props?market=home+runs`,
           icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
         },
         {
-          title: "Hit Rate Analytics",
-          description: "Advanced player performance analytics",
-          href: "#features",
-          icon: <Activity className="h-4 w-4 text-green-600" />,
+          title: "Game Lines",
+          description: "Moneyline, Spread, Totals",
+          href: `/mlb/odds/game-lines?market=h2h`,
+          icon: <LineChart className="h-4 w-4 text-blue-600" />,
+        },
+        {
+          title: "Positive EV",
+          description: "Find +EV opportunities",
+          href: "/positive-ev",
+          icon: <TrendingUp className="h-4 w-4 text-emerald-600" />,
+        },
+        {
+          title: "Arbitrage",
+          description: "Risk-free edges across books",
+          href: "/arbitrage",
+          icon: <BarChart3 className="h-4 w-4 text-emerald-600" />,
         },
         {
           title: "Betslip Scanner",
           description: "Scan and analyze your betslips instantly",
-          href: "#features",
+          href: "/betslip-scanner",
           icon: <Sparkles className="h-4 w-4 text-orange-600" />,
         },
+      ],
+    },
+    {
+      title: "Insights",
+      href: "#",
+      icon: <Activity className="h-5 w-5 text-green-600" />,
+      isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/trackers"),
+      description: "Analytics and leaderboards",
+      children: [
         {
-          title: "Live Trackers",
-          description: "Real-time leaderboards and competitions",
-          href: "#features",
-          icon: <Crown className="h-4 w-4 text-yellow-600" />,
+          title: "Hit Rates",
+          description: "Player prop trends",
+          href: `/mlb/hit-rates?market=hits`,
+          icon: <Activity className="h-4 w-4 text-green-600" />,
         },
       ],
     },
@@ -241,20 +266,6 @@ export function Header() {
       isActive: pathname?.startsWith("/fantasy"),
       description: "Fantasy football tools and analytics",
       children: fantasyItems,
-    },
-    {
-      title: "How It Works", 
-      href: pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works",
-      icon: <BookOpen className="h-5 w-5 text-green-600" />,
-      isActive: false,
-      description: "Learn how to get started",
-    },
-    {
-      title: "Founders Beta",
-      href: "#founders-beta",
-      icon: <Sparkles className="h-5 w-5 text-purple-600" />,
-      isActive: false,
-      description: "Join our exclusive beta program",
     },
   ]
 
@@ -312,13 +323,7 @@ export function Header() {
       isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
       description: "Track player prop hit rates and trends",
     },
-    {
-      title: "Parlay Builder",
-      href: "/parlay-builder",
-      icon: <LineChart className="h-5 w-5 text-blue-600" />,
-      isActive: pathname?.startsWith("/parlay-builder"),
-      description: "Build winning parlays",
-    },
+    // Parlay Builder removed
     {
       title: "Trackers",
       href: "#",
@@ -360,12 +365,20 @@ export function Header() {
       isActive: pathname?.includes("/hit-rates") || pathname?.startsWith("/hit-sheets"),
       description: "Track player prop hit rates and trends",
     },
+    // Add EV and Arbitrage for mobile too
     {
-      title: "Parlay Builder",
-      href: "/parlay-builder",
-      icon: <LineChart className="h-5 w-5 text-blue-600" />,
-      isActive: pathname?.startsWith("/parlay-builder"),
-      description: "Build winning parlays",
+      title: "Positive EV",
+      href: "/positive-ev",
+      icon: <TrendingUp className="h-5 w-5 text-green-600" />,
+      isActive: pathname?.startsWith("/positive-ev"),
+      description: "+EV opportunities",
+    },
+    {
+      title: "Arbitrage",
+      href: "/arbitrage",
+      icon: <BarChart3 className="h-5 w-5 text-emerald-600" />,
+      isActive: pathname?.startsWith("/arbitrage"),
+      description: "Risk-free edges",
     },
     {
       title: "Trackers",
@@ -539,14 +552,24 @@ export function Header() {
                           </Link>
                         </NavigationMenuLink>
                         <NavigationMenuLink asChild>
-                          <Link href="/parlay-builder" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
-                            <LineChart className="h-4 w-4 text-blue-600" />
+                          <Link href="/positive-ev" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <TrendingUp className="h-4 w-4 text-green-600" />
                             <div>
-                              <div className="font-medium text-sm">Parlay Builder</div>
-                              <p className="text-xs text-muted-foreground line-clamp-1">Build and compare parlays</p>
+                              <div className="font-medium text-sm">Positive EV</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Find +EV opportunities</p>
                             </div>
                           </Link>
                         </NavigationMenuLink>
+                        <NavigationMenuLink asChild>
+                          <Link href="/arbitrage" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <BarChart3 className="h-4 w-4 text-emerald-600" />
+                            <div>
+                              <div className="font-medium text-sm">Arbitrage</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Risk-free edges across books</p>
+                            </div>
+                          </Link>
+                        </NavigationMenuLink>
+                        {/* Parlay Builder removed */}
                         <NavigationMenuLink asChild>
                           <Link href="/betslip-scanner" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
                             <Sparkles className="h-4 w-4 text-orange-600" />
@@ -629,34 +652,7 @@ export function Header() {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
-                {/* Learn */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("px-4 py-2 h-10 rounded-xl font-medium transition-all duration-300 hover:bg-muted inline-flex items-center text-sm")}>Learn</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[340px] p-3">
-                      <div className="space-y-2">
-                        <NavigationMenuLink asChild>
-                          <Link href={pathname?.startsWith("/fantasy") ? "/#how-it-works" : "#how-it-works"} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
-                            <BookOpen className="h-4 w-4 text-green-600" />
-                            <div>
-                              <div className="font-medium text-sm">How It Works</div>
-                              <p className="text-xs text-muted-foreground line-clamp-1">Understand the tools</p>
-                            </div>
-                          </Link>
-                        </NavigationMenuLink>
-                        <NavigationMenuLink asChild>
-                          <Link href="#founders-beta" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
-                            <Sparkles className="h-4 w-4 text-purple-600" />
-                            <div>
-                              <div className="font-medium text-sm">Founders Beta</div>
-                              <p className="text-xs text-muted-foreground line-clamp-1">Join early access</p>
-                            </div>
-                          </Link>
-                        </NavigationMenuLink>
-                      </div>
-                    </motion.div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                {/* Learn dropdown removed */}
               </NavigationMenuList>
             </NavigationMenu>
           </div>

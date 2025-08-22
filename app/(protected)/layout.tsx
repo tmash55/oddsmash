@@ -13,6 +13,7 @@ export default function ProtectedLayout({
 }) {
   return (
     <div className="min-h-screen">
+      
       {children}
     </div>
   );

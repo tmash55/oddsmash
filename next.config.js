@@ -20,6 +20,7 @@ const nextConfig = {
       "avatar.vercel.sh",
       "randomuser.me",
       "img.mlbstatic.com",
+      "static.www.nfl.com",
     ],
   },
 };

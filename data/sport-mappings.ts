@@ -3,6 +3,7 @@
 // API sport IDs (used when communicating with the Odds API)
 export const API_SPORT_IDS = {
   NBA: "basketball_nba",
+  WNBA: "basketball_wnba",
   NCAAB: "basketball_ncaab",
   MLB: "baseball_mlb",
   NHL: "icehockey_nhl",
@@ -13,6 +14,7 @@ export const API_SPORT_IDS = {
 // URL paths (used in routes and navigation)
 export const URL_PATHS = {
   NBA: "nba",
+  WNBA: "wnba",
   NCAAB: "ncaab",
   MLB: "mlb",
   NHL: "nhl",
@@ -23,6 +25,7 @@ export const URL_PATHS = {
 // Map from API ID to URL path
 export const apiIdToPath: Record<string, string> = {
   [API_SPORT_IDS.NBA]: URL_PATHS.NBA,
+  [API_SPORT_IDS.WNBA]: URL_PATHS.WNBA,
   [API_SPORT_IDS.NCAAB]: URL_PATHS.NCAAB,
   [API_SPORT_IDS.MLB]: URL_PATHS.MLB,
   [API_SPORT_IDS.NHL]: URL_PATHS.NHL,
@@ -33,6 +36,7 @@ export const apiIdToPath: Record<string, string> = {
 // Map from URL path to API ID
 export const pathToApiId: Record<string, string> = {
   [URL_PATHS.NBA]: API_SPORT_IDS.NBA,
+  [URL_PATHS.WNBA]: API_SPORT_IDS.WNBA,
   [URL_PATHS.NCAAB]: API_SPORT_IDS.NCAAB,
   [URL_PATHS.MLB]: API_SPORT_IDS.MLB,
   [URL_PATHS.NHL]: API_SPORT_IDS.NHL,

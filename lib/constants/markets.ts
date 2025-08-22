@@ -157,27 +157,27 @@ const FOOTBALL_MARKETS: SportMarket[] = [
 
   // Player props
   {
-    value: "Passing_Yards",
+    value: "Passing_yards",
     label: "Passing Yards",
-    apiKey: "player_passing_yards",
+    apiKey: "player_passing_yds",
     hasAlternates: true,
-    alternateKey: "player_passing_yards_alternate",
+    alternateKey: "player_passing_yds_alternate",
     alwaysFetchAlternate: true,
   },
   {
-    value: "Rushing_Yards",
+    value: "Rushing_yards",
     label: "Rushing Yards",
-    apiKey: "player_rushing_yards",
+    apiKey: "player_rushing_yds",
     hasAlternates: true,
-    alternateKey: "player_rushing_yards_alternate",
+    alternateKey: "player_rushing_yds_alternate",
     alwaysFetchAlternate: true,
   },
   {
-    value: "Receiving_Yards",
+    value: "Receiving_yards",
     label: "Receiving Yards",
-    apiKey: "player_receiving_yards",
+    apiKey: "player_reception_yds",
     hasAlternates: true,
-    alternateKey: "player_receiving_yards_alternate",
+    alternateKey: "player_reception_yds_alternate",
     alwaysFetchAlternate: true,
   },
   {
@@ -197,11 +197,11 @@ const FOOTBALL_MARKETS: SportMarket[] = [
     alwaysFetchAlternate: true,
   },
   {
-    value: "Receiving_Touchdowns",
-    label: "Receiving Touchdowns",
-    apiKey: "player_receiving_touchdowns",
+    value: "reception_Touchdowns",
+    label: "reception Touchdowns",
+    apiKey: "player_reception_touchdowns",
     hasAlternates: true,
-    alternateKey: "player_receiving_touchdowns_alternate",
+    alternateKey: "player_reception_touchdowns_alternate",
     alwaysFetchAlternate: true,
   },
   {
@@ -532,38 +532,86 @@ export const SUPPORTED_MARKETS: Record<string, string[]> = {
     'triple_double'
   ],
   nfl: [
-    'anytime touchdown', // Set as default
-    'passing yards',
-    'rushing yards',
-    'receiving yards',
-    'touchdowns',
+    // Default
+    'anytime touchdown scorer',
+    // Passing
+    'pass yards',
+    'pass touchdowns',
+    'pass attempts',
+    'pass completions',
+    'pass intercepts',
+    'longest pass completion',
+    '1st quarter pass yards',
+    // Receiving
     'receptions',
-    'passing touchdowns',
-    'rushing touchdowns',
-    'receiving touchdowns',
-    'interceptions thrown',
-    'sacks taken',
-    'completions',
-    'attempts',
-    'carries',
-    'targets'
+    'reception yards',
+    'reception touchdowns',
+    'longest reception',
+    // Rushing
+    'rush yards',
+    'rush attempts',
+    'rush touchdowns',
+    'longest rush',
+    // Combo markets
+    'pass + rush + reception yards',
+    'pass + rush + reception touchdowns',
+    'rush + reception yards',
+    'rush + reception touchdowns',
+    // Kicking
+    'field goals',
+    'kicking points',
+    'points after touchdown',
+    // Defense
+    'defensive interceptions',
+    'sacks',
+    'solo tackles',
+    'tackles + assists',
+    // Team scoring / specials
+    'assists',
+    'touchdowns',
+    '1st touchdown scorer',
+    'last touchdown scorer'
   ],
   ncaaf: [
-    'anytime touchdown', // Set as default
-    'passing yards',
-    'rushing yards',
-    'receiving yards',
-    'touchdowns',
+    // Mirror NFL markets (same keys/formatting)
+    'anytime touchdown scorer',
+    // Passing
+    'pass yards',
+    'pass touchdowns',
+    'pass attempts',
+    'pass completions',
+    'pass intercepts',
+    'longest pass completion',
+    '1st quarter pass yards',
+    // Receiving
     'receptions',
-    'passing touchdowns',
-    'rushing touchdowns',
-    'receiving touchdowns',
-    'interceptions thrown',
-    'sacks taken',
-    'completions',
-    'attempts',
-    'carries',
-    'targets'
+    'reception yards',
+    'reception touchdowns',
+    'longest reception',
+    // Rushing
+    'rush yards',
+    'rush attempts',
+    'rush touchdowns',
+    'longest rush',
+    // Combo markets
+    'pass + rush + reception yards',
+    'pass + rush + reception touchdowns',
+    'rush + reception yards',
+    'rush + reception touchdowns',
+    // Kicking
+    'field goals',
+    'kicking points',
+    'points after touchdown',
+    // Defense
+    'defensive interceptions',
+    'sacks',
+    'solo tackles',
+    'tackles + assists',
+    // Team scoring / specials
+    'assists',
+    'touchdowns',
+    '1st touchdown scorer',
+    'last touchdown scorer'
   ],
   nhl: [
     'anytime goal', // Set as default
@@ -594,7 +642,16 @@ export function formatMarketLabel(market: string): string {
     'ra': 'Rebounds + Assists',
     'bs': 'Blocks + Steals',
     'double_double': 'Double Double',
-    'triple_double': 'Triple Double'
+    'triple_double': 'Triple Double',
+    // Football phrasing preferences
+    'reception yards': 'Receiving Yards',
+    'reception touchdowns': 'Receiving Touchdowns',
+    'rush yards': 'Rushing Yards',
+    'rush attempts': 'Rushing Attempts',
+    'rush touchdowns': 'Rushing Touchdowns',
+    'pass yards': 'Passing Yards',
+    'pass touchdowns': 'Passing Touchdowns',
+    'pass intercepts': 'Interceptions Thrown',
   };
 
   if (specialCases[market]) {

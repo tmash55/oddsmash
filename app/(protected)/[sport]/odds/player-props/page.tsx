@@ -61,7 +61,7 @@ export default function PropsPage({ params, searchParams }: PropsPageProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-              {sport.toUpperCase()} {market || 'Player Props'}
+              {sport.toUpperCase()} {(market || 'Player Props').split('-').map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(' ')}
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1 max-w-[85ch]">
               Compare player prop odds across sportsbooks and find the best value bets.

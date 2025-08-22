@@ -91,6 +91,9 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
   // View state (table/grid)
   const [viewMode, setViewMode] = useState<"table" | "grid">(isMobile ? "grid" : "table")
 
+  // Pre-Match / Live mode (Live locked for now)
+  const [mode, setMode] = useState<"prematch" | "live">("prematch")
+
   // Filter states
   const [market, setMarket] = useState(() => {
     const urlMarket = searchParams.get("market")
@@ -160,6 +163,27 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
     sortField,
     sortDirection,
   })
+
+  // Compute Pre-Match count (items that haven't started yet) from current filtered list
+  const preMatchCount = useMemo(() => {
+    const now = Date.now()
+    return (sortedData || []).filter((item) => {
+      const t = new Date(item.commence_time).getTime()
+      return isFinite(t) && t > now
+    }).length
+  }, [sortedData])
+
+  // Choose data to render based on mode (Live is locked; prematch only for now)
+  const displayData = useMemo(() => {
+    if (mode === "prematch") {
+      const now = Date.now()
+      return (sortedData || []).filter((item) => {
+        const t = new Date(item.commence_time).getTime()
+        return isFinite(t) && t > now
+      })
+    }
+    return sortedData
+  }, [mode, sortedData])
 
   // Get available games from processed data
   const availableGames = useMemo(() => {
@@ -383,9 +407,10 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             lastUpdated={lastUpdated}
-            // Remove evMethod props
-            // evMethod={evMethod}
-            // onEvMethodChange={setEvMethod}
+            // Pre-Match / Live control
+            mode={mode}
+            onModeChange={setMode}
+            preMatchCount={preMatchCount}
           />
         </div>
       </Card>
@@ -408,7 +433,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
       )}
 
       {/* Empty state */}
-      {!isLoading && !isError && filteredCount === 0 && (
+      {!isLoading && !isError && displayData?.length === 0 && (
         <Card
           className={cn(
             "p-8 text-center bg-white/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800",
@@ -430,11 +455,11 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
       )}
 
       {/* Data display */}
-      {!isLoading && !isError && filteredCount > 0 && (
+      {!isLoading && !isError && displayData && displayData.length > 0 && (
         <>
           {viewMode === "table" ? (
             <PropComparisonTableV2
-              data={sortedData}
+              data={displayData}
               sortField={sortField}
               sortDirection={sortDirection}
               onSortChange={(field, direction) => {
@@ -455,7 +480,7 @@ export function PropComparisonDashboardV2({ sport }: PropComparisonDashboardV2Pr
               )}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedData.map((item) => (
+                {displayData.map((item) => (
                   <PropComparisonCardV2
                     key={item.player_id}
                     data={item}
