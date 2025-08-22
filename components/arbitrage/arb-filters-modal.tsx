@@ -33,7 +33,7 @@ export function ArbFiltersModal({ open, onOpenChange, value, onChange }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="relative bg-gradient-to-br from-emerald-600 via-cyan-600 to-blue-600 text-white px-6 py-6">
           <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent"></div>
@@ -53,6 +53,7 @@ export function ArbFiltersModal({ open, onOpenChange, value, onChange }: Props) 
           </div>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         <Tabs defaultValue="books" className="w-full">
           <TabsList className="grid grid-cols-3 w-full sticky top-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-slate-800/50 rounded-none h-12">
             <TabsTrigger value="books" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white font-medium">Books</TabsTrigger>
@@ -175,9 +176,10 @@ export function ArbFiltersModal({ open, onOpenChange, value, onChange }: Props) 
             </div>
           </TabsContent>
         </Tabs>
+        </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-slate-800/50 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-sm">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-slate-800/50 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-sm sticky bottom-0">
           <Button
             variant="outline"
             onClick={() => {
