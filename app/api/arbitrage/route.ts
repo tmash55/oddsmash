@@ -50,7 +50,9 @@ export async function GET(request: Request) {
 					})
 					.filter(Boolean) as ArbitrageOpportunity[]
 			}
-		} catch {}
+		} catch (e) {
+			// If list lookup fails, fall back to GET below
+		}
 
 		// Fallback: GET arbitrary JSON structure
 		if (items.length === 0) {
