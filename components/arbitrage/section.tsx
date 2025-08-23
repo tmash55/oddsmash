@@ -9,17 +9,30 @@ import { TrendingUp, Zap, Target, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SlidersHorizontal } from "lucide-react"
 import { ArbFiltersModal } from "@/components/arbitrage/arb-filters-modal"
+import { sportsbooks } from "@/data/sportsbooks"
 
 export function ArbitrageSection() {
-  const [filters, setFilters] = useState<ArbFilters>({ query: "", minArb: 0, selectedBooks: [] })
+  const defaultBooks = sportsbooks.filter((b) => b.isActive).map((b) => b.id)
+  const [filters, setFilters] = useState<ArbFilters>({ query: "", minArb: 0, selectedBooks: defaultBooks })
   const [filtersOpen, setFiltersOpen] = useState(false)
   const { data, isLoading, refetch, isFetching } = useArbitrage({ minArb: filters.minArb })
   const [mode, setMode] = useState<"prematch" | "live">("prematch")
 
   const rows = useMemo(() => {
     const items = data?.items || []
+    const now = Date.now()
     let result = items
 
+    // Time filter for pre-match mode
+    if (mode !== "live") {
+      result = result.filter((r) => {
+        if (!r.start_time) return true
+        const t = Date.parse(r.start_time)
+        return Number.isFinite(t) ? t >= now : true
+      })
+    }
+
+    // Sportsbook filter
     if (filters.selectedBooks?.length) {
       const allowed = new Set(filters.selectedBooks)
       result = result.filter(
@@ -27,6 +40,7 @@ export function ArbitrageSection() {
       )
     }
 
+    // Search filter
     if (!filters.query) return result
     const q = filters.query.toLowerCase()
     return result.filter(
@@ -37,7 +51,7 @@ export function ArbitrageSection() {
         (r.over_book || "").toLowerCase().includes(q) ||
         (r.under_book || "").toLowerCase().includes(q),
     )
-  }, [data, filters])
+  }, [data, filters, mode])
 
   const bestArb = useMemo(() => {
     if (!rows.length) return 0

@@ -398,7 +398,13 @@ export function PropComparisonFiltersV2({
             </div>
           </SelectItem>
           <SelectSeparator />
-          {availableGames.map((game) => {
+          {availableGames.filter((game) => {
+            try {
+              return new Date(game.commence_time).getTime() > Date.now()
+            } catch {
+              return true
+            }
+          }).map((game) => {
             const date = new Date(game.commence_time);
             const dateStr = date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" });
             const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });

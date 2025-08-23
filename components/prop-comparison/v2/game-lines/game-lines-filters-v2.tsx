@@ -159,7 +159,13 @@ export function GameLinesFiltersV2({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Games</SelectItem>
-                {availableGames.map((g) => {
+                {availableGames.filter((g) => {
+                  try {
+                    return new Date(g.commence_time).getTime() > Date.now()
+                  } catch {
+                    return true
+                  }
+                }).map((g) => {
                   const date = new Date(g.commence_time)
                   const dateStr = date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })
                   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })

@@ -76,7 +76,14 @@ export function ArbitrageTable({ data }: Props) {
   const [stakes, setStakes] = useState<Record<string, { over: number; under: number }>>({})
   const [stakeInputs, setStakeInputs] = useState<Record<string, { over: string; under: string }>>({})
 
-  const rows = useMemo(() => data, [data])
+  const rows = useMemo(() => {
+    const now = Date.now()
+    return (data || []).filter((r) => {
+      if (!r.start_time) return true
+      const t = Date.parse(r.start_time)
+      return Number.isFinite(t) ? t >= now : true
+    })
+  }, [data])
 
   const getKey = (r: ArbitrageOpportunity) => `${r.event_id}-${r.market_key}-${r.line}-${r.over_book}-${r.under_book}`
 

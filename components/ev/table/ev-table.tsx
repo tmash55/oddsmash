@@ -161,16 +161,19 @@ export function EvTable({ items }: Props) {
             <TableRow className="hover:bg-transparent border-border/50 divide-x divide-border/30">
               {isMobile ? (
                 <>
-                  <TableHead className="w-[45%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                  <TableHead className="w-[38%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                     Selection
                   </TableHead>
-                  <TableHead className="w-[20%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                  <TableHead className="w-[22%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                     Event
                   </TableHead>
                   <TableHead className="w-[20%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                    Best Book
+                  </TableHead>
+                  <TableHead className="w-[10%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                     EV%
                   </TableHead>
-                  <TableHead className="w-[15%] text-right bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0 pr-3">
+                  <TableHead className="w-[10%] text-right bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0 pr-3">
                     Actions
                   </TableHead>
                 </>
@@ -268,6 +271,22 @@ export function EvTable({ items }: Props) {
                       </div>
                     </TableCell>
                     <TableCell className="text-center py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        {(() => {
+                          const full = findBookFull(item.best_book)
+                          const bookEntry = findBook(item.best_book)
+                          return (
+                            <>
+                              {bookEntry && (
+                                <Image src={bookEntry.logo || "/placeholder.svg"} alt={bookEntry.name} width={18} height={18} className="object-contain" />
+                              )}
+                              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{formatOdds(item.best_price)}</span>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4">
                       <div className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm min-w-[72px]">
                         <span className="text-base font-bold text-white">{item.ev_pct.toFixed(1)}%</span>
                       </div>
@@ -275,7 +294,9 @@ export function EvTable({ items }: Props) {
                     <TableCell className="text-right pr-3 py-4">
                       <Button
                         size="sm"
-                        className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-sm"
+                        disabled
+                        title="Coming soon"
+                        className="bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm opacity-60 cursor-not-allowed hover:opacity-70"
                       >
                         <Plus className="w-3 h-3 mr-1" />
                         Add
@@ -414,12 +435,14 @@ export function EvTable({ items }: Props) {
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         size="sm"
-                        className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-sm"
+                        disabled
+                        title="Coming soon"
+                        className="bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm opacity-60 cursor-not-allowed hover:opacity-70"
                       >
                         <Plus className="w-3 h-3 mr-1" />
                         Add
                       </Button>
-                      <Button size="sm" variant="outline" className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
+                      <Button size="sm" variant="outline" disabled title="Coming soon" className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm opacity-60 cursor-not-allowed">
                         <MoreHorizontal className="w-3 h-3" />
                       </Button>
                     </div>

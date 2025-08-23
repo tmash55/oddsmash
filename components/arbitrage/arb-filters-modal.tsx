@@ -22,9 +22,20 @@ interface Props {
 const ALL_LEAGUES = ["mlb", "nfl", "ncaaf", "wnba", "nba"]
 
 export function ArbFiltersModal({ open, onOpenChange, value, onChange }: Props) {
-  const [draft, setDraft] = useState<ArbFilters>(value)
-
   const activeBooks = useMemo(() => sportsbooks.filter((b) => b.isActive), [])
+  const allBookIds = useMemo(() => activeBooks.map((b) => b.id), [activeBooks])
+  const [draft, setDraft] = useState<ArbFilters>({
+    ...value,
+    selectedBooks: value.selectedBooks?.length ? value.selectedBooks : allBookIds,
+  })
+
+  // Ensure selectedBooks stays in sync if modal is reopened with empty selection
+  // or if the list of active books changes
+  if (!draft.selectedBooks?.length && allBookIds.length) {
+    // Initialize selection to all
+    // Note: safe synchronous update because this branch runs during render only when empty
+    draft.selectedBooks = allBookIds
+  }
 
   const apply = () => {
     onChange(draft)

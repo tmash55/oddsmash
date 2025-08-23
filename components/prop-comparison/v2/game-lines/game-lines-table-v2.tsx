@@ -492,7 +492,15 @@ export function GameLinesTableV2({
   // Sort the data
   const sortedData = useMemo(() => {
     if (!data || !Array.isArray(data)) return []
-    return [...data].sort((a, b) => {
+    const now = Date.now()
+    const upcoming = data.filter((g) => {
+      try {
+        return new Date(g.commence_time).getTime() > now
+      } catch {
+        return true
+      }
+    })
+    return [...upcoming].sort((a, b) => {
       try {
         if (sortField === "time") {
           const aTime = new Date(a.commence_time).getTime()
