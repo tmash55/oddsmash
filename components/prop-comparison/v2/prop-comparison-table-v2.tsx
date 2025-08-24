@@ -64,26 +64,73 @@ function getValuePercent(item: PlayerOdds, activeLine: string, type: "over" | "u
   // Use pre-calculated metrics from Redis; fallback to yes/no for scorer markets
   const path: any = item.metrics?.[activeLine]
   const val = path?.[type]?.value_pct ?? (type === "over" ? path?.yes?.value_pct : path?.no?.value_pct)
-  return val !== undefined ? Math.round(val * 10) / 10 : null
+  if (val !== undefined) return Math.round(val * 10) / 10
+
+  // Fallback: compute from best vs average at this line, if available
+  if (isYesNoMarket(item.market)) return null
+  const { bestPrice, avgAmerican } = computeBestAndAverageAtLine(item, activeLine, type)
+  if (bestPrice == null || avgAmerican == null) return null
+  const bestDec = americanToDecimal(bestPrice)
+  const avgDec = americanToDecimal(avgAmerican)
+  if (!Number.isFinite(bestDec) || !Number.isFinite(avgDec) || avgDec <= 1) return null
+  const trueProb = 1 / avgDec
+  const evPct = (trueProb * bestDec - 1) * 100
+  return Math.round(evPct * 10) / 10
 }
 
 // Function to get average odds from pre-calculated metrics
 function getAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): number | null {
   const path: any = item.metrics?.[activeLine]
-  return path?.[type]?.avg_price ?? (type === "over" ? path?.yes?.avg_price : path?.no?.avg_price) ?? null
+  const pre = path?.[type]?.avg_price ?? (type === "over" ? path?.yes?.avg_price : path?.no?.avg_price)
+  if (pre != null) return pre
+  // Fallback: compute average from sportsbook odds at this line
+  if (isYesNoMarket(item.market)) return null
+  const { avgAmerican } = computeBestAndAverageAtLine(item, activeLine, type)
+  return avgAmerican
+}
+
+// Helpers to compute best and average across books at a specific line
+function computeBestAndAverageAtLine(
+  item: PlayerOdds,
+  lineStr: string,
+  type: "over" | "under",
+): { bestPrice: number | null; avgAmerican: number | null } {
+  const lineOdds = (item.lines || {})[lineStr] as Record<string, any> | undefined
+  if (!lineOdds) return { bestPrice: null, avgAmerican: null }
+  let bestPrice: number | null = null
+  const decimals: number[] = []
+  for (const [, bookOdds] of Object.entries(lineOdds)) {
+    const pick: any = type === "over" ? (bookOdds as any)?.over : (bookOdds as any)?.under
+    const price = typeof pick?.price === "number" ? pick.price : null
+    if (price == null) continue
+    if (bestPrice == null || price > bestPrice) bestPrice = price
+    const dec = americanToDecimal(price)
+    if (Number.isFinite(dec)) decimals.push(dec)
+  }
+  if (decimals.length === 0) return { bestPrice, avgAmerican: null }
+  const avgDec = decimals.reduce((s, d) => s + d, 0) / decimals.length
+  // Convert back to American
+  const avgAmerican = avgDec >= 2 ? Math.round((avgDec - 1) * 100) : Math.round(-100 / (avgDec - 1))
+  return { bestPrice, avgAmerican }
 }
 
 // Function to render average odds cell with both over/under
 function renderAverageOddsCell(item: PlayerOdds, activeLine: string): ReactElement {
   const overAvgOdds = getAverageOdds(item, activeLine, "over")
   const underAvgOdds = getAverageOdds(item, activeLine, "under")
+  const isYesNo = isYesNoMarket(item.market)
+  const numericLine = Number.parseFloat(activeLine)
+  const showLine = !isYesNo && Number.isFinite(numericLine)
 
   return (
     <td className="px-2 py-2">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 items-center">
         <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 min-w-[80px]">
           <div className="flex items-center gap-1">
             <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">O</span>
+            {showLine && (
+              <span className="text-[11px] text-muted-foreground">{numericLine.toFixed(1)}</span>
+            )}
             <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
               {overAvgOdds ? formatOdds(Math.round(overAvgOdds)) : "—"}
             </span>
@@ -92,6 +139,9 @@ function renderAverageOddsCell(item: PlayerOdds, activeLine: string): ReactEleme
         <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200/50 dark:border-purple-800/50 min-w-[80px]">
           <div className="flex items-center gap-1">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">U</span>
+            {showLine && (
+              <span className="text-[11px] text-muted-foreground">{numericLine.toFixed(1)}</span>
+            )}
             <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
               {underAvgOdds ? formatOdds(Math.round(underAvgOdds)) : "—"}
             </span>
@@ -104,13 +154,12 @@ function renderAverageOddsCell(item: PlayerOdds, activeLine: string): ReactEleme
 
 // Update helper function to get max EV using only pre-calculated metrics
 function getMaxEV(item: ProcessedPlayerOdds): number {
-  // Only use pre-calculated metrics
-  const metrics = item.metrics?.[item.activeLine]
-  if (!metrics) return 0
-
-  const overValue = metrics.over?.value_pct || 0
-  const underValue = metrics.under?.value_pct || 0
-  return Math.max(overValue, underValue)
+  // Use unified getter that falls back to client-side computation when metrics are missing
+  const over = getValuePercent(item, item.activeLine, "over")
+  const under = getValuePercent(item, item.activeLine, "under")
+  const values = [over, under].filter((v): v is number => typeof v === "number")
+  if (values.length === 0) return 0
+  return Math.max(...values)
 }
 
 interface ProcessedPlayerOdds extends PlayerOdds {
@@ -120,6 +169,8 @@ interface ProcessedPlayerOdds extends PlayerOdds {
   bestUnderPrice: number
   bestOverBook: string
   bestUnderBook: string
+  bestOverLine?: number
+  bestUnderLine?: number
   activeLine: string
 }
 
@@ -137,46 +188,50 @@ function renderClickableOdds(
 
 // Update the renderEV function with consistent width
 function renderEV(item: PlayerOdds, activeLine: string, type: "over" | "under"): ReactElement | null {
-  // Get Value% from pre-calculated metrics only
+  // Use pre-calculated metrics or fallback computation
   const valuePercent = getValuePercent(item, activeLine, type)
-
-  if (!valuePercent || valuePercent <= 0) {
+  if (valuePercent == null) {
     return (
       <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
         <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
-      </div>
+        </div>
     )
   }
 
-  // Get metrics for tooltip
-  const metrics = item.metrics?.[activeLine]?.[type]
-  if (!metrics) {
-    return (
-      <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
-        <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
-      </div>
-    )
-  }
+  const isPositive = valuePercent > 0
+  const isZero = valuePercent === 0
+  const formatted = `${isPositive ? "+" : ""}${valuePercent.toFixed(1)}%`
+
+  // Pull metrics for tooltip when available
+  const mroot: any = item.metrics?.[activeLine]
+  const metrics: any = mroot?.[type] || null
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/30 border border-emerald-200/50 dark:border-emerald-800/50 min-w-[80px] cursor-help">
-            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              +{valuePercent.toFixed(1)}%
-            </span>
+          <div
+            className={cn(
+              "flex items-center justify-center px-3 py-2 rounded-xl min-w-[80px] cursor-help border",
+              isPositive && "bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/30 border-emerald-200/50 dark:border-emerald-800/50",
+              !isPositive && !isZero && "bg-gradient-to-r from-rose-50 to-red-100 dark:from-rose-950/30 dark:to-red-900/30 border-rose-200/50 dark:border-rose-800/50",
+              isZero && "bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border-gray-200/50 dark:border-gray-700/50",
+            )}
+          >
+            <span className={cn("text-sm font-bold", isPositive ? "text-emerald-600 dark:text-emerald-400" : !isZero ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-300")}>{formatted}</span>
           </div>
         </TooltipTrigger>
+        {metrics && (
         <TooltipContent className="max-w-xs">
           <div className="space-y-1">
             <p className="font-semibold">Value Analysis</p>
-            <p>Best: {formatOdds(metrics.best_price)}</p>
-            <p>Average: {formatOdds(Math.round(metrics.avg_price))}</p>
-            <p>Value: +{valuePercent.toFixed(1)}%</p>
+              {typeof metrics.best_price === "number" && <p>Best: {formatOdds(metrics.best_price)}</p>}
+              {typeof metrics.avg_price === "number" && <p>Average: {formatOdds(Math.round(metrics.avg_price))}</p>}
+              <p>Value: {formatted}</p>
             <p className="text-xs text-gray-500">Market Average Method</p>
           </div>
         </TooltipContent>
+        )}
       </Tooltip>
     </TooltipProvider>
   )
@@ -185,12 +240,12 @@ function renderEV(item: PlayerOdds, activeLine: string, type: "over" | "under"):
 // Update the average odds cell with consistent width
 function renderAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | "under"): ReactElement | null {
   const avgOdds = getAverageOdds(item, activeLine, type)
-
+  
   if (!avgOdds) {
     return (
       <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 min-w-[80px]">
         <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
-      </div>
+        </div>
     )
   }
 
@@ -200,7 +255,7 @@ function renderAverageOdds(item: PlayerOdds, activeLine: string, type: "over" | 
   return (
     <div className="flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 min-w-[80px]">
       <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{formatOdds(roundedOdds)}</span>
-    </div>
+      </div>
   )
 }
 
@@ -220,6 +275,112 @@ function renderValueCell(item: PlayerOdds, activeLine: string): ReactElement {
       </div>
     </td>
   )
+}
+
+// Helper to determine if sport is NFL/NCAAF
+function isFootballSport(sport: string): boolean {
+  const s = (sport || "").toLowerCase()
+  return ["football_nfl", "americanfootball_nfl", "nfl", "football_ncaaf", "americanfootball_ncaaf", "ncaaf"].includes(s)
+}
+
+// Find odds for a given book at active line; if missing and NFL/NCAAF, allow nearest line within tolerance
+function getBookOddsWithTolerance(
+  item: PlayerOdds,
+  bookIds: string[],
+  side: "over" | "under",
+  sport: string,
+  activeLineStr: string,
+  tolerancePoints = 2.0,
+): { price: number; link?: string; line: number } | null {
+  const yesNo = isYesNoMarket(item.market)
+  if (yesNo) {
+    // Do not apply tolerance for yes/no markets
+    const oddsAtActive = item.lines?.[activeLineStr]
+    if (!oddsAtActive) return null
+    for (const id of bookIds) {
+      const bookOdds: any = oddsAtActive[id]
+      if (!bookOdds) continue
+      const pick: any = side === "over" ? bookOdds.over : bookOdds.under
+      if (pick && typeof pick.price === "number") {
+        const lineNum = Number.parseFloat(activeLineStr)
+        return { price: pick.price, link: pick.link, line: lineNum }
+      }
+    }
+    return null
+  }
+
+  const oddsAtActive = item.lines?.[activeLineStr]
+  const activeLineNum = Number.parseFloat(activeLineStr)
+  if (oddsAtActive) {
+    for (const id of bookIds) {
+      const bookOdds: any = oddsAtActive[id]
+      if (!bookOdds) continue
+      const pick: any = side === "over" ? bookOdds.over : bookOdds.under
+      if (pick && typeof pick.price === "number") {
+        return { price: pick.price, link: pick.link, line: activeLineNum }
+      }
+    }
+  }
+
+  if (!isFootballSport(sport)) return null
+
+  // Search nearest within tolerance; choose most favorable line for the side
+  let bestCandidate: { price: number; link?: string; line: number } | null = null
+  for (const [lineKey, lineOdds] of Object.entries(item.lines || {})) {
+    const lineNum = Number.parseFloat(lineKey)
+    if (!Number.isFinite(lineNum)) continue
+    const diff = Math.abs(lineNum - activeLineNum)
+    if (diff > tolerancePoints) continue
+    for (const id of bookIds) {
+      const bookOdds: any = (lineOdds as any)[id]
+      if (!bookOdds) continue
+      const pick: any = side === "over" ? bookOdds.over : bookOdds.under
+      if (pick && typeof pick.price === "number") {
+        if (!bestCandidate) {
+          bestCandidate = { price: pick.price, link: pick.link, line: lineNum }
+        } else {
+          // Over: prefer lower line; Under: prefer higher line. Tie-break on better price
+          const betterLine = side === "over" ? lineNum < bestCandidate.line : lineNum > bestCandidate.line
+          const tieLineBetterPrice = lineNum === bestCandidate.line && pick.price > bestCandidate.price
+          if (betterLine || tieLineBetterPrice) {
+            bestCandidate = { price: pick.price, link: pick.link, line: lineNum }
+          }
+        }
+      }
+    }
+  }
+  return bestCandidate
+}
+
+// Find the best line for a specific book across ALL available lines (no tolerance)
+function getBookBestLineAnyDistance(
+  item: PlayerOdds,
+  bookIds: string[],
+  side: "over" | "under",
+): { price: number; link?: string; line: number } | null {
+  let best: { price: number; link?: string; line: number } | null = null
+  for (const [lineKey, oddsByBook] of Object.entries(item.lines || {})) {
+    const lineNum = Number.parseFloat(lineKey)
+    if (!Number.isFinite(lineNum)) continue
+    for (const id of bookIds) {
+      const bookOdds: any = (oddsByBook as any)[id]
+      if (!bookOdds) continue
+      const pick: any = side === "over" ? bookOdds.over : bookOdds.under
+      if (pick && typeof pick.price === "number") {
+        if (!best) {
+          best = { price: pick.price, link: pick.link, line: lineNum }
+        } else {
+          // Over: prefer lower line; Under: prefer higher line. Tie-break on better price
+          const betterLine = side === "over" ? lineNum < best.line : lineNum > best.line
+          const tieBetterPrice = lineNum === best.line && pick.price > best.price
+          if (betterLine || tieBetterPrice) {
+            best = { price: pick.price, link: pick.link, line: lineNum }
+          }
+        }
+      }
+    }
+  }
+  return best
 }
 
 // Helper function to format odds list for tooltip
@@ -360,6 +521,8 @@ export function PropComparisonTableV2({
       let bestUnderPrice = Number.NEGATIVE_INFINITY
       let bestOverBook = ""
       let bestUnderBook = ""
+      let bestOverLine: number | undefined
+      let bestUnderLine: number | undefined
 
       // Process odds for each sportsbook
       Object.entries(lineOdds).forEach(([bookId, bookOdds]) => {
@@ -384,6 +547,41 @@ export function PropComparisonTableV2({
         }
       })
 
+      // If football and we allow tolerance, scan other lines to find a better "best" by line advantage
+      if (!yesNo && isFootballSport(sport)) {
+        const activeNum = Number.parseFloat(activeLine)
+        for (const [lineKey, oddsByBook] of Object.entries(item.lines || {})) {
+          const lineNum = Number.parseFloat(lineKey)
+          if (!Number.isFinite(lineNum)) continue
+          // Over: lower line preferable; Under: higher line preferable
+          for (const [bookId, bookOdds] of Object.entries<any>(oddsByBook)) {
+            const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
+            const o = (bookOdds as any).over
+            const u = (bookOdds as any).under
+            if (o && typeof o.price === "number") {
+              const betterLine = bestOverLine == null || lineNum < (bestOverLine as number)
+              const tieBetterPrice = bestOverLine != null && lineNum === bestOverLine && o.price > (bestOverOdds?.price ?? Number.NEGATIVE_INFINITY)
+              if (betterLine || tieBetterPrice) {
+                bestOverLine = lineNum
+                bestOverOdds = { ...o }
+                bestOverBook = mappedId
+                bestOverPrice = o.price
+              }
+            }
+            if (u && typeof u.price === "number") {
+              const betterLine = bestUnderLine == null || lineNum > (bestUnderLine as number)
+              const tieBetterPrice = bestUnderLine != null && lineNum === bestUnderLine && u.price > (bestUnderOdds?.price ?? Number.NEGATIVE_INFINITY)
+              if (betterLine || tieBetterPrice) {
+                bestUnderLine = lineNum
+                bestUnderOdds = { ...u }
+                bestUnderBook = mappedId
+                bestUnderPrice = u.price
+              }
+            }
+          }
+        }
+      }
+
       return {
         ...item,
         bestOverOdds,
@@ -392,6 +590,8 @@ export function PropComparisonTableV2({
         bestUnderPrice: bestUnderPrice === Number.NEGATIVE_INFINITY ? 0 : bestUnderPrice,
         bestOverBook,
         bestUnderBook,
+        bestOverLine,
+        bestUnderLine,
         activeLine,
       }
     })
@@ -443,7 +643,7 @@ export function PropComparisonTableV2({
     const teamAbbr = getStandardAbbreviation(item.team, sport)
     const yesNo = isYesNoMarket(item.market)
     const isExpanded = expandedRows.has(item.player_id.toString())
-
+    
     // Get average odds from metrics
     const overAvgOdds = getAverageOdds(item, item.activeLine, "over")
     const underAvgOdds = getAverageOdds(item, item.activeLine, "under")
@@ -527,60 +727,60 @@ export function PropComparisonTableV2({
           </TableCell>
           <TableCell className="text-center">
             <div className="flex flex-col gap-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      key={`${item.player_id}-over`}
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "w-full min-w-[40px] px-2",
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    key={`${item.player_id}-over`}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full min-w-[40px] px-2",
                         "bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-600 hover:from-emerald-500/20 hover:to-green-500/20 hover:text-emerald-700",
                         "dark:from-emerald-500/20 dark:to-green-500/20 dark:text-emerald-400 dark:hover:from-emerald-500/30 dark:hover:to-green-500/30 dark:hover:text-emerald-300",
                         "border-emerald-500/30 shadow-sm",
-                        !item.bestOverOdds && "opacity-50 cursor-not-allowed",
-                      )}
-                      onClick={() => handleAddToBetslip(item, "over")}
-                      disabled={!item.bestOverOdds}
-                    >
+                      !item.bestOverOdds && "opacity-50 cursor-not-allowed",
+                    )}
+                    onClick={() => handleAddToBetslip(item, "over")}
+                    disabled={!item.bestOverOdds}
+                  >
                       <Plus className="w-3 h-3 mr-1" />O
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {item.bestOverOdds
-                      ? "Add Over to betslip to compare across sportsbooks"
-                      : "No odds available for Over"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      key={`${item.player_id}-under`}
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "w-full min-w-[40px] px-2",
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {item.bestOverOdds
+                    ? "Add Over to betslip to compare across sportsbooks"
+                    : "No odds available for Over"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    key={`${item.player_id}-under`}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full min-w-[40px] px-2",
                         "bg-gradient-to-r from-red-500/10 to-pink-500/10 text-red-600 hover:from-red-500/20 hover:to-pink-500/20 hover:text-red-700",
                         "dark:from-red-500/20 dark:to-pink-500/20 dark:text-red-400 dark:hover:from-red-500/30 dark:hover:to-pink-500/30 dark:hover:text-red-300",
                         "border-red-500/30 shadow-sm",
-                        !item.bestUnderOdds && "opacity-50 cursor-not-allowed",
-                      )}
-                      onClick={() => handleAddToBetslip(item, "under")}
-                      disabled={!item.bestUnderOdds}
-                    >
+                      !item.bestUnderOdds && "opacity-50 cursor-not-allowed",
+                    )}
+                    onClick={() => handleAddToBetslip(item, "under")}
+                    disabled={!item.bestUnderOdds}
+                  >
                       <Plus className="w-3 h-3 mr-1" />U
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {item.bestUnderOdds
-                      ? "Add Under to betslip to compare across sportsbooks"
-                      : "No odds available for Under"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {item.bestUnderOdds
+                    ? "Add Under to betslip to compare across sportsbooks"
+                    : "No odds available for Under"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             </div>
           </TableCell>
         </motion.tr>
@@ -723,20 +923,20 @@ export function PropComparisonTableV2({
           ? a.description.localeCompare(b.description)
           : b.description.localeCompare(a.description)
       }
-
+      
       if (sortField === "line") {
         const aLine = Number.parseFloat(a.activeLine)
         const bLine = Number.parseFloat(b.activeLine)
         return sortDirection === "asc" ? aLine - bLine : bLine - aLine
       }
-
+      
       if (sortField === "edge") {
         const type = bestOddsFilter?.type || "over"
         const aValue = getValuePercent(a, a.activeLine, type) || 0
         const bValue = getValuePercent(b, b.activeLine, type) || 0
         return sortDirection === "asc" ? aValue - bValue : bValue - aValue
       }
-
+      
       if (sortField === "odds") {
         const aMetrics = a.metrics?.[a.activeLine]?.over
         const bMetrics = b.metrics?.[b.activeLine]?.over
@@ -760,35 +960,35 @@ export function PropComparisonTableV2({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn(
+      className={cn(
           "rounded-2xl border bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-950/80 dark:to-slate-950/40 backdrop-blur-xl border-border/50 shadow-xl",
-          isMobile && "-mx-4 border-x-0 rounded-none",
-        )}
-      >
-        <div className="relative h-[70vh] overflow-auto">
-          <Table>
+        isMobile && "-mx-4 border-x-0 rounded-none",
+      )}
+    >
+      <div className="relative h-[70vh] overflow-auto">
+        <Table>
             <TableHeader className="sticky top-0 z-30 bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 backdrop-blur-xl border-b border-border/50 shadow-sm">
               <TableRow className="hover:bg-transparent border-border/50 divide-x divide-border/30">
-                {isMobile ? (
-                  <>
+              {isMobile ? (
+                <>
                     <TableHead className="w-[35%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                       Player
                     </TableHead>
                     <TableHead className="w-[15%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      Line
-                    </TableHead>
+                    Line
+                  </TableHead>
                     <TableHead className="w-[30%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      Odds
-                    </TableHead>
+                    Odds
+                  </TableHead>
                     <TableHead className="w-[20%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      Value%
-                    </TableHead>
+                    Value%
+                  </TableHead>
                     <TableHead className="w-[10%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      Act
-                    </TableHead>
-                  </>
-                ) : (
-                  <>
+                    Act
+                  </TableHead>
+                </>
+              ) : (
+                <>
                     <TableHead className="w-[120px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                       <div className="flex items-center justify-between gap-1">
                         <span>Date / Time</span>
@@ -816,148 +1016,148 @@ export function PropComparisonTableV2({
                       </div>
                     </TableHead>
                     <TableHead className="w-[380px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span>Player</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Player</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          onClick={() =>
-                            onSortChange(
-                              "name",
-                              sortField === "name" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                            )
-                          }
-                        >
-                          {sortField === "name" ? (
-                            sortDirection === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3" />
-                            )
+                        onClick={() =>
+                          onSortChange(
+                            "name",
+                            sortField === "name" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                          )
+                        }
+                      >
+                        {sortField === "name" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableHead>
+                            <ArrowDown className="h-3 w-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
                     <TableHead className="w-[80px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span>Line</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Line</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          onClick={() =>
-                            onSortChange(
-                              "line",
-                              sortField === "line" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                            )
-                          }
-                        >
-                          {sortField === "line" ? (
-                            sortDirection === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3" />
-                            )
+                        onClick={() =>
+                          onSortChange(
+                            "line",
+                            sortField === "line" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                          )
+                        }
+                      >
+                        {sortField === "line" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableHead>
+                            <ArrowDown className="h-3 w-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
                     <TableHead className="w-[120px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span>Best Odds</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                    <div className="flex items-center justify-between gap-1">
+                      <span>Best Odds</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          onClick={() =>
-                            onSortChange(
-                              "odds",
-                              sortField === "odds" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
-                            )
-                          }
-                        >
-                          {sortField === "odds" ? (
-                            sortDirection === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3" />
-                            )
+                        onClick={() =>
+                          onSortChange(
+                            "odds",
+                            sortField === "odds" ? (sortDirection === "asc" ? "desc" : "asc") : "asc",
+                          )
+                        }
+                      >
+                        {sortField === "odds" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableHead>
+                            <ArrowDown className="h-3 w-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
                     <TableHead className="w-[100px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      <span>Avg Odds</span>
-                    </TableHead>
+                    <span>Avg Odds</span>
+                  </TableHead>
                     <TableHead className="bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      <div className="flex items-center justify-end gap-1">
-                        <span>Value%</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Value%</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          onClick={() =>
-                            onSortChange("ev", sortField === "ev" ? (sortDirection === "asc" ? "desc" : "asc") : "desc")
-                          }
-                        >
-                          {sortField === "ev" ? (
-                            sortDirection === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3" />
-                            )
+                        onClick={() =>
+                          onSortChange("ev", sortField === "ev" ? (sortDirection === "asc" ? "desc" : "asc") : "desc")
+                        }
+                      >
+                        {sortField === "ev" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableHead>
-                    {activeSportsbooks.map((book) => (
+                            <ArrowDown className="h-3 w-3" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
+                  {activeSportsbooks.map((book) => (
                       <TableHead
                         key={`header-${book.id}`}
                         className="text-center w-[80px] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 sticky top-0"
                       >
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
                               <div className="flex justify-center">{renderSportsbookLogo(book.id, "lg")}</div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{book.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-[60px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                      Actions
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{book.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableHead>
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+                  ))}
+                    <TableHead className="w-[60px] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                    Actions
+                  </TableHead>
+                </>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
               {sortedData.map((item, index) => {
-                if (isMobile) {
-                  return renderMobileRow(item)
-                }
+              if (isMobile) {
+                return renderMobileRow(item)
+              }
 
-                const odds = item.lines[item.activeLine]
+              const odds = item.lines[item.activeLine]
                 const yesNo = isYesNoMarket(item.market)
-                const teamAbbr = getStandardAbbreviation(item.team, sport)
-                const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
-                const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
-                const isHomeTeam = teamAbbr === homeTeamAbbr
-                const avgOdds = getAverageOdds(item, item.activeLine, "over")
+              const teamAbbr = getStandardAbbreviation(item.team, sport)
+              const homeTeamAbbr = getStandardAbbreviation(item.home_team || "", sport)
+              const awayTeamAbbr = getStandardAbbreviation(item.away_team || "", sport)
+              const isHomeTeam = teamAbbr === homeTeamAbbr
+              const avgOdds = getAverageOdds(item, item.activeLine, "over")
 
-                return (
+              return (
                   <motion.tr
                     key={item.player_id}
                     initial={{ opacity: 0, y: 20 }}
@@ -972,7 +1172,7 @@ export function PropComparisonTableV2({
                         <span className="text-xs">{formatShortTime(item.commence_time)}</span>
                       </div>
                     </TableCell>
-                    {/* Player cell */}
+                                      {/* Player cell */}
                     <TableCell className="text-foreground py-4">
                       {(() => {
                         const isFootball = [
@@ -1000,67 +1200,67 @@ export function PropComparisonTableV2({
                         }
 
                         return (
-                          <div className="flex items-center gap-3">
-                            <div className="relative">
-                              <Avatar className={getSportSpecificStyles(sport).avatarSize}>
-                                <AvatarImage
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className={getSportSpecificStyles(sport).avatarSize}>
+                          <AvatarImage
                                   src={getPlayerHeadshotUrl(item.player_id.toString(), sport) || "/placeholder.svg"}
-                                  alt={item.description}
-                                  className="object-cover"
-                                />
+                            alt={item.description}
+                            className="object-cover"
+                          />
                                 <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-foreground">
-                                  {item.description
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
+                            {item.description
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
                               {!["baseball_mlb", "mlb"].includes(sport) && (
-                                <div className="absolute -bottom-1 -right-1">
-                                  <Image
+                        <div className="absolute -bottom-1 -right-1">
+                          <Image
                                     src={getTeamLogoUrl(teamAbbr, sport) || "/placeholder.svg"}
-                                    alt={teamAbbr}
-                                    width={20}
-                                    height={20}
-                                    className={getSportSpecificStyles(sport).teamLogoSize}
-                                  />
-                                </div>
+                            alt={teamAbbr}
+                            width={20}
+                            height={20}
+                            className={getSportSpecificStyles(sport).teamLogoSize}
+                          />
+                        </div>
                               )}
-                            </div>
-                            <div className="flex flex-col">
+                      </div>
+                      <div className="flex flex-col">
                               <span className="font-medium text-foreground">{item.description}</span>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  {isHomeTeam ? (
-                                    <>
-                                      <span className="text-xs">vs</span>
-                                      <Image
+                          <div className="flex items-center gap-1">
+                            {isHomeTeam ? (
+                              <>
+                                <span className="text-xs">vs</span>
+                                <Image
                                         src={getTeamLogoUrl(awayTeamAbbr, sport) || "/placeholder.svg"}
-                                        alt={awayTeamAbbr}
-                                        width={24}
-                                        height={24}
-                                        className="h-6 w-6"
-                                      />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-xs">@</span>
-                                      <Image
+                                  alt={awayTeamAbbr}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs">@</span>
+                                <Image
                                         src={getTeamLogoUrl(homeTeamAbbr, sport) || "/placeholder.svg"}
-                                        alt={homeTeamAbbr}
-                                        width={24}
-                                        height={24}
-                                        className="h-6 w-6"
-                                      />
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                                  alt={homeTeamAbbr}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              </>
+                            )}
                           </div>
+                        </div>
+                      </div>
+                    </div>
                         )
                       })()}
-                    </TableCell>
+                  </TableCell>
                     {/* Line cell */}
                     <TableCell className="text-center py-4">
                       <Badge
@@ -1074,42 +1274,52 @@ export function PropComparisonTableV2({
                     <TableCell className="py-4">
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200/50 dark:border-blue-800/50">
-                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1">
                             <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                               {yesNo ? "Y" : "O"}
                             </span>
-                            {item.bestOverOdds ? (
-                              <OddsDisplay
-                                odds={item.bestOverOdds.price}
-                                link={item.bestOverOdds.link}
-                                className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
-                              />
-                            ) : (
+                              {item.bestOverOdds ? (
+                              <div className="flex items-center gap-1">
+                                {!yesNo && item.bestOverLine != null && (
+                                  <span className="text-[11px] text-muted-foreground">o{item.bestOverLine.toFixed(1)}</span>
+                                )}
+                                <OddsDisplay 
+                                  odds={item.bestOverOdds.price} 
+                                  link={item.bestOverOdds.link} 
+                                  className="text-sm font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                                />
+                              </div>
+                              ) : (
                               <span className="text-sm text-muted-foreground font-medium">—</span>
-                            )}
+                              )}
+                            </div>
+                            {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
                           </div>
-                          {item.bestOverBook && renderSportsbookLogo(item.bestOverBook, "sm")}
-                        </div>
                         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200/50 dark:border-purple-800/50">
-                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1">
                             <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
                               {yesNo ? "N" : "U"}
                             </span>
-                            {item.bestUnderOdds ? (
-                              <OddsDisplay
-                                odds={item.bestUnderOdds.price}
-                                link={item.bestUnderOdds.link}
-                                className="text-sm font-semibold text-purple-700 dark:text-purple-300 hover:underline"
-                              />
-                            ) : (
+                              {item.bestUnderOdds ? (
+                              <div className="flex items-center gap-1">
+                                {!yesNo && item.bestUnderLine != null && (
+                                  <span className="text-[11px] text-muted-foreground">u{item.bestUnderLine.toFixed(1)}</span>
+                                )}
+                                <OddsDisplay 
+                                  odds={item.bestUnderOdds.price} 
+                                  link={item.bestUnderOdds.link} 
+                                  className="text-sm font-semibold text-purple-700 dark:text-purple-300 hover:underline"
+                                />
+                              </div>
+                              ) : (
                               <span className="text-sm text-muted-foreground font-medium">—</span>
-                            )}
-                          </div>
-                          {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
+                              )}
+                            </div>
+                            {item.bestUnderBook && renderSportsbookLogo(item.bestUnderBook, "sm")}
                         </div>
                       </div>
                     </TableCell>
-                    {/* Avg Odds cell */}
+                    {/* Avg Odds cell with both Over/Under */}
                     {renderAverageOddsCell(item, item.activeLine)}
                     {/* Value% cell */}
                     {renderValueCell(item, item.activeLine)}
@@ -1117,7 +1327,7 @@ export function PropComparisonTableV2({
                     {activeSportsbooks.map((book) => {
                       const bookId = book.id.toLowerCase()
                       const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
-
+                      
                       // Try all possible variations of the sportsbook ID
                       const possibleIds = [
                         mappedId,
@@ -1132,15 +1342,25 @@ export function PropComparisonTableV2({
                         bookId === "ballybet" ? "bally_bet" : null,
                       ].filter(Boolean) as string[]
 
-                      // Find the first matching odds entry
+                      // Find odds at active line; if missing and NFL/NCAAF, fall back within tolerance
                       const bookOdds = possibleIds.reduce((found: BookmakerOdds | null, id) => {
                         const foundOdds = odds[id]
                         return found || (foundOdds as BookmakerOdds)
                       }, null)
 
+                      const overCandidate = getBookOddsWithTolerance(item, possibleIds, "over", sport, item.activeLine)
+                      const underCandidate = getBookOddsWithTolerance(item, possibleIds, "under", sport, item.activeLine)
+                      const isFootball = isFootballSport(sport)
+                      const overAny = !isFootball || overCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "over")
+                      const underAny = !isFootball || underCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "under")
+
                       // Highlight all books that match the best price (ties included)
-                      const overPrice = yesNo ? (bookOdds as any)?.yes?.price : (bookOdds as any)?.over?.price
-                      const underPrice = yesNo ? (bookOdds as any)?.no?.price : (bookOdds as any)?.under?.price
+                      const overPrice = yesNo
+                        ? (bookOdds as any)?.yes?.price
+                        : overCandidate?.price ?? overAny?.price ?? (bookOdds as any)?.over?.price
+                      const underPrice = yesNo
+                        ? (bookOdds as any)?.no?.price
+                        : underCandidate?.price ?? underAny?.price ?? (bookOdds as any)?.under?.price
                       const isOverBest = overPrice != null && overPrice === item.bestOverPrice
                       const isUnderBest = underPrice != null && underPrice === item.bestUnderPrice
 
@@ -1155,15 +1375,20 @@ export function PropComparisonTableV2({
                                   : "bg-gradient-to-r from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
                               )}
                             >
-                              {(yesNo ? (bookOdds as any)?.yes : (bookOdds as any)?.over) ? (
-                                <OddsDisplay
-                                  odds={yesNo ? (bookOdds as any).yes.price : (bookOdds as any).over.price}
-                                  link={yesNo ? (bookOdds as any).yes.link : (bookOdds as any).over.link}
-                                  className={cn(
-                                    "text-sm font-semibold",
-                                    isOverBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                              {(yesNo ? (bookOdds as any)?.yes : overCandidate || overAny || (bookOdds as any)?.over) ? (
+                                <div className="flex items-center gap-1">
+                                  {isFootballSport(sport) && !yesNo && (
+                                    <span className="text-xs text-muted-foreground">o{(overCandidate?.line ?? overAny?.line ?? Number(item.activeLine)).toFixed(1)}</span>
                                   )}
+                                <OddsDisplay 
+                                    odds={yesNo ? (bookOdds as any)?.yes?.price : (overCandidate?.price ?? overAny?.price ?? (bookOdds as any)?.over?.price)}
+                                    link={yesNo ? (bookOdds as any)?.yes?.link : (overCandidate?.link ?? overAny?.link ?? (bookOdds as any)?.over?.link)}
+                                  className={cn(
+                                      "text-sm font-semibold",
+                                      isOverBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                                  )} 
                                 />
+                                </div>
                               ) : (
                                 <span className="text-sm text-muted-foreground font-medium">—</span>
                               )}
@@ -1176,15 +1401,20 @@ export function PropComparisonTableV2({
                                   : "bg-gradient-to-r from-white/80 to-white/60 border-border/50 dark:from-slate-800/80 dark:to-slate-700/80 dark:border-slate-600",
                               )}
                             >
-                              {(yesNo ? (bookOdds as any)?.no : (bookOdds as any)?.under) ? (
-                                <OddsDisplay
-                                  odds={yesNo ? (bookOdds as any).no.price : (bookOdds as any).under.price}
-                                  link={yesNo ? (bookOdds as any).no.link : (bookOdds as any).under.link}
-                                  className={cn(
-                                    "text-sm font-semibold",
-                                    isUnderBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                              {(yesNo ? (bookOdds as any)?.no : underCandidate || underAny || (bookOdds as any)?.under) ? (
+                                <div className="flex items-center gap-1">
+                                  {isFootballSport(sport) && !yesNo && (
+                                    <span className="text-xs text-muted-foreground">u{(underCandidate?.line ?? underAny?.line ?? Number(item.activeLine)).toFixed(1)}</span>
                                   )}
+                                <OddsDisplay 
+                                    odds={yesNo ? (bookOdds as any)?.no?.price : (underCandidate?.price ?? underAny?.price ?? (bookOdds as any)?.under?.price)}
+                                    link={yesNo ? (bookOdds as any)?.no?.link : (underCandidate?.link ?? underAny?.link ?? (bookOdds as any)?.under?.link)}
+                                  className={cn(
+                                      "text-sm font-semibold",
+                                      isUnderBest ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                                  )} 
                                 />
+                                </div>
                               ) : (
                                 <span className="text-sm text-muted-foreground font-medium">—</span>
                               )}
