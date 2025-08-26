@@ -371,7 +371,9 @@ export function PropComparisonFiltersV2({
         if (gameId) params.set("games", gameId)
         else params.delete("games")
         router.replace(`${pathname}?${params.toString()}`)
-      } catch {}
+      } catch (e) {
+        // Ignore URL update errors (e.g., when navigation objects are unavailable)
+      }
     };
 
     return (

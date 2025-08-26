@@ -19,7 +19,9 @@ export function createGameSlug(homeTeam: string, awayTeam: string, commenceTime:
       const day = String(d.getUTCDate()).padStart(2, "0")
       datePart = `${year}-${month}-${day}`
     }
-  } catch {}
+  } catch {
+    // Ignore invalid dates when generating slug date part
+  }
   return [away, "vs", home, datePart].filter(Boolean).join("-")
 }
 
