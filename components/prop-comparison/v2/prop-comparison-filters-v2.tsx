@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Search, RefreshCw, Grid3X3, List, X, Zap, ArrowUpDown, BarChart3, Info, ChevronDown, Lock } from "lucide-react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -254,6 +255,9 @@ export function PropComparisonFiltersV2({
   preMatchCount = 0,
   liveCount = 0,
 }: PropComparisonFiltersV2Props) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
   const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -360,7 +364,14 @@ export function PropComparisonFiltersV2({
     const selectedGame = selectedGames?.[0] || null;
     
     const handleGameSelect = (gameId: string | null) => {
-      onGameFilterChange(gameId ? [gameId] : null);
+      onGameFilterChange(gameId ? [gameId] : null)
+      // Update URL with event_id directly (revert slug approach)
+      try {
+        const params = new URLSearchParams(Array.from(searchParams.entries()))
+        if (gameId) params.set("games", gameId)
+        else params.delete("games")
+        router.replace(`${pathname}?${params.toString()}`)
+      } catch {}
     };
 
     return (

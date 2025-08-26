@@ -32,12 +32,15 @@ export function ArbitrageSection() {
       })
     }
 
-    // Sportsbook filter
+    // Sportsbook filter: exclude rows if either side uses a deselected book
     if (filters.selectedBooks?.length) {
-      const allowed = new Set(filters.selectedBooks)
-      result = result.filter(
-        (r) => (r.over_book && allowed.has(r.over_book)) || (r.under_book && allowed.has(r.under_book)),
-      )
+      const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
+      const allowed = new Set(filters.selectedBooks.map(normalize))
+      result = result.filter((r) => {
+        const overOk = !r.over_book || allowed.has(normalize(r.over_book))
+        const underOk = !r.under_book || allowed.has(normalize(r.under_book))
+        return overOk && underOk
+      })
     }
 
     // Search filter
@@ -61,7 +64,7 @@ export function ArbitrageSection() {
   return (
     <div className="rounded-xl border bg-gradient-to-br from-white/80 to-gray-50/80 dark:from-slate-950/80 dark:to-slate-900/80 backdrop-blur-sm border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 text-white px-6 py-4">
+      <div className="bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 text-white px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shadow-md backdrop-blur-sm">
@@ -93,9 +96,9 @@ export function ArbitrageSection() {
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Controls */}
-        <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+        <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl p-3 sm:p-4 border border-border/50">
           <ArbitrageFilterBar
             value={filters}
             onChange={setFilters}

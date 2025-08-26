@@ -14,6 +14,7 @@ import { GameLinesTableV2 } from "./game-lines-table-v2"
 import { GameLinesFiltersV2 } from "./game-lines-filters-v2"
 import { useGameLinesV2 } from "@/hooks/use-game-lines-v2"
 import { useTransformedGameLinesData } from "@/hooks/use-game-lines-transforms"
+import { isLikelySlug } from "@/lib/utils/slug"
 
 // Compact loading skeleton
 function GameLinesTableSkeleton() {
@@ -114,6 +115,8 @@ export function GameLinesDashboardV2({ sport }: GameLinesDashboardV2Props) {
       sortDirection,
     })
 
+  // No slug maps for props revert; Game Lines remains as-is
+
   // Pre-match count from processed/filtered games
   const preMatchCount = useMemo(() => {
     const now = Date.now()
@@ -131,6 +134,14 @@ export function GameLinesDashboardV2({ sport }: GameLinesDashboardV2Props) {
       setSortDirection("asc")
     }
   }, [sortField])
+
+  // Read URL params
+  useEffect(() => {
+    const urlGames = searchParams.get("games")
+    if (urlGames) {
+      setSelectedGames(urlGames.split(","))
+    }
+  }, [searchParams])
 
   // Update URL when filters change
   useEffect(() => {

@@ -8,7 +8,9 @@ import { sportsbooks } from "@/data/sportsbooks"
 import type { ArbitrageOpportunity } from "@/hooks/use-arbitrage"
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { TrendingUp, Calculator, DollarSign, Clock, ArrowUpDown, Zap, ExternalLink } from "lucide-react"
+import { TrendingUp, Calculator, DollarSign, Clock, ArrowUpDown, Zap, ExternalLink, Hand } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useToast } from "@/hooks/use-toast"
 
 function formatPct(n: number) {
   return `${(n ?? 0).toFixed(2)}%`
@@ -73,8 +75,11 @@ interface Props {
 }
 
 export function ArbitrageTable({ data }: Props) {
+  const { toast } = useToast()
   const [stakes, setStakes] = useState<Record<string, { over: number; under: number }>>({})
   const [stakeInputs, setStakeInputs] = useState<Record<string, { over: string; under: string }>>({})
+
+  const WARNING_ARB_THRESHOLD = 10
 
   const rows = useMemo(() => {
     const now = Date.now()
@@ -211,7 +216,7 @@ export function ArbitrageTable({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-gradient-to-br from-white/80 to-gray-50/80 dark:from-slate-950/80 dark:to-slate-900/80 backdrop-blur-sm border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
-      <div className="relative max-h-[70vh] overflow-auto">
+      <div className="relative max-h-[75vh] sm:max-h-[70vh] overflow-auto text-[12.5px] sm:text-[14px]">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-white/95 to-gray-50/95 dark:from-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800">
             <TableRow className="hover:bg-transparent">
@@ -271,9 +276,36 @@ export function ArbitrageTable({ data }: Props) {
                   className="border-b border-gray-200 dark:border-slate-800 hover:bg-gradient-to-r hover:from-gray-50/50 hover:to-white/50 dark:hover:from-slate-900/50 dark:hover:to-slate-950/50 transition-all duration-200"
                 >
                   <TableCell className="text-center">
-                    <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold px-3 py-2 text-sm shadow-md">
-                      +{formatPct(row.arb_percentage)}
-                    </Badge>
+                    <div className="flex items-center justify-center gap-2">
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold px-3 py-2 text-sm shadow-md">
+                        +{formatPct(row.arb_percentage)}
+                      </Badge>
+                      {Number(row.arb_percentage) > WARNING_ARB_THRESHOLD && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toast({
+                                    title: "High arbitrage value detected",
+                                    description: "Odds might be incorrect or stale. Please verify on the sportsbooks.",
+                                  })
+                                }}
+                                aria-label="High arb values warning"
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-yellow-400/15 text-yellow-400 border border-yellow-400/40 ring-1 ring-yellow-400/30"
+                              >
+                                <Hand className="w-3.5 h-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              High arb values, odds might be incorrect.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell>

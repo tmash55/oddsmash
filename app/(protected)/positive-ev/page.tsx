@@ -22,7 +22,7 @@ export default function PositiveEvPage() {
 	return (
 		<div className="w-full">
 			{/* Page Header */}
-			<div className="mb-6">
+			<div className="mb-6 px-4 sm:px-0">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div>
 						<h1 className="text-3xl font-bold text-slate-900 dark:text-white">Positive EV</h1>

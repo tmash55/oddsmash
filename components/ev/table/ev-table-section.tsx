@@ -113,9 +113,9 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
   }, [data, filters])
 
   return (
-    <div className="space-y-6">
+    <div className="rounded-xl border bg-gradient-to-br from-white/80 to-gray-50/80 dark:from-slate-950/80 dark:to-slate-900/80 backdrop-blur-sm border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
       {/* Header Section */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="hidden sm:block p-3 sm:p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
             <TrendingUp className="w-5 h-5 text-white" />
@@ -142,7 +142,7 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
 
         {/* Stats Row */}
         {!loading && data && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/30">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
@@ -187,48 +187,52 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
       </motion.div>
 
       {/* Controls */}
-      <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
-        <EvFilterBar value={filters} onChange={setFilters} preMatchCount={filtered.length} liveCount={0} />
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setRefreshIndex((i) => i + 1)}
-            className="inline-flex items-center gap-2 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-gray-900/80 border-border/50"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setOpenFilters(true)}
-            className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-gray-900/80 border-border/50"
-          >
-            Filters
-          </Button>
+      <div className="px-3 sm:px-6 pb-3 sm:pb-0">
+        <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl p-3 sm:p-4 border border-border/50">
+          <EvFilterBar value={filters} onChange={setFilters} preMatchCount={filtered.length} liveCount={0} />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setRefreshIndex((i) => i + 1)}
+              className="inline-flex items-center gap-2 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-gray-900/80 border-border/50"
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpenFilters(true)}
+              className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-gray-900/80 border-border/50"
+            >
+              Filters
+            </Button>
+          </div>
         </div>
       </div>
 
       <EvFiltersModal
-        open={openFilters && !!isDesktop}
+        open={openFilters}
         onOpenChange={setOpenFilters}
         value={filters}
         onChange={setFilters}
       />
 
       {/* Content */}
-      {loading && <EvTableLoading />}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl p-4">
-          <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-        </div>
-      )}
-      {!loading && !error && filtered.length === 0 && (
-        <div className="bg-muted/30 rounded-xl p-8 text-center border border-border/50">
-          <div className="text-muted-foreground">No results found. Try adjusting your filters.</div>
-        </div>
-      )}
-      {!loading && !error && filtered.length > 0 && <EvTable items={filtered} />}
+      <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+        {loading && <EvTableLoading />}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl p-4">
+            <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
+          </div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="bg-muted/30 rounded-xl p-8 text-center border border-border/50">
+            <div className="text-muted-foreground">No results found. Try adjusting your filters.</div>
+          </div>
+        )}
+        {!loading && !error && filtered.length > 0 && <EvTable items={filtered} />}
+      </div>
     </div>
   )
 }

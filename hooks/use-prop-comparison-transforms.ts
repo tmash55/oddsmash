@@ -88,7 +88,7 @@ export function useTransformedPropData({
 
   // Step 2: Filter data (only when processed data or filters change)
   const filteredData = useMemo(() => {
-    return processedData.filter(item => {
+    const result = processedData.filter(item => {
       // Filter out players who don't have the selected line when globalLine is set
       if (globalLine && (!item.lines || !item.lines[globalLine])) {
         return false;
@@ -105,7 +105,8 @@ export function useTransformedPropData({
 
       // Apply game filter
       if (selectedGames?.length) {
-        if (!selectedGames.includes(item.event_id)) {
+        const match = selectedGames.includes(item.event_id)
+        if (!match) {
           return false;
         }
       }
@@ -118,6 +119,10 @@ export function useTransformedPropData({
       
       return true;
     });
+    if (typeof window !== 'undefined') {
+      console.debug('[PropsTransforms] filtered count', result.length, 'from', processedData.length, 'selectedGames', selectedGames)
+    }
+    return result
   }, [processedData, searchQuery, selectedGames, bestOddsFilter, globalLine]);
 
   // Step 3: Sort data (only when filtered data or sort params change)

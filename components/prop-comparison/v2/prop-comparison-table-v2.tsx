@@ -357,6 +357,7 @@ function getBookBestLineAnyDistance(
   item: PlayerOdds,
   bookIds: string[],
   side: "over" | "under",
+  maxNegativePrice?: number, // e.g. -200 to exclude heavily juiced alternates
 ): { price: number; link?: string; line: number } | null {
   let best: { price: number; link?: string; line: number } | null = null
   for (const [lineKey, oddsByBook] of Object.entries(item.lines || {})) {
@@ -367,6 +368,10 @@ function getBookBestLineAnyDistance(
       if (!bookOdds) continue
       const pick: any = side === "over" ? bookOdds.over : bookOdds.under
       if (pick && typeof pick.price === "number") {
+        if (typeof maxNegativePrice === "number" && pick.price < maxNegativePrice) {
+          // Skip extremely juiced prices when restricting to standard-lines-friendly odds
+          continue
+        }
         if (!best) {
           best = { price: pick.price, link: pick.link, line: lineNum }
         } else {
@@ -513,6 +518,7 @@ export function PropComparisonTableV2({
             : Object.keys(item.lines || {})[0]
 
       const lineOdds = item.lines?.[activeLine] || {}
+      const isStandardLinesView = item.primary_line ? activeLine === item.primary_line : false
 
       // Find best odds for over/under (or yes/no for scorer markets)
       let bestOverOdds: OddsPrice | null = null
@@ -529,7 +535,8 @@ export function PropComparisonTableV2({
         const mappedId = SPORTSBOOK_ID_MAP[bookId] || bookId
         const overObj: any = yesNo ? (bookOdds as any).yes : (bookOdds as any).over
         const underObj: any = yesNo ? (bookOdds as any).no : (bookOdds as any).under
-        if (overObj && overObj.price > bestOverPrice) {
+        // Exclude extremely juiced prices in standard-lines view
+        if (overObj && typeof overObj.price === 'number' && (!isStandardLinesView || overObj.price >= -140) && overObj.price > bestOverPrice) {
           bestOverPrice = overObj.price
           bestOverBook = mappedId
           bestOverOdds = {
@@ -537,7 +544,7 @@ export function PropComparisonTableV2({
             sid: overObj.sid || "default",
           }
         }
-        if (underObj && underObj.price > bestUnderPrice) {
+        if (underObj && typeof underObj.price === 'number' && (!isStandardLinesView || underObj.price >= -140) && underObj.price > bestUnderPrice) {
           bestUnderPrice = underObj.price
           bestUnderBook = mappedId
           bestUnderOdds = {
@@ -559,6 +566,10 @@ export function PropComparisonTableV2({
             const o = (bookOdds as any).over
             const u = (bookOdds as any).under
             if (o && typeof o.price === "number") {
+              if (isStandardLinesView && o.price < -140) {
+                // Skip extremely juiced alternates when emphasizing standard lines
+                continue
+              }
               const betterLine = bestOverLine == null || lineNum < (bestOverLine as number)
               const tieBetterPrice = bestOverLine != null && lineNum === bestOverLine && o.price > (bestOverOdds?.price ?? Number.NEGATIVE_INFINITY)
               if (betterLine || tieBetterPrice) {
@@ -569,6 +580,9 @@ export function PropComparisonTableV2({
               }
             }
             if (u && typeof u.price === "number") {
+              if (isStandardLinesView && u.price < -140) {
+                continue
+              }
               const betterLine = bestUnderLine == null || lineNum > (bestUnderLine as number)
               const tieBetterPrice = bestUnderLine != null && lineNum === bestUnderLine && u.price > (bestUnderOdds?.price ?? Number.NEGATIVE_INFINITY)
               if (betterLine || tieBetterPrice) {
@@ -1351,8 +1365,9 @@ export function PropComparisonTableV2({
                       const overCandidate = getBookOddsWithTolerance(item, possibleIds, "over", sport, item.activeLine)
                       const underCandidate = getBookOddsWithTolerance(item, possibleIds, "under", sport, item.activeLine)
                       const isFootball = isFootballSport(sport)
-                      const overAny = !isFootball || overCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "over")
-                      const underAny = !isFootball || underCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "under")
+                      // When we fall back to scanning alternates, exclude extremely juiced prices (e.g., -2000)
+                      const overAny = !isFootball || overCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "over", -140)
+                      const underAny = !isFootball || underCandidate ? null : getBookBestLineAnyDistance(item, possibleIds, "under", -140)
 
                       // Highlight all books that match the best price (ties included)
                       const overPrice = yesNo

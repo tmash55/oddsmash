@@ -146,6 +146,21 @@ export function EvTable({ items }: Props) {
   const BANKROLL = 1000
   const KELLY_MULTIPLIER = 0.5 // Half-Kelly for risk-adjusted stake
 
+  const getRowKey = (item: HighEvBet, index: number) => {
+    const parts = [
+      item.event_id || "",
+      item.player_id != null ? String(item.player_id) : "",
+      item.pointer || "",
+      item.description || "",
+      item.market || "",
+      String(item.line),
+      item.side || "",
+      item.best_book || "",
+    ]
+    const base = parts.filter(Boolean).join("|")
+    return base || `row-${index}`
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -161,7 +176,10 @@ export function EvTable({ items }: Props) {
             <TableRow className="hover:bg-transparent border-border/50 divide-x divide-border/30">
               {isMobile ? (
                 <>
-                  <TableHead className="w-[38%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                  <TableHead className="w-[14%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
+                    EV%
+                  </TableHead>
+                  <TableHead className="w-[34%] bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                     Selection
                   </TableHead>
                   <TableHead className="w-[22%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
@@ -170,11 +188,8 @@ export function EvTable({ items }: Props) {
                   <TableHead className="w-[20%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
                     Best Book
                   </TableHead>
-                  <TableHead className="w-[10%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0">
-                    EV%
-                  </TableHead>
-                  <TableHead className="w-[10%] text-right bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0 pr-3">
-                    Actions
+                  <TableHead className="w-[10%] text-center bg-gradient-to-r from-white/95 to-white/90 dark:from-slate-950/95 dark:to-slate-950/90 text-foreground font-semibold sticky top-0 pr-3">
+                    Stake
                   </TableHead>
                 </>
               ) : (
@@ -252,12 +267,17 @@ export function EvTable({ items }: Props) {
               if (isMobile) {
                 return (
                   <motion.tr
-                    key={`${item.player_id}-${item.market}-${item.line}`}
+                    key={getRowKey(item, index)}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.02 }}
                     className="border-border/50 divide-x divide-border/30 hover:bg-muted/30 transition-colors"
                   >
+                    <TableCell className="text-center py-4">
+                      <div className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm min-w-[56px]">
+                        <span className="text-sm font-bold text-white">{item.ev_pct.toFixed(1)}%</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="py-4">
                       <div className="space-y-2">
                         <div className="font-medium text-sm text-foreground">{item.description}</div>
@@ -286,21 +306,24 @@ export function EvTable({ items }: Props) {
                         })()}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4">
-                      <div className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm min-w-[72px]">
-                        <span className="text-base font-bold text-white">{item.ev_pct.toFixed(1)}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-3 py-4">
-                      <Button
-                        size="sm"
-                        disabled
-                        title="Coming soon"
-                        className="bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm opacity-60 cursor-not-allowed hover:opacity-70"
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add
-                      </Button>
+                    <TableCell className="text-center pr-3 py-4">
+                      {(() => {
+                        const hasFair = typeof item.fair_odds === "number"
+                        const hasBest = typeof item.best_price === "number"
+                        if (!hasBest || !hasFair) return <span className="text-xs text-muted-foreground">—</span>
+                        const p = americanToProb(item.fair_odds as number)
+                        const d = americanToDecimal(item.best_price as number)
+                        const b = d - 1
+                        const q = 1 - p
+                        const fFull = b !== 0 ? (b * p - q) / b : 0
+                        const fAdj = Math.max(0, fFull) * KELLY_MULTIPLIER
+                        const stake = fAdj * BANKROLL
+                        return (
+                          <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                            ${Math.round(stake)}
+                          </div>
+                        )
+                      })()}
                     </TableCell>
                   </motion.tr>
                 )
@@ -308,7 +331,7 @@ export function EvTable({ items }: Props) {
 
               return (
                 <motion.tr
-                  key={`${item.player_id}-${item.market}-${item.line}`}
+                  key={getRowKey(item, index)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
