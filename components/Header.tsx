@@ -237,6 +237,12 @@ export function Header() {
           icon: <BarChart3 className="h-4 w-4 text-emerald-600" />,
         },
         {
+          title: "Promo Finder",
+          description: "Claim partner offers",
+          href: "/promo-finder",
+          icon: <Star className="h-4 w-4 text-yellow-600" />,
+        },
+        {
           title: "Betslip Scanner",
           description: "Scan and analyze your betslips instantly",
           href: "/betslip-scanner",
@@ -379,6 +385,13 @@ export function Header() {
       icon: <BarChart3 className="h-5 w-5 text-emerald-600" />,
       isActive: pathname?.startsWith("/arbitrage"),
       description: "Risk-free edges",
+    },
+    {
+      title: "Promo Finder",
+      href: "/promo-finder",
+      icon: <Star className="h-5 w-5 text-yellow-600" />,
+      isActive: pathname?.startsWith("/promo-finder"),
+      description: "Claim partner offers",
     },
     {
       title: "Trackers",
@@ -533,6 +546,15 @@ export function Header() {
                   <NavigationMenuContent>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-[380px] p-3">
                       <div className="space-y-2">
+                        <NavigationMenuLink asChild>
+                          <Link href="/promo-finder" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                            <Star className="h-4 w-4 text-yellow-600" />
+                            <div>
+                              <div className="font-medium text-sm">Promo Finder</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Claim partner offers</p>
+                            </div>
+                          </Link>
+                        </NavigationMenuLink>
                         <NavigationMenuLink asChild>
                           <Link href={`/mlb/odds/player-props?market=home+runs`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
                             <BarChart3 className="h-4 w-4 text-blue-600" />
