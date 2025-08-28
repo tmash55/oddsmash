@@ -152,14 +152,18 @@ export function ArbitrageTable({ data }: Props) {
     const existing = stakes[key]
     if (existing) return existing
 
-    // Use the stake percentages from the API with default max bet of 100
-    const maxBet = 100
-    const overStakePct = (r.over_stake_pct ?? 50) / 100
-    const underStakePct = (r.under_stake_pct ?? 50) / 100
+    // Default: anchor higher percentage side at $100 and scale the other proportionally
+    const overStakePct = Math.max(0, (r.over_stake_pct ?? 50) / 100)
+    const underStakePct = Math.max(0, (r.under_stake_pct ?? 50) / 100)
+    const highIsOver = overStakePct >= underStakePct
+    const highPct = highIsOver ? overStakePct : underStakePct
+    const lowPct = highIsOver ? underStakePct : overStakePct
+    const highAmt = 100
+    const lowAmt = highPct > 0 ? (lowPct / highPct) * 100 : 0
 
     return {
-      over: Math.round(overStakePct * maxBet * 100) / 100,
-      under: Math.round(underStakePct * maxBet * 100) / 100,
+      over: Math.round((highIsOver ? highAmt : lowAmt) * 100) / 100,
+      under: Math.round((highIsOver ? lowAmt : highAmt) * 100) / 100,
     }
   }
 
