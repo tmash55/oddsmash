@@ -79,16 +79,39 @@ export function ArbitrageTable({ data }: Props) {
   const [stakes, setStakes] = useState<Record<string, { over: number; under: number }>>({})
   const [stakeInputs, setStakeInputs] = useState<Record<string, { over: string; under: string }>>({})
 
+  type SortColumn = "arb" | "event"
+  const [sortBy, setSortBy] = useState<SortColumn>("arb")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+
   const WARNING_ARB_THRESHOLD = 10
 
   const rows = useMemo(() => {
     const now = Date.now()
-    return (data || []).filter((r) => {
+    const filtered = (data || []).filter((r) => {
       if (!r.start_time) return true
       const t = Date.parse(r.start_time)
       return Number.isFinite(t) ? t >= now : true
     })
-  }, [data])
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === "arb") {
+        const aVal = Number(a.arb_percentage) || 0
+        const bVal = Number(b.arb_percentage) || 0
+        return sortDir === "asc" ? aVal - bVal : bVal - aVal
+      }
+      // event sort by start_time
+      const aTime = Date.parse(a.start_time || "")
+      const bTime = Date.parse(b.start_time || "")
+      const aHas = Number.isFinite(aTime)
+      const bHas = Number.isFinite(bTime)
+      if (!aHas && !bHas) return 0
+      if (!aHas) return 1
+      if (!bHas) return -1
+      return sortDir === "asc" ? aTime - bTime : bTime - aTime
+    })
+
+    return sorted
+  }, [data, sortBy, sortDir])
 
   const getKey = (r: ArbitrageOpportunity) => `${r.event_id}-${r.market_key}-${r.line}-${r.over_book}-${r.under_book}`
 
@@ -221,16 +244,44 @@ export function ArbitrageTable({ data }: Props) {
           <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-white/95 to-gray-50/95 dark:from-slate-950/95 dark:to-slate-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px] text-center font-semibold text-gray-900 dark:text-slate-200">
-                <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sortBy === "arb") {
+                      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+                    } else {
+                      setSortBy("arb")
+                      setSortDir("desc")
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 hover:opacity-80"
+                >
                   <TrendingUp className="w-4 h-4" />
                   Arb %
-                </div>
+                  <ArrowUpDown
+                    className={`w-3.5 h-3.5 ${sortBy === "arb" ? "opacity-100" : "opacity-40"} ${sortBy === "arb" && sortDir === "asc" ? "rotate-180" : ""}`}
+                  />
+                </button>
               </TableHead>
               <TableHead className="w-[280px] font-semibold text-gray-900 dark:text-slate-200">
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sortBy === "event") {
+                      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+                    } else {
+                      setSortBy("event")
+                      setSortDir("asc")
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 hover:opacity-80"
+                >
                   <Clock className="w-4 h-4" />
                   Event
-                </div>
+                  <ArrowUpDown
+                    className={`w-3.5 h-3.5 ${sortBy === "event" ? "opacity-100" : "opacity-40"} ${sortBy === "event" && sortDir === "asc" ? "rotate-180" : ""}`}
+                  />
+                </button>
               </TableHead>
               <TableHead className="w-[220px] font-semibold text-gray-900 dark:text-slate-200">
                 <div className="flex items-center gap-2">
@@ -269,7 +320,7 @@ export function ArbitrageTable({ data }: Props) {
 
               return (
                 <motion.tr
-                  key={`${row.event_id}-${row.market_key}-${row.line}`}
+                  key={getKey(row)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
