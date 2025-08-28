@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
 import { sportsbooks } from "@/data/sportsbooks"
+import type { Sportsbook as SportsbookType } from "@/data/sportsbooks"
 import type { ArbitrageOpportunity } from "@/hooks/use-arbitrage"
 import { useMemo, useState } from "react"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { motion } from "framer-motion"
 import { TrendingUp, Calculator, DollarSign, Clock, ArrowUpDown, Zap, ExternalLink, Hand } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -28,9 +30,9 @@ function formatDate(date?: string) {
 
 // Robust sportsbook matching similar to EV Table
 const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
-const SB_BY_ID = new Map<string, { id: string; name: string; logo: string; url?: string }>()
-const SB_BY_NORM_ID = new Map<string, { id: string; name: string; logo: string; url?: string }>()
-const SB_BY_NORM_NAME = new Map<string, { id: string; name: string; logo: string; url?: string }>()
+const SB_BY_ID = new Map<string, SportsbookType>()
+const SB_BY_NORM_ID = new Map<string, SportsbookType>()
+const SB_BY_NORM_NAME = new Map<string, SportsbookType>()
 ;(() => {
   sportsbooks.forEach((sb) => {
     SB_BY_ID.set(sb.id, sb as any)
@@ -49,9 +51,38 @@ function findBook(book?: string) {
 
 function getSportsbookUrlById(bookId?: string): string | undefined {
   const book = findBook(bookId)
-  if (!book?.url) return undefined
-  // Replace optional {state} placeholders with a sensible default
-  return book.url.replace(/\{state\}/g, "nj")
+  if (!book) return undefined
+  // Prefer affiliate link when available
+  if (book.affiliate && book.affiliateLink) return book.affiliateLink
+  if (!book.url) return undefined
+  // Replace optional {state} placeholders with a sensible default if required
+  const requiresState = (book as any).requiresState
+  return requiresState ? book.url.replace(/\{state\}/g, "nj") : book.url
+}
+
+function buildDeepLink(base?: string, sid?: string): string | undefined {
+  if (!base) return undefined
+  if (!sid) return base
+  try {
+    const url = new URL(base)
+    if (!url.searchParams.get("sid")) {
+      url.searchParams.set("sid", sid)
+    }
+    return url.toString()
+  } catch {
+    // Fall back to base if invalid URL
+    return base
+  }
+}
+
+function getMobileAppLink(bookId?: string, sid?: string): string | undefined {
+  const book = findBook(bookId)
+  if (!book?.appLinkTemplate || !sid) return undefined
+  try {
+    return book.appLinkTemplate.replace(/\{sid\}/g, sid)
+  } catch {
+    return undefined
+  }
 }
 
 function formatOdds(odds: number) {
@@ -76,6 +107,7 @@ interface Props {
 
 export function ArbitrageTable({ data }: Props) {
   const { toast } = useToast()
+  const isMobile = useMediaQuery("(max-width: 1024px)")
   const [stakes, setStakes] = useState<Record<string, { over: number; under: number }>>({})
   const [stakeInputs, setStakeInputs] = useState<Record<string, { over: string; under: string }>>({})
 
@@ -407,9 +439,14 @@ export function ArbitrageTable({ data }: Props) {
                               className="object-contain"
                             />
                           )}
-                          {getSportsbookUrlById(row.over_book) && (
+                          {(() => {
+                            const appHref = isMobile ? getMobileAppLink(row.over_book, (row as any).over_sid) : undefined
+                            const deep = !appHref ? buildDeepLink((row as any).over_link, (row as any).over_sid) : undefined
+                            const href = appHref || deep || getSportsbookUrlById(row.over_book)
+                            if (!href) return null
+                            return (
                             <a
-                              href={getSportsbookUrlById(row.over_book)}
+                              href={href}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="ml-1 inline-flex items-center justify-center w-7 h-7 rounded-md border border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 bg-white dark:bg-slate-900"
@@ -417,7 +454,8 @@ export function ArbitrageTable({ data }: Props) {
                             >
                               <ExternalLink className="w-4 h-4" />
                             </a>
-                          )}
+                            )
+                          })()}
                         </div>
                       </div>
 
@@ -440,9 +478,14 @@ export function ArbitrageTable({ data }: Props) {
                               className="object-contain"
                             />
                           )}
-                          {getSportsbookUrlById(row.under_book) && (
+                          {(() => {
+                            const appHref = isMobile ? getMobileAppLink(row.under_book, (row as any).under_sid) : undefined
+                            const deep = !appHref ? buildDeepLink((row as any).under_link, (row as any).under_sid) : undefined
+                            const href = appHref || deep || getSportsbookUrlById(row.under_book)
+                            if (!href) return null
+                            return (
                             <a
-                              href={getSportsbookUrlById(row.under_book)}
+                              href={href}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="ml-1 inline-flex items-center justify-center w-7 h-7 rounded-md border border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 bg-white dark:bg-slate-900"
@@ -450,7 +493,8 @@ export function ArbitrageTable({ data }: Props) {
                             >
                               <ExternalLink className="w-4 h-4" />
                             </a>
-                          )}
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>

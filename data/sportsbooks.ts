@@ -7,6 +7,9 @@ export interface Sportsbook {
   isActive?: boolean;
   url?: string;
   requiresState?: boolean; // Whether this sportsbook requires state in URL
+  affiliate?: boolean; // Whether we have an affiliate program/link
+  affiliateLink?: string; // Affiliate URL to use when linking
+  appLinkTemplate?: string; // Mobile deep link template, e.g., "dksb://sb/addselection_name/{sid}"
 }
 
 export const sportsbooks: Sportsbook[] = [
@@ -19,6 +22,7 @@ export const sportsbooks: Sportsbook[] = [
     isActive: true,
     url: "https://sportsbook.draftkings.com/",
     requiresState: false,
+    appLinkTemplate: "dksb://sb/addselection_name/{sid}",
   },
   {
     id: "fanduel",
@@ -108,6 +112,8 @@ export const sportsbooks: Sportsbook[] = [
     regions: ["us"],
     isActive: true,
     url: "https://www.novig.us/",
+    affiliate: true,
+    affiliateLink: "https://novig.onelink.me/JHQQ/qh47vqcj",
     requiresState: false,
   },
   {

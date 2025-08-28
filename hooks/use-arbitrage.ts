@@ -10,9 +10,14 @@ export interface ArbitrageOpportunity {
 	over_book: string
 	over_odds: number
 	over_stake_pct: number
+	// Optional deep link fields for one-click bet placement
+	over_link?: string
+	over_sid?: string
 	under_book: string
 	under_odds: number
 	under_stake_pct: number
+	under_link?: string
+	under_sid?: string
 	game?: string
 	start_time?: string
 	pointer?: string

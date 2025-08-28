@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useMemo, useState } from "react"
 import { sportsbooks } from "@/data/sportsbooks"
+import type { Sportsbook } from "@/data/sportsbooks"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -43,12 +44,12 @@ export function EvTable({ items }: Props) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
   const { mapById, mapByNormId, mapByNormName } = useMemo(() => {
-    const mapById = new Map<string, { name: string; logo: string }>()
-    const mapByNormId = new Map<string, { name: string; logo: string }>()
-    const mapByNormName = new Map<string, { name: string; logo: string }>()
+    const mapById = new Map<string, { name: string; logo: string; appLinkTemplate?: string; url?: string; affiliate?: boolean; affiliateLink?: string }>()
+    const mapByNormId = new Map<string, { name: string; logo: string; appLinkTemplate?: string; url?: string; affiliate?: boolean; affiliateLink?: string }>()
+    const mapByNormName = new Map<string, { name: string; logo: string; appLinkTemplate?: string; url?: string; affiliate?: boolean; affiliateLink?: string }>()
     const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
     sportsbooks.forEach((sb) => {
-      const entry = { name: sb.name, logo: sb.logo }
+      const entry = { name: sb.name, logo: sb.logo, appLinkTemplate: sb.appLinkTemplate, url: sb.url, affiliate: sb.affiliate, affiliateLink: sb.affiliateLink }
       mapById.set(sb.id, entry)
       mapByNormId.set(normalize(sb.id), entry)
       mapByNormName.set(normalize(sb.name), entry)
@@ -70,6 +71,17 @@ export function EvTable({ items }: Props) {
     const normalize = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
     const norm = normalize(bestBook)
     return sportsbooks.find((sb) => normalize(sb.id) === norm || normalize(sb.name) === norm)
+  }
+
+  const getPreferredLink = (bestBook?: string, fallback?: string, sid?: string, isMobile?: boolean) => {
+    const full = findBookFull(bestBook)
+    // Mobile app link with sid
+    if (isMobile && sid && full?.appLinkTemplate) {
+      return full.appLinkTemplate.replace(/\{sid\}/g, sid)
+    }
+    // Affiliate link preferred
+    if (full?.affiliate && full.affiliateLink) return full.affiliateLink
+    return fallback || full?.url
   }
 
   const sortedItems = useMemo(() => {
@@ -382,8 +394,7 @@ export function EvTable({ items }: Props) {
                       </div>
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const full = findBookFull(item.best_book)
-                          const href = item.link || full?.url
+                          const href = item.link || getPreferredLink(item.best_book, undefined, item.sid, isMobile)
                           const label = item.link ? "Open" : href ? "Site" : "Site"
                           if (href) {
                             return (
