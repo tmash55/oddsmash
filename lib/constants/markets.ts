@@ -686,7 +686,7 @@ export function getDefaultMarket(sport: string): string {
       return 'points';
     case 'nfl':
     case 'ncaaf':
-      return 'anytime touchdown';
+      return 'anytime touchdown scorer';
     case 'nhl':
       return 'anytime goal';
     default:
