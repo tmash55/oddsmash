@@ -43,7 +43,9 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
     selectedLeagues: ["mlb", "nfl", "ncaaf", "wnba", "nba"],
     minOdds: null,
     maxOdds: 200,
-    mode: "prematch"
+    mode: "prematch",
+    bankroll: 1000,
+    kellyPercent: 50
   })
   const [data, setData] = useState<HighEvBet[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -231,7 +233,9 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
             <div className="text-muted-foreground">No results found. Try adjusting your filters.</div>
           </div>
         )}
-        {!loading && !error && filtered.length > 0 && <EvTable items={filtered} />}
+        {!loading && !error && filtered.length > 0 && (
+          <EvTable items={filtered} bankroll={filters.bankroll} kellyPercent={filters.kellyPercent} />
+        )}
       </div>
     </div>
   )

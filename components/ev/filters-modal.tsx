@@ -11,6 +11,7 @@ import type { EvFilters } from "@/components/ev/filters"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { Check, SlidersHorizontal, Sparkles } from "lucide-react"
+import { Input } from "@/components/ui/input"
 
 interface Props {
   open: boolean
@@ -56,7 +57,7 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
         {/* Modern Tabs */}
         <div className="flex-1 min-h-0 overflow-y-auto">
         <Tabs defaultValue="books" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full sticky top-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-slate-800/50 rounded-none h-12">
+          <TabsList className="grid grid-cols-5 w-full sticky top-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm z-10 border-b border-gray-200/50 dark:border-slate-800/50 rounded-none h-12">
             <TabsTrigger
               value="books"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white font-medium"
@@ -80,6 +81,12 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white font-medium"
             >
               Min EV%
+            </TabsTrigger>
+            <TabsTrigger
+              value="staking"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white font-medium"
+            >
+              Staking
             </TabsTrigger>
           </TabsList>
 
@@ -346,6 +353,73 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minEv: 10 })}>
                       10%
                     </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Staking Tab */}
+          <TabsContent value="staking" className="space-y-6 p-6">
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-slate-200">Staking Settings</h3>
+              <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                Configure bankroll and Kelly fraction used to compute suggested stakes
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Bankroll */}
+              <div className="p-6 rounded-2xl border bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-slate-900/50 dark:to-slate-800/50 backdrop-blur-sm border-amber-200/50 dark:border-slate-700/50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">$</span>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-slate-200">Bankroll</Label>
+                    <p className="text-xs text-gray-600 dark:text-slate-400">Total bankroll used for Kelly sizing</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min={0}
+                    step={50}
+                    value={typeof draft.bankroll === 'number' ? draft.bankroll : 1000}
+                    onChange={(e) => setDraft({ ...draft, bankroll: Math.max(0, Number(e.target.value || 0)) })}
+                    className="w-[200px]"
+                  />
+                </div>
+              </div>
+
+              {/* Kelly % */}
+              <div className="p-6 rounded-2xl border bg-gradient-to-br from-rose-50/50 to-pink-50/50 dark:from-slate-900/50 dark:to-slate-800/50 backdrop-blur-sm border-rose-200/50 dark:border-slate-700/50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                    <span className="text-rose-600 dark:text-rose-400 font-bold text-sm">K</span>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-slate-200">Kelly Percentage</Label>
+                    <p className="text-xs text-gray-600 dark:text-slate-400">Fraction of Kelly to apply</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[typeof draft.kellyPercent === 'number' ? draft.kellyPercent : 50]}
+                    onValueChange={([v]) => setDraft({ ...draft, kellyPercent: v })}
+                    className="w-full"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900 dark:text-slate-200">
+                      Current: <span className="text-rose-600 dark:text-rose-400 font-bold">{Math.round(typeof draft.kellyPercent === 'number' ? draft.kellyPercent : 50)}%</span>
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 25 })}>25%</Button>
+                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 50 })}>50%</Button>
+                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 100 })}>100%</Button>
+                    </div>
                   </div>
                 </div>
               </div>

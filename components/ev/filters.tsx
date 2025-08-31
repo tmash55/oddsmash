@@ -15,6 +15,9 @@ export interface EvFilters {
 	maxOdds?: number | null // American odds
 	mode?: "prematch" | "live"
 	maxEv?: number | null // EV% upper bound; null means no max
+	// Staking
+	bankroll: number
+	kellyPercent: number // 0-100, e.g., 50 => Half-Kelly
 }
 
 interface Props {
@@ -55,6 +58,7 @@ export function EvFilterBar({ value, onChange, preMatchCount = 0, liveCount = 0 
 				/>
 			</div>
 		</div>
+
 	)
 }
 

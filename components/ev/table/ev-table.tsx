@@ -35,9 +35,11 @@ type HighEvBet = {
 
 interface Props {
   items: HighEvBet[]
+  bankroll?: number
+  kellyPercent?: number // 0-100
 }
 
-export function EvTable({ items }: Props) {
+export function EvTable({ items, bankroll = 1000, kellyPercent = 50 }: Props) {
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   const [sortField, setSortField] = useState<null | "time" | "ev">(null)
@@ -154,9 +156,9 @@ export function EvTable({ items }: Props) {
     return item.team || ""
   }
 
-  // Kelly settings
-  const BANKROLL = 1000
-  const KELLY_MULTIPLIER = 0.5 // Half-Kelly for risk-adjusted stake
+  // Kelly settings (user-configurable)
+  const BANKROLL = Number.isFinite(bankroll) ? bankroll : 1000
+  const KELLY_MULTIPLIER = Math.max(0, Math.min(1, (Number.isFinite(kellyPercent) ? kellyPercent : 50) / 100))
 
   const getRowKey = (item: HighEvBet, index: number) => {
     const parts = [
