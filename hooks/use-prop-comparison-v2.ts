@@ -44,23 +44,9 @@ export function usePropComparisonV2(params: PropComparisonParams) {
     placeholderData: (previousData) => previousData,
     select: (data) => {
       // Sort players by description for consistent ordering
-      const sortedData = {
+      return {
         ...data,
         data: [...data.data].sort((a, b) => a.description.localeCompare(b.description))
-      };
-
-      // Apply game filtering client-side if a game is selected
-      if (params.gameId) {
-        return {
-          ...sortedData,
-          data: sortedData.data.filter(item => item.event_id === params.gameId),
-          filtered: true, // Add flag to indicate data was filtered
-        };
-      }
-
-      return {
-        ...sortedData,
-        filtered: false,
       };
     }
   });

@@ -687,11 +687,11 @@ export function ScannedBetslipView({
         }
       }
 
-      // Fallback to base sportsbook URL for individual selection
+      // Fallback to sportsbook URL, preferring affiliate link when available
       const sportsbook = sportsbooks.find((sb) => sb.id === sportsbookId)
-      const baseUrl = sportsbook?.url
-      if (baseUrl) {
-        window.open(baseUrl, "_blank", "noopener,noreferrer")
+      const href = sportsbook?.affiliate && sportsbook.affiliateLink ? sportsbook.affiliateLink : sportsbook?.url
+      if (href) {
+        window.open(href, "_blank", "noopener,noreferrer")
         toast.success(`Opened ${sportsbookInfo.name} - please find ${selection.player_name}`)
       } else {
         toast.error("Unable to open sportsbook")
@@ -703,11 +703,11 @@ export function ScannedBetslipView({
     const legs = createParlayLegs(sportsbookId)
 
     if (legs.length === 0) {
-      // Fallback to base sportsbook URL if no deep linking available
+      // Fallback to sportsbook URL, preferring affiliate link when available
       const sportsbook = sportsbooks.find((sb) => sb.id === sportsbookId)
-      const baseUrl = sportsbook?.url
-      if (baseUrl) {
-        window.open(baseUrl, "_blank", "noopener,noreferrer")
+      const href = sportsbook?.affiliate && sportsbook.affiliateLink ? sportsbook.affiliateLink : sportsbook?.url
+      if (href) {
+        window.open(href, "_blank", "noopener,noreferrer")
         toast.success(`Opened ${sportsbookInfo.name}`)
       } else {
         toast.error("Unable to open sportsbook")
@@ -727,21 +727,21 @@ export function ScannedBetslipView({
         window.open(betUrl, "_blank", "noopener,noreferrer")
         toast.success(`Opened ${sportsbookInfo.name} with your selections`)
       } else {
-        // Fallback to base URL
+        // Fallback to sportsbook URL, preferring affiliate link when available
         const sportsbook = sportsbooks.find((sb) => sb.id === sportsbookId)
-        const baseUrl = sportsbook?.url
-        if (baseUrl) {
-          window.open(baseUrl, "_blank", "noopener,noreferrer")
+        const href = sportsbook?.affiliate && sportsbook.affiliateLink ? sportsbook.affiliateLink : sportsbook?.url
+        if (href) {
+          window.open(href, "_blank", "noopener,noreferrer")
           toast.success(`Opened ${sportsbookInfo.name}`)
         }
       }
     } catch (error) {
       console.error("Error generating sportsbook URL:", error)
-      // Fallback to base URL
+      // Fallback to sportsbook URL, preferring affiliate link when available
       const sportsbook = sportsbooks.find((sb) => sb.id === sportsbookId)
-      const baseUrl = sportsbook?.url
-      if (baseUrl) {
-        window.open(baseUrl, "_blank", "noopener,noreferrer")
+      const href = sportsbook?.affiliate && sportsbook.affiliateLink ? sportsbook.affiliateLink : sportsbook?.url
+      if (href) {
+        window.open(href, "_blank", "noopener,noreferrer")
         toast.success(`Opened ${sportsbookInfo.name}`)
       }
     }
