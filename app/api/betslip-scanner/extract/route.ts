@@ -10,6 +10,8 @@ import { getBaseUrl } from '@/lib/url-utils'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 interface BetSelection {
   id: string
