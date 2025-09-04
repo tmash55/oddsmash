@@ -120,6 +120,8 @@ export function ArbitrageTable({ data }: Props) {
   const rows = useMemo(() => {
     const now = Date.now()
     const filtered = (data || []).filter((r) => {
+      const arb = Number(r.arb_percentage) || 0
+      if (arb > 20) return false
       if (!r.start_time) return true
       const t = Date.parse(r.start_time)
       return Number.isFinite(t) ? t >= now : true
