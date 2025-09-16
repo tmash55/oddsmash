@@ -64,7 +64,7 @@ function getValuePercent(item: PlayerOdds, activeLine: string, type: "over" | "u
   // Use pre-calculated metrics from Redis; fallback to yes/no for scorer markets
   const path: any = item.metrics?.[activeLine]
   const val = path?.[type]?.value_pct ?? (type === "over" ? path?.yes?.value_pct : path?.no?.value_pct)
-  if (val !== undefined) return Math.round(val * 10) / 10
+  if (val !== undefined && val !== null) return Math.round(val * 10) / 10
 
   // Fallback: compute from best vs average at this line, if available
   if (isYesNoMarket(item.market)) return null
@@ -75,6 +75,12 @@ function getValuePercent(item: PlayerOdds, activeLine: string, type: "over" | "u
   if (!Number.isFinite(bestDec) || !Number.isFinite(avgDec) || avgDec <= 1) return null
   const trueProb = 1 / avgDec
   const evPct = (trueProb * bestDec - 1) * 100
+  
+  // Debug logging for MLB value calculation issues
+  if (process.env.NODE_ENV === 'development' && (bestPrice || avgAmerican)) {
+    console.log(`Value calc for ${item.description} ${type}: bestPrice=${bestPrice}, avgAmerican=${avgAmerican}, evPct=${evPct}`)
+  }
+  
   return Math.round(evPct * 10) / 10
 }
 
@@ -157,7 +163,7 @@ function getMaxEV(item: ProcessedPlayerOdds): number {
   // Use unified getter that falls back to client-side computation when metrics are missing
   const over = getValuePercent(item, item.activeLine, "over")
   const under = getValuePercent(item, item.activeLine, "under")
-  const values = [over, under].filter((v): v is number => typeof v === "number")
+  const values = [over, under].filter((v): v is number => typeof v === "number" && Number.isFinite(v))
   if (values.length === 0) return 0
   return Math.max(...values)
 }
@@ -960,9 +966,21 @@ export function PropComparisonTableV2({
       }
 
       if (sortField === "ev") {
-        const aValue = getMaxEV(a)
-        const bValue = getMaxEV(b)
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
+        // Get max EV value for each player (max of over/under value%)
+        const aOverValue = getValuePercent(a, a.activeLine, "over") || 0
+        const aUnderValue = getValuePercent(a, a.activeLine, "under") || 0
+        const bOverValue = getValuePercent(b, b.activeLine, "over") || 0
+        const bUnderValue = getValuePercent(b, b.activeLine, "under") || 0
+        
+        const aMaxValue = Math.max(aOverValue, aUnderValue)
+        const bMaxValue = Math.max(bOverValue, bUnderValue)
+        
+        // Debug logging for MLB sorting issues
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Sorting EV: ${a.description} (${aMaxValue}) vs ${b.description} (${bMaxValue})`)
+        }
+        
+        return sortDirection === "asc" ? aMaxValue - bMaxValue : bMaxValue - aMaxValue
       }
 
       return 0
