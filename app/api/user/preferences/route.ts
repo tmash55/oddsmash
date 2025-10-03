@@ -33,7 +33,17 @@ export async function GET(request: NextRequest) {
         favorite_sports: [],
         betting_style: null,
         experience_level: null,
-        sportsbooks: []
+        sportsbooks: [],
+        // Tool-specific defaults
+        arbitrage_selected_books: [],
+        arbitrage_min_arb: 0,
+        arbitrage_search_query: '',
+        ev_selected_books: [],
+        ev_min_odds: -200,
+        ev_max_odds: 200,
+        ev_bankroll: 1000,
+        ev_kelly_percent: 50,
+        ev_search_query: ''
       });
     }
 
@@ -63,30 +73,58 @@ export async function PUT(request: NextRequest) {
       favorite_sports,
       betting_style,
       experience_level,
-      sportsbooks
+      sportsbooks,
+      // Tool-specific preferences
+      arbitrage_selected_books,
+      arbitrage_min_arb,
+      arbitrage_search_query,
+      ev_selected_books,
+      ev_min_odds,
+      ev_max_odds,
+      ev_bankroll,
+      ev_kelly_percent,
+      ev_search_query
     } = body;
+
+    const upsertData = {
+      id: user.id,
+      state_code,
+      preferred_sportsbooks: preferred_sportsbooks || [],
+      onboarding_completed: onboarding_completed || false,
+      favorite_sports: favorite_sports || [],
+      betting_style,
+      experience_level,
+      sportsbooks: sportsbooks || [],
+      // Tool-specific preferences
+      arbitrage_selected_books: arbitrage_selected_books || [],
+      arbitrage_min_arb: arbitrage_min_arb ?? 0,
+      arbitrage_search_query: arbitrage_search_query || '',
+      ev_selected_books: ev_selected_books || [],
+      ev_min_odds: ev_min_odds ?? -200,
+      ev_max_odds: ev_max_odds ?? 200,
+      ev_bankroll: ev_bankroll ?? 1000,
+      ev_kelly_percent: ev_kelly_percent ?? 50,
+      ev_search_query: ev_search_query || '',
+      updated_at: new Date().toISOString()
+    }
+
 
     // Upsert user preferences
     const { data, error } = await supabase
       .from("user_preferences")
-      .upsert({
-        id: user.id,
-        state_code,
-        preferred_sportsbooks: preferred_sportsbooks || [],
-        onboarding_completed: onboarding_completed || false,
-        favorite_sports: favorite_sports || [],
-        betting_style,
-        experience_level,
-        sportsbooks: sportsbooks || [],
-        updated_at: new Date().toISOString()
-      })
+      .upsert(upsertData)
       .select()
       .single();
 
     if (error) {
-      console.error("Error updating user preferences:", error);
-      return NextResponse.json({ error: "Failed to update preferences" }, { status: 500 });
+      console.error("❌ Database error updating user preferences:", error);
+      return NextResponse.json({ 
+        error: "Failed to update preferences", 
+        details: error.message,
+        code: error.code 
+      }, { status: 500 });
     }
+
 
     return NextResponse.json(data);
   } catch (error) {

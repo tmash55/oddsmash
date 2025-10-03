@@ -106,6 +106,7 @@ export const NFL_TEAM_MAP: Record<string, string> = {
   LV: "LV",   // Las Vegas Raiders
   LAC: "LAC", // Los Angeles Chargers
   LAR: "LAR", // Los Angeles Rams
+  LA: "LAR",  // Los Angeles Rams (alternative from Redis)
   MIA: "MIA", // Miami Dolphins
   MIN: "MIN", // Minnesota Vikings
   NE: "NE",   // New England Patriots
@@ -260,9 +261,17 @@ export function getStandardAbbreviation(teamName: string, sport: string = "baseb
     "White Sox": "CHW",
     CHI: "CHC", // Add this to handle "CHI" -> "CHC" for Cubs
   }
+  
+  const nflVariationMap: Record<string, string> = {
+    LA: "LAR", // Los Angeles Rams (Redis sends "LA" but logo file is "LAR.svg")
+  }
 
   if (normalizedSport === "baseball_mlb" && mlbVariationMap[teamName]) {
     return mlbVariationMap[teamName]
+  }
+  
+  if (normalizedSport === "football_nfl" && nflVariationMap[teamName]) {
+    return nflVariationMap[teamName]
   }
 
   // If no match found, check if it's already a valid abbreviation

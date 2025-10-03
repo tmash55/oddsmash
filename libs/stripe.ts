@@ -62,6 +62,9 @@ export const createCheckout = async ({
       mode,
       allow_promotion_codes: true,
       client_reference_id: clientReferenceId,
+      metadata: {
+        brand_key: 'oddsmash',
+      },
       line_items: [
         {
           price: priceId,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { EvFilterBar, type EvFilters } from "@/components/ev/filters"
 import { EvTable } from "@/components/ev/table/ev-table"
 import { EvTableLoading } from "@/components/ev/table/ev-loading"
@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RefreshCw, TrendingUp, Target } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { sportsbooks } from "@/data/sportsbooks"
 import { motion } from "framer-motion"
+import { useEvPreferences } from "@/contexts/preferences-context"
 
 type HighEvBet = {
   player_id: number
@@ -35,11 +35,12 @@ interface Props {
 
 export function EvTableSection({ initialMinEv = 3 }: Props) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [filters, setFilters] = useState<EvFilters>({
+  const { filters, updateFilters, isLoading: preferencesLoading } = useEvPreferences()
+  const [localFilters, setLocalFilters] = useState<EvFilters>({
     query: "",
     sport: "all",
     minEv: initialMinEv,
-    selectedBooks: sportsbooks.filter((b) => b.isActive).map((b) => b.id),
+    selectedBooks: [],
     selectedLeagues: ["mlb", "nfl", "ncaaf", "wnba", "nba"],
     minOdds: null,
     maxOdds: 200,
@@ -51,8 +52,66 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [openFilters, setOpenFilters] = useState(false)
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const isSavingRef = useRef(false)
 
   const [refreshIndex, setRefreshIndex] = useState(0)
+
+  // Initialize local state from preferences once they load
+  useEffect(() => {
+    if (!preferencesLoading && !hasInitialized) {
+      setLocalFilters(prev => ({
+        ...prev,
+        selectedBooks: filters.selectedBooks,
+        minOdds: filters.minOdds,
+        maxOdds: filters.maxOdds,
+        bankroll: filters.bankroll,
+        kellyPercent: filters.kellyPercent,
+        query: filters.searchQuery,
+      }))
+      setHasInitialized(true)
+    }
+  }, [preferencesLoading, hasInitialized, filters])
+
+  // Sync localFilters when underlying preferences change (e.g., from profile page)
+  useEffect(() => {
+    if (hasInitialized && !isSavingRef.current) {
+      setLocalFilters(prev => ({
+        ...prev,
+        selectedBooks: filters.selectedBooks,
+        minOdds: filters.minOdds,
+        maxOdds: filters.maxOdds,
+        bankroll: filters.bankroll,
+        kellyPercent: filters.kellyPercent,
+        query: filters.searchQuery,
+      }))
+    }
+  }, [filters.selectedBooks, filters.minOdds, filters.maxOdds, filters.bankroll, filters.kellyPercent, filters.searchQuery, hasInitialized])
+
+  // Debounced save to preferences when user changes filters
+  useEffect(() => {
+    if (!hasInitialized || isSavingRef.current) return
+    
+    const timeoutId = setTimeout(async () => {
+      isSavingRef.current = true
+      try {
+        await updateFilters({
+          selectedBooks: localFilters.selectedBooks,
+          minOdds: localFilters.minOdds,
+          maxOdds: localFilters.maxOdds,
+          bankroll: localFilters.bankroll,
+          kellyPercent: localFilters.kellyPercent,
+          searchQuery: localFilters.query
+        })
+      } catch (error) {
+        console.error('Failed to save EV preferences:', error)
+      } finally {
+        isSavingRef.current = false
+      }
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [localFilters.selectedBooks, localFilters.minOdds, localFilters.maxOdds, localFilters.bankroll, localFilters.kellyPercent, localFilters.query, hasInitialized, updateFilters])
 
   useEffect(() => {
     let active = true
@@ -61,7 +120,7 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
         setLoading(true)
         setError(null)
         const params = new URLSearchParams()
-        if (filters.minEv) params.set("min_ev", String(filters.minEv))
+        if (localFilters.minEv) params.set("min_ev", String(localFilters.minEv))
         params.set("limit", "500")
         const res = await fetch(`/api/positive-ev/high-ev-pct?${params.toString()}`, { cache: "no-store" })
         if (!res.ok) throw new Error(`Request failed (${res.status})`)
@@ -79,32 +138,32 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
     return () => {
       active = false
     }
-  }, [filters.minEv, refreshIndex])
+  }, [localFilters.minEv, refreshIndex])
 
   const filtered = useMemo(() => {
-    const q = filters.query.trim().toLowerCase()
+    const q = localFilters.query.trim().toLowerCase()
     return (data || []).filter((i) => {
       // league filter
-      if (filters.selectedLeagues.length && !filters.selectedLeagues.includes((i.sport || "").toLowerCase()))
+      if (localFilters.selectedLeagues.length && !localFilters.selectedLeagues.includes((i.sport || "").toLowerCase()))
         return false
       // sportsbook filter
-      if (filters.selectedBooks.length && i.best_book) {
+      if (localFilters.selectedBooks.length && i.best_book) {
         const norm = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
-        const allowed = new Set(filters.selectedBooks.map(norm))
+        const allowed = new Set(localFilters.selectedBooks.map(norm))
         if (!allowed.has(norm(i.best_book))) return false
       }
       // odds range filter
-      if (typeof filters.maxOdds === "number" && typeof i.best_price === "number" && i.best_price > filters.maxOdds)
+      if (typeof localFilters.maxOdds === "number" && typeof i.best_price === "number" && i.best_price > localFilters.maxOdds)
         return false
-      if (typeof filters.minOdds === "number" && typeof i.best_price === "number" && i.best_price < filters.minOdds)
+      if (typeof localFilters.minOdds === "number" && typeof i.best_price === "number" && i.best_price < localFilters.minOdds)
         return false
       // hide started games in prematch mode
-      if (filters.mode !== 'live') {
+      if (localFilters.mode !== 'live') {
         const start = i.commence_time ? new Date(i.commence_time).getTime() : 0
         if (start && start < Date.now()) return false
       }
       // sport quick filter
-      if (filters.sport !== "all" && (i.sport || "").toLowerCase() !== filters.sport) return false
+      if (localFilters.sport !== "all" && (i.sport || "").toLowerCase() !== localFilters.sport) return false
       if (!q) return true
       return (
         (i.description || "").toLowerCase().includes(q) ||
@@ -112,7 +171,7 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
         (i.market || "").toLowerCase().includes(q)
       )
     })
-  }, [data, filters])
+  }, [data, localFilters])
 
   return (
     <div className="rounded-xl border bg-gradient-to-br from-white/80 to-gray-50/80 dark:from-slate-950/80 dark:to-slate-900/80 backdrop-blur-sm border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
@@ -191,7 +250,7 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
       {/* Controls */}
       <div className="px-3 sm:px-6 pb-3 sm:pb-0">
         <div className="flex items-center justify-between gap-3 flex-wrap bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl p-3 sm:p-4 border border-border/50">
-          <EvFilterBar value={filters} onChange={setFilters} preMatchCount={filtered.length} liveCount={0} />
+          <EvFilterBar value={localFilters} onChange={setLocalFilters} preMatchCount={filtered.length} liveCount={0} />
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -216,8 +275,8 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
       <EvFiltersModal
         open={openFilters}
         onOpenChange={setOpenFilters}
-        value={filters}
-        onChange={setFilters}
+        value={localFilters}
+        onChange={setLocalFilters}
       />
 
       {/* Content */}
@@ -234,7 +293,7 @@ export function EvTableSection({ initialMinEv = 3 }: Props) {
           </div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <EvTable items={filtered} bankroll={filters.bankroll} kellyPercent={filters.kellyPercent} />
+          <EvTable items={filtered} bankroll={localFilters.bankroll} kellyPercent={localFilters.kellyPercent} />
         )}
       </div>
     </div>

@@ -1,6 +1,18 @@
 import themes from "daisyui/src/theming/themes";
 import { ConfigProps } from "./types/config";
 
+const starterPriceId =
+  process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PASS_PRICE_ID ||
+  (process.env.NODE_ENV === "development"
+    ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
+    : "price_456");
+
+const advancedPriceId =
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ||
+  (process.env.NODE_ENV === "development"
+    ? "price_1O5KtcAxyNprDp7iftKnrrpw"
+    : "price_456");
+
 const config = {
   appName: "OddSmash",
   appDescription:
@@ -13,14 +25,12 @@ const config = {
   stripe: {
     plans: [
       {
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
-            : "price_456",
-        name: "Starter",
-        description: "Perfect for casual bettors or daily use",
-        price: 99,
-        priceAnchor: 149,
+        priceId: advancedPriceId,
+        isFeatured: true,
+        name: "Pro Monthly",
+        description: "Unlock premium tools and insights, billed monthly",
+        price: 20,
+        priceAnchor: 24,
         features: [
           { name: "Access to Prop Comparison Tool" },
           { name: "Parlay Builder with Odds Sync" },
@@ -29,15 +39,11 @@ const config = {
         ],
       },
       {
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1O5KtcAxyNprDp7iftKnrrpw"
-            : "price_456",
-        isFeatured: true,
-        name: "Advanced",
-        description: "Unlock full features and premium tools",
-        price: 149,
-        priceAnchor: 299,
+        priceId: starterPriceId,
+        name: "Pro Annual",
+        description: "Best value: 12 months for the price of 10",
+        price: 200,
+        priceAnchor: 240,
         features: [
           { name: "All Starter Features" },
           { name: "Advanced Filters & Smart Alerts" },

@@ -208,7 +208,7 @@ export function Header() {
       isActive:
         pathname?.includes("/odds/") ||
         pathname?.startsWith("/betslip-scanner") ||
-        pathname?.startsWith("/positive-ev") ||
+        pathname?.startsWith("/ev") ||
         pathname?.startsWith("/arbitrage"),
       description: "Discover our powerful tools",
       children: [
@@ -225,9 +225,9 @@ export function Header() {
           icon: <LineChart className="h-4 w-4 text-blue-600" />,
         },
         {
-          title: "Positive EV",
-          description: "Find +EV opportunities",
-          href: "/positive-ev",
+          title: "EV Plays",
+          description: "Expected value betting opportunities",
+          href: "/ev",
           icon: <TrendingUp className="h-4 w-4 text-emerald-600" />,
         },
         {
@@ -373,11 +373,11 @@ export function Header() {
     },
     // Add EV and Arbitrage for mobile too
     {
-      title: "Positive EV",
-      href: "/positive-ev",
+      title: "EV Plays",
+      href: "/ev",
       icon: <TrendingUp className="h-5 w-5 text-green-600" />,
-      isActive: pathname?.startsWith("/positive-ev"),
-      description: "+EV opportunities",
+      isActive: pathname?.startsWith("/ev"),
+      description: "Expected value opportunities",
     },
     {
       title: "Arbitrage",
@@ -574,11 +574,11 @@ export function Header() {
                           </Link>
                         </NavigationMenuLink>
                         <NavigationMenuLink asChild>
-                          <Link href="/positive-ev" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
+                          <Link href="/ev" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors no-underline outline-none">
                             <TrendingUp className="h-4 w-4 text-green-600" />
                             <div>
-                              <div className="font-medium text-sm">Positive EV</div>
-                              <p className="text-xs text-muted-foreground line-clamp-1">Find +EV opportunities</p>
+                              <div className="font-medium text-sm">EV Plays</div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">Expected value opportunities</p>
                             </div>
                           </Link>
                         </NavigationMenuLink>

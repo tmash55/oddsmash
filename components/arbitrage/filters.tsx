@@ -1,11 +1,12 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, Lock } from "lucide-react"
+import { Search } from "lucide-react"
 
 export interface ArbFilters {
   query: string
   minArb: number
+  maxArb?: number
   selectedBooks: string[]
 }
 
@@ -34,11 +35,10 @@ export function ArbitrageFilterBar({ value, onChange, mode = "prematch", onModeC
         </button>
         <button
           type="button"
-          disabled
-          className="px-3 py-1.5 rounded-xl text-sm font-medium text-slate-400 dark:text-slate-500 inline-flex items-center gap-1"
-          title="Live opportunities coming soon"
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium ${mode === 'live' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow' : 'text-slate-600 dark:text-slate-300'}`}
+          onClick={() => onModeChange?.('live')}
         >
-          Live <Lock className="w-3.5 h-3.5" />
+          Live <span className="ml-1 tabular-nums">{liveCount}</span>
         </button>
       </div>
 

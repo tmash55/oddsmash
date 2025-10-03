@@ -1,17 +1,18 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
-import { sportsbooks } from "@/data/sportsbooks"
+import { getAllActiveSportsbooks } from "@/data/sportsbooks"
 import type { EvFilters } from "@/components/ev/filters"
 import { motion } from "framer-motion"
 import Image from "next/image"
-import { Check, SlidersHorizontal, Sparkles } from "lucide-react"
+import { Check, SlidersHorizontal, Sparkles, Save } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { useEvPreferences } from "@/contexts/preferences-context"
 
 interface Props {
   open: boolean
@@ -23,13 +24,90 @@ interface Props {
 const ALL_LEAGUES = ["mlb", "nfl", "ncaaf", "wnba", "nba"]
 
 export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
-  const [draft, setDraft] = useState<EvFilters>(value)
+  const { filters, updateFilters, isLoading } = useEvPreferences()
+  const activeBooks = useMemo(() => getAllActiveSportsbooks(), [])
+  
+  // Track pending changes for slider-based filters that require manual save
+  const [pendingChanges, setPendingChanges] = useState({
+    minOdds: value.minOdds,
+    maxOdds: value.maxOdds,
+    minEv: value.minEv
+  })
+  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  const activeBooks = useMemo(() => sportsbooks.filter((b) => b.isActive), [])
+  // Sync pendingChanges when value changes from parent
+  useEffect(() => {
+    // Only sync if not loading and value is valid
+    if (isLoading || !value) return
+    
+    setPendingChanges({
+      minOdds: value.minOdds,
+      maxOdds: value.maxOdds,
+      minEv: value.minEv
+    })
+    setHasUnsavedChanges(false)
+  }, [isLoading, value?.minOdds, value?.maxOdds, value?.minEv])
 
-  const apply = () => {
-    onChange(draft)
-    onOpenChange(false)
+  const handleSelectAll = async () => {
+    if (!filters) return
+    await updateFilters({ selectedBooks: activeBooks.map(b => b.id) })
+  }
+
+  const handleClear = async () => {
+    if (!filters) return
+    await updateFilters({ selectedBooks: [] })
+  }
+
+  const handleToggleBook = async (bookId: string) => {
+    if (!filters) return
+    const newSelected = filters.selectedBooks.includes(bookId)
+      ? filters.selectedBooks.filter(id => id !== bookId)
+      : [...filters.selectedBooks, bookId]
+    await updateFilters({ selectedBooks: newSelected })
+  }
+
+  // These handlers only update local state, don't save to DB
+  const handleMinOddsChange = (newValue: number) => {
+    setPendingChanges(prev => ({ ...prev, minOdds: newValue }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleMaxOddsChange = (newValue: number) => {
+    setPendingChanges(prev => ({ ...prev, maxOdds: newValue }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleMinEvChange = (newValue: number) => {
+    setPendingChanges(prev => ({ ...prev, minEv: newValue }))
+    setHasUnsavedChanges(true)
+  }
+
+  // These still save immediately since they're core preferences
+  const handleBankrollChange = async (value: number) => {
+    if (!filters) return
+    await updateFilters({ bankroll: value })
+  }
+
+  const handleKellyChange = async (value: number) => {
+    if (!filters) return
+    await updateFilters({ kellyPercent: value })
+  }
+
+  // Save all pending changes
+  const handleSavePendingChanges = async () => {
+    try {
+      // Update the parent component with the new values
+      onChange({ 
+        ...value, 
+        minOdds: pendingChanges.minOdds,
+        maxOdds: pendingChanges.maxOdds,
+        minEv: pendingChanges.minEv
+      })
+      setHasUnsavedChanges(false)
+    } catch (error) {
+      console.error('Failed to save filter changes:', error)
+    }
   }
 
   return (
@@ -104,18 +182,18 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                   variant="outline"
                   size="sm"
                   className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-emerald-200"
-                  onClick={() => setDraft({ ...draft, selectedBooks: activeBooks.map((b) => b.id) })}
+                  onClick={handleSelectAll}
                 >
                   Select All
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, selectedBooks: [] })}>
+                <Button variant="outline" size="sm" onClick={handleClear}>
                   Clear
                 </Button>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {activeBooks.map((book) => {
-                const checked = draft.selectedBooks.includes(book.id)
+                const checked = filters?.selectedBooks?.includes(book.id) || false
                 return (
                   <motion.button
                     key={book.id}
@@ -127,17 +205,12 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     }`}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      const next = new Set(draft.selectedBooks)
-                      if (checked) next.delete(book.id)
-                      else next.add(book.id)
-                      setDraft({ ...draft, selectedBooks: Array.from(next) })
-                    }}
+                    onClick={() => handleToggleBook(book.id)}
                   >
                     <div className="flex flex-col items-center gap-3 h-full justify-center">
                       <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl shadow-sm flex items-center justify-center border border-gray-200 dark:border-gray-600">
                         <Image
-                          src={book.logo || "/placeholder.svg"}
+                          src={book.image?.light || "/placeholder.svg"}
                           alt={book.name}
                           width={28}
                           height={28}
@@ -191,29 +264,29 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     min={-1000}
                     max={2000}
                     step={10}
-                    value={[typeof draft.maxOdds === "number" ? draft.maxOdds : 200]}
-                    onValueChange={([v]) => setDraft({ ...draft, maxOdds: v })}
+                    value={[typeof pendingChanges.maxOdds === "number" ? pendingChanges.maxOdds : 200]}
+                    onValueChange={([v]) => handleMaxOddsChange(v)}
                     className="w-full"
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900 dark:text-slate-200">
                       Current:{" "}
                       <span className="text-blue-600 dark:text-blue-400">
-                        {draft.maxOdds !== null && draft.maxOdds !== undefined
-                          ? draft.maxOdds > 0
-                            ? `+${draft.maxOdds}`
-                            : draft.maxOdds
+                        {pendingChanges.maxOdds !== null && pendingChanges.maxOdds !== undefined
+                          ? pendingChanges.maxOdds > 0
+                            ? `+${pendingChanges.maxOdds}`
+                            : pendingChanges.maxOdds
                           : "+200"}
                       </span>
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, maxOdds: 200 })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMaxOddsChange(200)}>
                         +200
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, maxOdds: 100 })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMaxOddsChange(100)}>
                         +100
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, maxOdds: 0 })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMaxOddsChange(0)}>
                         EV
                       </Button>
                     </div>
@@ -239,29 +312,29 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     min={-1000}
                     max={1000}
                     step={10}
-                    value={[typeof draft.minOdds === "number" ? draft.minOdds : -1000]}
-                    onValueChange={([v]) => setDraft({ ...draft, minOdds: v })}
+                    value={[typeof pendingChanges.minOdds === "number" ? pendingChanges.minOdds : -1000]}
+                    onValueChange={([v]) => handleMinOddsChange(v)}
                     className="w-full"
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900 dark:text-slate-200">
                       Current:{" "}
                       <span className="text-purple-600 dark:text-purple-400">
-                        {draft.minOdds !== null && draft.minOdds !== undefined
-                          ? draft.minOdds > 0
-                            ? `+${draft.minOdds}`
-                            : draft.minOdds
+                        {pendingChanges.minOdds !== null && pendingChanges.minOdds !== undefined
+                          ? pendingChanges.minOdds > 0
+                            ? `+${pendingChanges.minOdds}`
+                            : pendingChanges.minOdds
                           : "None"}
                       </span>
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minOdds: null })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMinOddsChange(-1000)}>
                         None
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minOdds: -110 })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMinOddsChange(-110)}>
                         -110
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minOdds: -150 })}>
+                      <Button variant="outline" size="sm" onClick={() => handleMinOddsChange(-150)}>
                         -150
                       </Button>
                     </div>
@@ -281,7 +354,7 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
             </div>
             <div className="flex flex-wrap gap-3">
               {ALL_LEAGUES.map((lg) => {
-                const checked = draft.selectedLeagues.includes(lg)
+                const checked = value.selectedLeagues.includes(lg)
                 return (
                   <motion.button
                     key={lg}
@@ -294,10 +367,10 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const next = new Set(draft.selectedLeagues)
+                      const next = new Set(value.selectedLeagues)
                       if (checked) next.delete(lg)
                       else next.add(lg)
-                      setDraft({ ...draft, selectedLeagues: Array.from(next) })
+                      onChange({ ...value, selectedLeagues: Array.from(next) })
                     }}
                   >
                     {lg.toUpperCase()}
@@ -334,23 +407,23 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                   min={0}
                   max={100}
                   step={1}
-                  value={[draft.minEv]}
-                  onValueChange={([v]) => setDraft({ ...draft, minEv: v })}
+                  value={[pendingChanges.minEv]}
+                  onValueChange={([v]) => handleMinEvChange(v)}
                   className="w-full"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900 dark:text-slate-200">
                     Current:{" "}
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{Math.round(draft.minEv)}%</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{Math.round(pendingChanges.minEv)}%</span>
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minEv: 3 })}>
+                    <Button variant="outline" size="sm" onClick={() => handleMinEvChange(3)}>
                       3%
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minEv: 5 })}>
+                    <Button variant="outline" size="sm" onClick={() => handleMinEvChange(5)}>
                       5%
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, minEv: 10 })}>
+                    <Button variant="outline" size="sm" onClick={() => handleMinEvChange(10)}>
                       10%
                     </Button>
                   </div>
@@ -384,8 +457,8 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     type="number"
                     min={0}
                     step={50}
-                    value={typeof draft.bankroll === 'number' ? draft.bankroll : 1000}
-                    onChange={(e) => setDraft({ ...draft, bankroll: Math.max(0, Number(e.target.value || 0)) })}
+                    value={typeof value.bankroll === 'number' ? value.bankroll : 1000}
+                    onChange={(e) => handleBankrollChange(Math.max(0, Number(e.target.value || 0)))}
                     className="w-[200px]"
                   />
                 </div>
@@ -407,18 +480,18 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
                     min={0}
                     max={100}
                     step={5}
-                    value={[typeof draft.kellyPercent === 'number' ? draft.kellyPercent : 50]}
-                    onValueChange={([v]) => setDraft({ ...draft, kellyPercent: v })}
+                    value={[typeof value.kellyPercent === 'number' ? value.kellyPercent : 50]}
+                    onValueChange={([v]) => handleKellyChange(v)}
                     className="w-full"
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900 dark:text-slate-200">
-                      Current: <span className="text-rose-600 dark:text-rose-400 font-bold">{Math.round(typeof draft.kellyPercent === 'number' ? draft.kellyPercent : 50)}%</span>
+                      Current: <span className="text-rose-600 dark:text-rose-400 font-bold">{Math.round(typeof value.kellyPercent === 'number' ? value.kellyPercent : 50)}%</span>
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 25 })}>25%</Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 50 })}>50%</Button>
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...draft, kellyPercent: 100 })}>100%</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleKellyChange(25)}>25%</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleKellyChange(50)}>50%</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleKellyChange(100)}>100%</Button>
                     </div>
                   </div>
                 </div>
@@ -429,23 +502,33 @@ export function EvFiltersModal({ open, onOpenChange, value, onChange }: Props) {
         </div>
 
         {/* Modern Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-slate-800/50 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-sm sticky bottom-0">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setDraft(value)
-              onOpenChange(false)
-            }}
-            className="px-6"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={apply}
-            className="px-6 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg"
-          >
-            Apply Filters
-          </Button>
+        <div className="flex justify-between items-center gap-3 p-6 border-t border-gray-200/50 dark:border-slate-800/50 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-sm sticky bottom-0">
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <Save className="w-4 h-4" />
+              <span className="text-sm font-medium">Unsaved changes</span>
+            </div>
+          )}
+          {!hasUnsavedChanges && <div />} {/* Spacer */}
+          
+          <div className="flex gap-3">
+            {hasUnsavedChanges && (
+              <Button
+                onClick={handleSavePendingChanges}
+                className="px-6 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </Button>
+            )}
+            <Button
+              onClick={() => onOpenChange(false)}
+              variant={hasUnsavedChanges ? "outline" : "default"}
+              className={hasUnsavedChanges ? "px-6" : "px-6 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg"}
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

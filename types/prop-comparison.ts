@@ -100,6 +100,8 @@ export interface TransformedPlayerOdds extends PlayerOdds {
   bestUnderPrice: number;
   bestOverBook: string;
   bestUnderBook: string;
+  bestOverLine?: number; // Added for V3 compatibility
+  bestUnderLine?: number; // Added for V3 compatibility
   activeLine: string;
   edgeValues: Map<'over' | 'under', number>;
 } 

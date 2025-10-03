@@ -7,6 +7,7 @@ import { BetslipProvider } from "@/contexts/betslip-context"
 import { BetslipOverlay } from "@/components/betslip/betslip-overlay"
 import { SportsbookProvider } from "@/contexts/sportsbook-context"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { PreferencesProvider } from "@/contexts/preferences-context"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -29,18 +30,20 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SportsbookProvider>
-          {isAuthRoute ? (
-            // Auth routes: No betslip provider or components
-            children
-          ) : (
-            // Regular routes: Include betslip functionality
-            <BetslipProvider>
-              {children}
-              <BetslipOverlay />
-            </BetslipProvider>
-          )}
-        </SportsbookProvider>
+        <PreferencesProvider>
+          <SportsbookProvider>
+            {isAuthRoute ? (
+              // Auth routes: No betslip provider or components
+              children
+            ) : (
+              // Regular routes: Include betslip functionality
+              <BetslipProvider>
+                {children}
+                <BetslipOverlay />
+              </BetslipProvider>
+            )}
+          </SportsbookProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </QueryClientProvider>
   )
