@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/**": {
+      "memory": 1024
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/mispriced-odds",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+} 

@@ -1,0 +1,67 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import AuthCard from '@/components/auth/AuthCard';
+
+import { useAuth } from "@/components/auth/auth-provider"
+import { motion } from "framer-motion"
+import SignUpForm from "@/components/auth/SignUpForm";
+
+export default function SignUpPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  // Remove the automatic redirect - let auth callback handle routing
+  // This prevents conflicts with onboarding flow
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // If user is already authenticated, they shouldn't be on the sign-up page
+  // but don't automatically redirect - let them navigate naturally
+  if (user) {
+    return (
+      <motion.div 
+        className="flex min-h-svh w-full items-center justify-center p-6 md:p-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4">You're already signed in!</h2>
+          <p className="text-muted-foreground mb-6">
+            You're already logged into your account.
+          </p>
+          <Link 
+            href="/hit-rates" 
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div 
+      className="flex min-h-svh w-full items-center justify-center p-6 md:p-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="w-full max-w-md">
+        <SignUpForm />
+      </div>
+    </motion.div>
+  )
+} 

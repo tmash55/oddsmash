@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "name": "kotp-data-refresh",
+  "crons": [
+    {
+      "path": "/api/kotp/cron/update-cache",
+      "schedule": "*/5 * * * *",
+      "enabled": true,
+      "timezone": "UTC",
+      "params": {
+        "secret": "@CRON_SECRET"
+      },
+      "description": "Updates NBA playoff data cache every 5 minutes"
+    }
+  ],
+  "qstash": {
+    "jobs": [
+      {
+        "name": "Fetch NBA Game Logs",
+        "url": "${VERCEL_URL}/api/kotp/fetch-game-logs?secret=${CRON_SECRET}",
+        "cron": "*/5 * * * *", 
+        "description": "Fetches and caches NBA playoff game logs every 5 minutes"
+      },
+      {
+        "name": "Fetch NBA Scoreboard",
+        "url": "${VERCEL_URL}/api/kotp/fetch-scoreboard?secret=${CRON_SECRET}",
+        "cron": "* * * * *",
+        "description": "Fetches and caches NBA scoreboard data every 1 minute"
+      },
+      {
+        "name": "Build KOTP Leaderboard",
+        "url": "${VERCEL_URL}/api/kotp/build-leaderboard?secret=${CRON_SECRET}",
+        "cron": "*/2 * * * *",
+        "description": "Builds and caches the KOTP leaderboard every 2 minutes"
+      }
+    ]
+  }
+} 
