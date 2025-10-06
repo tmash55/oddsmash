@@ -20,24 +20,33 @@ export default function ArbsPage() {
   // Discover plan
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   useEffect(() => {
-    fetch("/api/me/plan", { cache: "no-store" })
-      .then(r => {
+    const loadPlan = async () => {
+      try {
+        const r = await fetch("/api/me/plan", { cache: "no-store", credentials: "include" });
         if (!r.ok) throw new Error("unauth");
-        return r.json();
-      })
-      .then(d => {
+        const d = await r.json();
         setLoggedIn(true);
-        const isPro = d.plan === "pro" || d.plan === "admin";
+        let isPro = d.plan === "pro" || d.plan === "admin";
+        if (!isPro) {
+          // Silent refresh to recover from stale cookie; then re-check
+          try { await fetch('/api/auth/refresh-plan?onlyIfExpLt=999999', { method: 'POST', credentials: 'include' }); } catch {}
+          const r2 = await fetch("/api/me/plan", { cache: "no-store", credentials: "include" });
+          if (r2.ok) {
+            const d2 = await r2.json();
+            isPro = d2.plan === "pro" || d2.plan === "admin";
+          }
+        }
         if (typeof window !== 'undefined') (window as any).__isPro = isPro;
         setPro(isPro);
         if (!isPro) setAuto(false);
-      })
-      .catch(() => {
+      } catch {
         setLoggedIn(false);
         if (typeof window !== 'undefined') (window as any).__isPro = false;
         setPro(false);
         setAuto(false);
-      });
+      }
+    };
+    loadPlan();
   }, []);
 
   const { rows, ids, changes, added, version, loading, connected, cursor, hasMore, nextPage, prevPage, refresh, prefs, prefsLoading, updateFilters, counts, authExpired, reconnectNow } = useArbsView({ pro: pro, live: auto, eventId, limit: 100, mode });
