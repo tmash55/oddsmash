@@ -9,7 +9,7 @@ export function useEVPlays(filters: EVFilters = {}) {
       
       // Add filters to query params
       if (filters.sports?.length) params.set('sports', filters.sports.join(','))
-      if (filters.scopes?.length) params.set('scopes', filters.scopes.join(','))
+      if (filters.scope?.length) params.set('scope', filters.scope.join(','))
       if (filters.min_ev !== undefined) params.set('min_ev', filters.min_ev.toString())
       if (filters.max_ev !== undefined) params.set('max_ev', filters.max_ev.toString())
       if (filters.markets?.length) params.set('markets', filters.markets.join(','))
