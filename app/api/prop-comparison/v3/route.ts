@@ -345,8 +345,9 @@ export async function GET(request: Request) {
         
         // For V3, we need to organize by each sportsbook's individual line
         // This allows different sportsbooks to have different lines
-        const books = playerData.books ?? {};
-        for (const [sportsbookId, bookData] of Object.entries(books) as Array <[string, V3PlayerBookData]>) {
+        for (const [sportsbookId, bookData] of Object.entries(playerData.books || {}) as Array<[string, V3PlayerBookData]>) {
+  // bookData is now typed as V3PlayerBookData
+}
           let sportsbookEntry: V3OddsData | null = null;
           let lineToUse: number | undefined;
           
