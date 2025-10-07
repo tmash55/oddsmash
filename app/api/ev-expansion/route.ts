@@ -35,12 +35,17 @@ export async function GET(request: NextRequest) {
     
     // Try cache first (5 minute TTL for expansion data)
     const cachedData = await redis.get(cacheKey)
-    if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        data: JSON.parse(cachedData),
-        cached: true
-      })
+    if (typeof cachedData === 'string') {
+        try{
+            const data = JSON.parse(cachedData)
+            return NextResponse.json({
+                success: true,
+                data,
+                cached: true
+            })
+        }
+        catch{void 0;}
+      
     }
     
     // For demo purposes, create mock expansion data based on the EV play
