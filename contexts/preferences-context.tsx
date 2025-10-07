@@ -43,6 +43,7 @@ interface PreferencesContextType {
   updateEvFilters: (filters: {
     selectedBooks?: string[];
     minOdds?: number;
+    maxOdds?: number;
     bankroll?: number;
     kellyPercent?: number;
     searchQuery?: string;
