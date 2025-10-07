@@ -56,7 +56,7 @@ export default function SignInForm({ className, ...props }: React.ComponentProps
         // Mint/refresh plan cookie after password auth (OAuth flow mints in callback route)
         try {
           await fetch("/api/auth/refresh-plan", { method: "POST", credentials: "include" })
-        } catch {}
+        } catch {void 0;}
 
         // Check if user needs onboarding
         const { data: preferences } = await supabase

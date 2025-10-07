@@ -29,7 +29,7 @@ export default function ArbsPage() {
         let isPro = d.plan === "pro" || d.plan === "admin";
         if (!isPro) {
           // Silent refresh to recover from stale cookie; then re-check
-          try { await fetch('/api/auth/refresh-plan?onlyIfExpLt=999999', { method: 'POST', credentials: 'include' }); } catch {}
+          try { await fetch('/api/auth/refresh-plan?onlyIfExpLt=999999', { method: 'POST', credentials: 'include' }); } catch {void 0;}
           const r2 = await fetch("/api/me/plan", { cache: "no-store", credentials: "include" });
           if (r2.ok) {
             const d2 = await r2.json();

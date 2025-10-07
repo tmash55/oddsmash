@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const enc = new TextEncoder();
 
     // optional hello (ignore if closed)
-    try { await writer.write(enc.encode(`event: hello\ndata: {}\n\n`)); } catch {}
+    try { await writer.write(enc.encode(`event: hello\ndata: {}\n\n`)); } catch {void 0;}
 
     const safeWrite = async (chunk: Uint8Array) => {
       try { await writer.write(chunk); } catch { throw new Error('closed'); }
@@ -59,20 +59,22 @@ export async function GET(req: NextRequest) {
 
     const onAbort = () => {
       clearInterval(ping);
-      try { writer.close(); } catch {}
+      try { writer.close(); } catch {void 0;}
     };
     if (req.signal.aborted) onAbort();
     req.signal.addEventListener('abort', onAbort, { once: true });
 
     try {
-      while (true) {
+      let finished=false;
+      while(!finished) {
         const { value, done } = await reader.read();
-        if (done) break;
+        finished = !!done;
+        if (finished) break;
         try { await safeWrite(value!); } catch { break; }
       }
     } finally {
       clearInterval(ping);
-      try { await writer.close(); } catch {}
+      try { await writer.close(); } catch {void 0;}
     }
   };
 

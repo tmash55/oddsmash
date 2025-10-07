@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-
+import React from 'react'
 export const metadata: Metadata = {
   title: 'Odds Screen | OddSmash',
   description: 'Unified odds screen for player props and game lines across all sports. Compare odds, find value, and customize your view.',

@@ -156,7 +156,7 @@ export function ArbitrageSection() {
     // Search filter (most expensive, do last)
     if (!localFilters.query) return result
     const q = localFilters.query.toLowerCase()
-    return result.filter(
+    const filtered = result.filter(
       (r) =>
         (r.game || "").toLowerCase().includes(q) ||
         (r.description || "").toLowerCase().includes(q) ||
@@ -167,10 +167,10 @@ export function ArbitrageSection() {
     
     const processingTime = performance.now() - startTime
     if (processingTime > 50) {
-      console.warn(`[ARBITRAGE SECTION] Slow filtering: ${processingTime.toFixed(2)}ms for ${items.length} items`)
+      console.warn(`[ARBITRAGE SECTION] Slow filtering: ${processingTime.toFixed(2)}ms for ${filtered.length} items`)
     }
     
-    return result
+    return filtered
   }, [data, localFilters, mode])
 
   // Calculate filtered counts for each mode

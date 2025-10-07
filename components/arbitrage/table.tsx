@@ -480,7 +480,7 @@ export function ArbitrageTable({ data, mode = "prematch" }: Props) {
   }
 
   // Dual bet button for opening both sides simultaneously
-  const DualBetButton = memo(({
+  const DualBetButton = memo(function DualBetButton({
     overBooks,
     underBooks,
     isMobile,
@@ -524,7 +524,7 @@ export function ArbitrageTable({ data, mode = "prematch" }: Props) {
   })
 
   // Clean sportsbook button for individual sides
-  const SportsbookButton = memo(({
+  const SportsbookButton = memo(function SportsbookButton({
     bookInfo,
     side,
     odds,

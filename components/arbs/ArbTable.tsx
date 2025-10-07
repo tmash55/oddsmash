@@ -142,7 +142,7 @@ export function ArbTable({ rows, ids, changes, added, totalBetAmount }: { rows: 
     if (!target) return;
     try {
       window.open(target, '_blank', 'noopener,noreferrer,width=1200,height=800,scrollbars=yes,resizable=yes');
-    } catch {}
+    } catch {void 0;}
   };
 
   const handleDualBet = (r: ArbRow) => {
@@ -151,7 +151,7 @@ export function ArbTable({ rows, ids, changes, added, totalBetAmount }: { rows: 
       const underUrl = r.u?.u || getBookFallbackUrl(r.u?.bk);
       if (overUrl) window.open(overUrl, '_blank', 'noopener,noreferrer,width=1200,height=800,scrollbars=yes,resizable=yes');
       if (underUrl) setTimeout(() => { window.open(underUrl, '_blank', 'noopener,noreferrer,width=1200,height=800,scrollbars=yes,resizable=yes'); }, 100);
-    } catch {}
+    } catch {void 0;}
   };
   const formatGameTitle = (r: ArbRow) => {
     if (isMoneyline(r.mkt)) return 'Moneyline';
@@ -269,7 +269,7 @@ export function ArbTable({ rows, ids, changes, added, totalBetAmount }: { rows: 
                 <div className="text-xs text-muted-foreground">{r.ev?.away?.abbr} @ {r.ev?.home?.abbr}</div>
               </td>
               <td className={`p-2 whitespace-nowrap text-center border-l border-gray-200 dark:border-slate-700`}>
-                {Boolean((r as any).ev?.live) ? (
+                {(r as any).ev?.live ? (
                   <div className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="font-medium">Live</span>

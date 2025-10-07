@@ -189,7 +189,7 @@ function toCurrency(amount: number): string {
 
 // Performance-optimized market display with memoization and cleanup
 const marketDisplayCache = new Map<string, string>()
-const playerNameRegex = /^([A-Za-z\s\.]+?)\s+Player\s+/i // Pre-compiled regex for performance
+const playerNameRegex = /^([A-Za-z\s.]+?)\s+Player\s+/i // Pre-compiled regex for performance
 const CACHE_MAX_SIZE = 1000 // Prevent memory leaks
 
 // Cache cleanup function
@@ -722,7 +722,7 @@ export function ArbitrageTableNew({ data, mode = "prematch" }: Props) {
   }, [calculateOptimalWager])
 
   // Individual bet button for each side
-  const BetButton = memo(({
+  const BetButton = memo(function BetButton({
     bookInfo,
     side,
     isMobile,
@@ -768,7 +768,7 @@ export function ArbitrageTableNew({ data, mode = "prematch" }: Props) {
   })
 
   // Dual bet button for opening both sides simultaneously
-  const DualBetButton = memo(({
+  const DualBetButton = memo(function DualBetButton({
     overBooks,
     underBooks,
     isMobile,

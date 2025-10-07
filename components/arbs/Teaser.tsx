@@ -13,7 +13,7 @@ export function Teaser() {
         const r = await fetch("/api/arbs/teaser?limit=2", { cache: "no-store" });
         const j = await r.json();
         setRows(j.rows || []);
-      } catch {}
+      } catch {void 0;}
       setLoading(false);
     })();
   }, []);

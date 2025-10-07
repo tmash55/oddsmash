@@ -508,10 +508,10 @@ function getGamePropDetails(market: string, eventBundle: any): string | undefine
     case 'spread':
       return 'Point Spread'
     case 'total':
-    case 'totals':
-      // Extract line from first available book
+    case 'totals':{// Extract line from first available book
       const totalLine = extractLineFromMetrics({}, eventBundle) || extractLineFromBestOffer({}, eventBundle)
-      return totalLine ? `Total ${totalLine}` : 'Total'
+      return totalLine ? `Total ${totalLine}` : 'Total'}
+      
     case 'moneyline':
       return 'Moneyline'
     default:
