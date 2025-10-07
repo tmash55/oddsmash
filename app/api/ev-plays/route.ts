@@ -53,9 +53,8 @@ export async function GET(request: NextRequest) {
       `:${filters.min_ev || 0}:${filters.limit}:${filters.sort_by}:${filters.sort_direction}`
     
     // Try cache first (30 second TTL for EV data)
-    const cachedData = await redis.get(cacheKey)
+    const cachedData = await redis.get<EVPlay[]>(cacheKey);
     if (cachedData) {
-      const parsed = JSON.parse(cachedData) as EVPlay[]
       return NextResponse.json({
         success: true,
         data: parsed.slice(filters.offset, filters.offset + filters.limit),
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
           last_updated: new Date().toISOString(),
           cache_hit: true
         }
-      } as EVPlaysResponse)
+      } satisfies EVPlaysResponse)
     }
     
     // Fetch from individual sport/scope keys in parallel
