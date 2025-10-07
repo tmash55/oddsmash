@@ -127,7 +127,7 @@ export function EVFiltersModal({ filters, onFiltersChange }: EVFiltersModalProps
                       <input
                         type="checkbox"
                         checked={localFilters.scope?.includes(scope) || false}
-                        onChange=}}}) => {
+                        onChange={(e)) => {
                           const currentScopes = localFilters.scope || []
                           if (e.target.checked) {
                             setLocalFilters(prev => ({
