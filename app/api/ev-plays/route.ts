@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       } satisfies EVPlaysResponse)
     }
     
-    // Fetch from individual sport/scope keys in parallel
+    // Fetch from individual sport/scope keys in parallels
     const fetchPromises: Promise<EVPlay[]>[] = []
     
     for (const sport of targetSports) {
