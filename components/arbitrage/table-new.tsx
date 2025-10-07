@@ -730,7 +730,7 @@ export function ArbitrageTableNew({ data, mode = "prematch" }: Props) {
     bookInfo: { book: string; link?: string; sid?: string | null; mobile_link?: string | null }
     side: "over" | "under"
     isMobile: boolean
-  }) => {
+  }) {
     const book = findBook(bookInfo.book)
     if (!book) return null
 

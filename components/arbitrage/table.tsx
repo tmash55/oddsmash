@@ -534,7 +534,7 @@ export function ArbitrageTable({ data, mode = "prematch" }: Props) {
     side: "over" | "under"
     odds: number
     isMobile: boolean
-  }) => {
+  }) {
     const book = findBook(bookInfo.book)
     if (!book) return null
 
