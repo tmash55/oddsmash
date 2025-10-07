@@ -11,7 +11,7 @@ export default function EVPage() {
   // Filter state
   const [filters, setFilters] = useState<EVFilters>({
     sports: ['nfl'],
-    scopes: ['pregame'],
+    scope: ['pregame'],
     min_ev: 2,
     limit: 50,
     sort_by: 'ev_percentage',

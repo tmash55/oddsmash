@@ -1,10 +1,13 @@
-// EV Play Types - matches actual Redis data structure
+﻿// EV Play Types - matches actual Redis data structure
+
+
+export type EVScope = 'pregame' | 'live'; // add more if needed
 
 export interface BaseEVPlay {
   id: string
   sport: string
   scope: 'pregame' | 'live'
-  scopes: string
+  scopes?: EVScope[];       // ✅ add this (optional if you want defaulting)
   event_id: string
   market: string
   side: 'over' | 'under'
