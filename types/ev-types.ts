@@ -4,6 +4,7 @@ export interface BaseEVPlay {
   id: string
   sport: string
   scope: 'pregame' | 'live'
+  scopes: string
   event_id: string
   market: string
   side: 'over' | 'under'
