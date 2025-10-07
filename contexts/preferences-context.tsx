@@ -65,6 +65,7 @@ interface PreferencesContextType {
   getEvFilters: () => {
     selectedBooks: string[];
     minOdds: number;
+    maxOdds: number;
     bankroll: number;
     kellyPercent: number;
     searchQuery: string;
