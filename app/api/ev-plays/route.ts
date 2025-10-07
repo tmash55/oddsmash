@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: cachedData.slice(filters.offset, filters.offset + filters.limit),
         metadata: {
-          total_count: parsed.length,
+          total_count: cachedData.length,
           sports: targetSports,
           last_updated: new Date().toISOString(),
           cache_hit: true
