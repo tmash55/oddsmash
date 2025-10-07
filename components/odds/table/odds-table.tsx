@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useCallback, memo, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, memo, useRef,} from 'react'
 import { ChevronUp, ChevronDown, GripVertical, Plus } from 'lucide-react'
 import {
   DndContext,
@@ -858,6 +858,7 @@ const MemoizedTableRow = memo(({
   // This is a placeholder for the actual row implementation
   return null
 })
+MemoizedTableRow.displayName = 'MemoizedTableRow'
 
 export function OddsTable({
   data,
@@ -1188,25 +1189,6 @@ export function OddsTable({
     return () => window.removeEventListener('error', handleError)
   }, [])
 
-  if (hasError) {
-    return (
-      <div className="p-8 text-center">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          Something went wrong
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          We're working to fix this issue. Please refresh the page.
-        </p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Refresh Page
-        </button>
-      </div>
-    )
-  }
-
   // Virtual scrolling optimization for large datasets
   const ITEMS_PER_PAGE = 100 // Optimized for better UX while maintaining performance
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: ITEMS_PER_PAGE })
@@ -1214,7 +1196,7 @@ export function OddsTable({
   // Debounced updates for high-frequency interactions
   const debouncedUpdateLine = useCallback(
     (() => {
-      let timeoutId: NodeJS.Timeout
+      let timeoutId: ReturnType<typeof setTimeout>
       return (item: OddsTableItem, line: number) => {
         clearTimeout(timeoutId)
         timeoutId = setTimeout(async () => {
@@ -1694,6 +1676,26 @@ export function OddsTable({
       <ChevronUp className="w-4 h-4" />
     ) : (
       <ChevronDown className="w-4 h-4" />
+    )
+  }
+
+  // Error boundary state
+  if (hasError) {
+    return (
+      <div className="p-8 text-center">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Something went wrong
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          We&apos;re working to fix this issue. Please refresh the page.
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Refresh Page
+        </button>
+      </div>
     )
   }
 
