@@ -776,7 +776,7 @@ export function ArbitrageTableNew({ data, mode = "prematch" }: Props) {
     overBooks: Array<{ book: string; link?: string; sid?: string | null; mobile_link?: string | null }>
     underBooks: Array<{ book: string; link?: string; sid?: string | null; mobile_link?: string | null }>
     isMobile: boolean
-  }) => {
+  }){
     const getBestLink = (bookInfo: { book: string; link?: string; sid?: string | null; mobile_link?: string | null }) => {
       if (isMobile) {
         // Mobile priority: mobile_link -> mobile app link -> desktop link -> base URL

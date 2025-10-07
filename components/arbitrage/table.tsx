@@ -488,7 +488,7 @@ export function ArbitrageTable({ data, mode = "prematch" }: Props) {
     overBooks: Array<{ book: string; link?: string; sid?: string | null; mobile_link?: string | null }>
     underBooks: Array<{ book: string; link?: string; sid?: string | null; mobile_link?: string | null }>
     isMobile: boolean
-  }) => {
+  }){
     const handleDualBet = () => {
       // Get the first available link from each side
       const overBook = overBooks[0]
