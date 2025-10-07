@@ -199,9 +199,9 @@ export default function EVPage() {
                 {SUPPORTED_SCOPES.map(scope => (
                   <button
                     key={scope}
-                    onClick={() => updateFilters({ scopes: [scope] })}
+                    onClick={() => updateFilters({ scope })}
                     className={`px-3 py-2 text-xs font-medium rounded transition-all touch-manipulation ${
-                      filters.scopes?.includes(scope)
+                      filters.scope ===scope
                         ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' 
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 active:bg-gray-300 dark:active:bg-gray-500'
                     }`}
