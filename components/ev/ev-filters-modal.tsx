@@ -126,7 +126,7 @@ export function EVFiltersModal({ filters, onFiltersChange }: EVFiltersModalProps
                     <label key={scope} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
                       <input
                         type="checkbox"
-                        checked={localFilters.scope?.include(scope) || false}
+                        checked={localFilters.scope?.includes(scope) || false}
                         onChange={(e) => {
                           const newScope = localFilters.scope || ''
                           if (e.target.checked) {
