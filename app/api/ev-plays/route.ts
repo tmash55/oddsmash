@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (cachedData) {
       return NextResponse.json({
         success: true,
-        data: parsed.slice(filters.offset, filters.offset + filters.limit),
+        data: cachedData.slice(filters.offset, filters.offset + filters.limit),
         metadata: {
           total_count: parsed.length,
           sports: targetSports,
