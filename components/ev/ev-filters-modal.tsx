@@ -127,14 +127,21 @@ export function EVFiltersModal({ filters, onFiltersChange }: EVFiltersModalProps
                       <input
                         type="checkbox"
                         checked={localFilters.scope?.includes(scope) || false}
-                        onChange={(e) => {
-                          const newScope = localFilters.scope || ''
+                        onChange=}}}) => {
+                          const currentScopes = localFilters.scope || []
                           if (e.target.checked) {
-                            setLocalFilters(prev => ({ ...prev, scope}))
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              scope: [...currentScopes, scope],
+                            }))
                           } else {
-                            setLocalFilters(prev => ({ ...prev, scope : ''}))
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              scope: currentScopes.filter(s => s !== scope),
+                            }))
                           }
                         }}
+
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                       />
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
