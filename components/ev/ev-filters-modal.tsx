@@ -32,7 +32,7 @@ export function EVFiltersModal({ filters, onFiltersChange }: EVFiltersModalProps
   const handleReset = () => {
     const defaultFilters: EVFilters = {
       sports: ['nfl'],
-      scopes: ['pregame'],
+      scope: ['pregame'],
       min_ev: 2,
       limit: 50,
       sort_by: 'ev_percentage',
