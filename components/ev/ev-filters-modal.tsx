@@ -126,13 +126,13 @@ export function EVFiltersModal({ filters, onFiltersChange }: EVFiltersModalProps
                     <label key={scope} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
                       <input
                         type="checkbox"
-                        checked={localFilters.scopes?.includes(scope) || false}
+                        checked={localFilters.scope === scope}
                         onChange={(e) => {
-                          const scopes = localFilters.scopes || []
+                          const newScope = localFilters.scope || ''
                           if (e.target.checked) {
-                            setLocalFilters(prev => ({ ...prev, scopes: [...scopes, scope] }))
+                            setLocalFilters(prev => ({ ...prev, scope}))
                           } else {
-                            setLocalFilters(prev => ({ ...prev, scopes: scopes.filter(s => s !== scope) }))
+                            setLocalFilters(prev => ({ ...prev, scope : ''}))
                           }
                         }}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
