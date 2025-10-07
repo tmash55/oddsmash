@@ -17,6 +17,8 @@ const RequestSchema = z.object({
   search: z.string().nullable().optional(),
 })
 
+type RequestParams = z.infer<typeof RequestSchema>
+
 // Response interfaces
 interface OddsScreenResponse {
   success: boolean
@@ -577,9 +579,14 @@ export async function GET(request: NextRequest) {
 
     // Validate parameters
     const validatedParams = RequestSchema.parse(rawParams)
-    
     // Build Redis key
-    const redisKey = buildRedisKey(validatedParams)
+    const parsed = RequestSchema.safeParse(rawParams)
+    if (!parsed.success){
+        return NextResponse.json({error: parsed.error.flatten()}, {status: 400})
+    }
+    const params = parsed.data
+    const { sport, type, market, scope } = params
+    const redisKey = buildRedisKey({ sport, type, market, scope })
     console.log(`[/api/odds-screen] Fetching from Redis key: ${redisKey}`)
 
     // Fetch data from Redis
