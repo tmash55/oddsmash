@@ -3,7 +3,8 @@ import { redis } from "@/lib/redis";
 import { z } from "zod";
 import type { 
   V3MarketData, 
-  V3PlayerOdds, 
+  V3PlayerOdds,
+  V3PlayerBookData,
   PropComparisonV3Params, 
   PropComparisonV3Response,
   V3OddsData,
@@ -344,7 +345,8 @@ export async function GET(request: Request) {
         
         // For V3, we need to organize by each sportsbook's individual line
         // This allows different sportsbooks to have different lines
-        for (const [sportsbookId, bookData] of Object.entries(playerData.books || {})) {
+        const books = playerData.books ?? {};
+        for (const [sportsbookId, bookData] of Object.entries(books) as Array <[string, V3PlayerBookData]>) {
           let sportsbookEntry: V3OddsData | null = null;
           let lineToUse: number | undefined;
           
