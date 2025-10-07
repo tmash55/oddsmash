@@ -90,8 +90,8 @@ export function FiltersSheet({ children }: { children?: React.ReactNode }) {
               <div className="flex items-center justify-between mb-3">
                 <div className="text-xs text-muted-foreground">Choose sportsbooks to include</div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="xs" onClick={() => setLocalBooks(allBooks.map(b => b.id))}>Select All</Button>
-                  <Button variant="outline" size="xs" onClick={() => setLocalBooks([])}>Clear</Button>
+                  <Button variant="outline" size="sm" onClick={() => setLocalBooks(allBooks.map(b => b.id))}>Select All</Button>
+                  <Button variant="outline" size="sm" onClick={() => setLocalBooks([])}>Clear</Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
