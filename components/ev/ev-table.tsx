@@ -314,7 +314,7 @@ export function EVTable({
                                   {formatOdds(book.odds)}
                                 </div>
                                 <div className="text-xs text-gray-600 dark:text-slate-400 px-2 py-1 bg-gray-200 dark:bg-slate-700/60 rounded-full">
-                                  {book.side === 'over' ? 'o' : 'u'}{book.line}
+                                  {expandedRows[play.id].play.side === 'over' ? 'o' : 'u'}{book.line}
                                 </div>
                               </div>
                             ))}
