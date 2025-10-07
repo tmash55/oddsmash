@@ -219,17 +219,19 @@ export class PreferencesRPC {
   /**
    * Batch update multiple preferences atomically
    */
-     async batchUpdatePreferences(
-      userId: string, 
-      updates: Array<{ key: keyof UserPreferencesUpdate; value: UserPreferencesUpdate[keyof UserPreferencesUpdate] }>
+     async batchUpdatePreferences<
+      K extends keyof UserPreferencesUpdate
+    >(
+      userId: string,
+      updates: Array<{ key: K; value: UserPreferencesUpdate[K] }>
     ): Promise<UserPreferences> {
       const updateObject = updates.reduce((acc, { key, value }) => {
         acc[key] = value;
         return acc;
       }, {} as UserPreferencesUpdate);
 
-      return this.updatePreferences(userId, updateObject);
-    }
+  return this.updatePreferences(userId, updateObject);
+}
 }
 
 // Singleton instance
