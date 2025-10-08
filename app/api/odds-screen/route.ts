@@ -67,7 +67,7 @@ interface OddsScreenItem {
     }>
   }
 }
-dd
+
 // Helper function to build Redis key
 function buildRedisKey(params: {
   sport: string
