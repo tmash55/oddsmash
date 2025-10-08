@@ -6,17 +6,19 @@ import { fetchMarkets } from "@/lib/props-client";
 
 export default function PropsPage() {
   const [markets, setMarkets] = useState<string[]>([]);
+  const [sport, setSport] = useState<string>("nfl");
   const [market, setMarket] = useState<string>("passing_yards");
   const [scope, setScope] = useState<"pregame" | "live">("pregame");
   const [auto, setAuto] = useState<boolean>(true);
   const pro = true; // TODO: wire to plan endpoint
 
   useEffect(() => {
-    fetchMarkets().then((d) => setMarkets(d.markets || [])).catch(() => {});
-  }, []);
+    fetchMarkets(sport).then((d) => setMarkets(d.markets || [])).catch(() => {});
+  }, [sport]);
 
   const { rows, sids, loading, connected, error, nextPage, prevPage, refresh, canPrev, hasNext } = usePropsStream({
     enabled: pro && auto,
+    sport,
     market,
     scope,
     pageSize: 100,
@@ -32,6 +34,15 @@ export default function PropsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-500">Sport:</label>
+          <select className="border rounded px-2 py-1 text-sm" value={sport} onChange={(e) => setSport(e.target.value)}>
+            <option value="nfl">NFL</option>
+            <option value="mlb">MLB</option>
+            <option value="nba">NBA</option>
+            <option value="wnba">WNBA</option>
+          </select>
+        </div>
         <button onClick={() => void refresh()} className="px-3 py-1 rounded bg-neutral-800 text-white">Refresh</button>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={auto && pro} disabled={!pro} onChange={(e) => setAuto(e.target.checked)} />

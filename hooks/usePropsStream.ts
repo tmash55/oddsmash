@@ -7,11 +7,12 @@ type DiffMsg = { v?: number; add?: string[]; upd?: string[]; del?: string[] };
 
 export function usePropsStream(opts: {
   enabled: boolean; // pro && auto
+  sport: string;
   market: string;
   scope: PropsScope;
   pageSize?: number;
 }) {
-  const { enabled, market, scope, pageSize = 100 } = opts;
+  const { enabled, sport, market, scope, pageSize = 100 } = opts;
 
   const [cursor, setCursor] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function usePropsStream(opts: {
   const loadPage = useCallback(async (reset: boolean = false) => {
     setLoading(true);
     try {
-      const res = await fetchPropsTable({ market, scope, limit: pageSize, cursor: reset ? 0 : cursor || 0 });
+      const res = await fetchPropsTable({ sport, market, scope, limit: pageSize, cursor: reset ? 0 : cursor || 0 });
       sidsRef.current = res.sids;
       setSids(res.sids);
       setNextCursor(res.nextCursor);
@@ -43,9 +44,9 @@ export function usePropsStream(opts: {
     } finally {
       setLoading(false);
     }
-  }, [market, scope, pageSize, cursor]);
+  }, [sport, market, scope, pageSize, cursor]);
 
-  useEffect(() => { loadPage(true); }, [market, scope, pageSize]);
+  useEffect(() => { loadPage(true); }, [sport, market, scope, pageSize]);
 
   const nextPage = useCallback(async () => {
     if (!nextCursor) return;
@@ -67,7 +68,9 @@ export function usePropsStream(opts: {
     let backoff = 1000;
     const maxBackoff = 15000;
     const open = () => {
-      es = new EventSource("/api/sse/props", { withCredentials: true });
+      const qs = new URLSearchParams();
+      qs.set("sport", sport);
+      es = new EventSource(`/api/sse/props?${qs.toString()}`, { withCredentials: true });
       es.onopen = () => { setConnected(true); backoff = 1000; };
       es.onerror = () => {
         setConnected(false);
@@ -86,7 +89,7 @@ export function usePropsStream(opts: {
         if (toUpdate.length) {
           for (let i = 0; i < toUpdate.length; i += 200) {
             const chunk = toUpdate.slice(i, i + 200);
-            const rows = await fetchPropsRows(chunk);
+            const rows = await fetchPropsRows(sport, chunk);
             const cache = cacheRef.current;
             rows.forEach(({ sid, row }) => {
               if (row) cache.set(sid, row);
@@ -104,7 +107,7 @@ export function usePropsStream(opts: {
     };
     open();
     return () => { try { es?.close(); } catch {}; };
-  }, [enabled]);
+  }, [enabled, sport]);
 
   const rows = useMemo(() => sids.map((sid) => cacheRef.current.get(sid)).filter(Boolean) as PropsRow[], [sids]);
 

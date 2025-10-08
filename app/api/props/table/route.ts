@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 
-const H_PRIM = "props:rows:prim";
-const Z_ROI_LIVE_PREFIX = "props:sort:roi:live:";
-const Z_ROI_PREGAME_PREFIX = "props:sort:roi:pregame:";
+const H_PRIM_PREFIX = "props:"; // props:{sport}:rows:prim
+const Z_ROI_LIVE_PREFIX = "props:"; // props:{sport}:sort:roi:live:{mkt}
+const Z_ROI_PREGAME_PREFIX = "props:"; // props:{sport}:sort:roi:pregame:{mkt}
 
 function parseIntSafe(v: string | null, def: number): number {
   const n = Number(v ?? "");
@@ -13,6 +13,7 @@ function parseIntSafe(v: string | null, def: number): number {
 export async function GET(req: NextRequest) {
   try {
     const sp = new URL(req.url).searchParams;
+    const sport = (sp.get("sport") || "").trim().toLowerCase();
     const market = (sp.get("market") || "").trim();
     const scope = (sp.get("scope") || "pregame").toLowerCase() as "pregame" | "live";
     const limit = Math.max(1, Math.min(300, parseIntSafe(sp.get("limit"), 100)));
@@ -20,11 +21,17 @@ export async function GET(req: NextRequest) {
     const playerId = sp.get("playerId") || undefined;
     const team = sp.get("team") || undefined;
 
+    const allowed = new Set(["nfl", "mlb", "wnba", "nba"]);
+    if (!sport || !allowed.has(sport)) {
+      return NextResponse.json({ error: "invalid_sport" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    }
     if (!market) {
       return NextResponse.json({ error: "market_required" }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
 
-    const zkey = scope === "live" ? `${Z_ROI_LIVE_PREFIX}${market}` : `${Z_ROI_PREGAME_PREFIX}${market}`;
+    const zkey = scope === "live"
+      ? `${Z_ROI_LIVE_PREFIX}${sport}:sort:roi:live:${market}`
+      : `${Z_ROI_PREGAME_PREFIX}${sport}:sort:roi:pregame:${market}`;
 
     // Page SIDs from ZSET (simple offset cursor)
     const zrUnknown = (await (redis as any).zrange(zkey, cursor, cursor + limit - 1, { rev: true })) as unknown;
@@ -32,6 +39,7 @@ export async function GET(req: NextRequest) {
     let sids = zrArr.map((x) => String(x));
 
     // Fetch rows
+    const H_PRIM = `${H_PRIM_PREFIX}${sport}:rows:prim`;
     const rawUnknown = sids.length ? ((await (redis as any).hmget(H_PRIM, ...sids)) as unknown) : [];
     let rawArr = Array.isArray(rawUnknown) ? (rawUnknown as any[]) : [];
     if (sids.length && rawArr.length === 0) {

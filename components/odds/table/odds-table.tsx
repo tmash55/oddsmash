@@ -2084,143 +2084,126 @@ export function OddsTable({
                              </div>
                           ) : (
                             <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                <span>{item.entity?.name || 'Unknown'}</span>
-                                {item.entity?.details && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({item.entity.details})</span>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <span>{item.entity?.name || 'Unknown'}</span>
+                            {(() => {
+                              const d = (item.entity?.details || '').toString().trim()
+                              // Only show if it looks like a position (1–4 letters), not market keys like receiving_yards
+                              if (!d || /_/g.test(d) || /yards|points|total|spread/i.test(d) || d.length > 4) return null
+                              return (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({d.toUpperCase()})</span>
+                              )
+                            })()}
+                          </div>
+                          {(() => {
+                            const playerTeam = item.entity?.team
+                            const homeTeamName = item.event?.homeTeam
+                            const awayTeamName = item.event?.awayTeam
+                            if (!playerTeam || !homeTeamName || !awayTeamName) return null
+
+                            const isHome = playerTeam === homeTeamName
+                            const opponentTeamName = isHome ? awayTeamName : homeTeamName
+                            const sep = isHome ? 'vs' : '@'
+                            // Prefer provided abbreviations from API via event names if they already are abbrs
+                            const playerAbbr = (getStandardAbbreviation(playerTeam, sport) || playerTeam).toUpperCase()
+                            const opponentAbbr = (getStandardAbbreviation(opponentTeamName, sport) || opponentTeamName).toUpperCase()
+
+                            return (
+                              <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                {hasTeamLogos(sport) && (
+                                  <img
+                                    src={getTeamLogoUrl(playerTeam)}
+                                    alt={playerAbbr}
+                                    className="w-4 h-4 object-contain flex-shrink-0"
+                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                                  />
+                                )}
+                                <span>{playerAbbr}</span>
+                                <span>{sep}</span>
+                                <span>{opponentAbbr}</span>
+                                {hasTeamLogos(sport) && (
+                                  <img
+                                    src={getTeamLogoUrl(opponentTeamName)}
+                                    alt={opponentAbbr}
+                                    className="w-4 h-4 object-contain flex-shrink-0"
+                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                                  />
                                 )}
                               </div>
-                               {(() => {
-                                 const playerTeam = item.entity?.team
-                                 const homeTeam = item.event?.homeTeam
-                                 const awayTeam = item.event?.awayTeam
-                                 let opponentTeam: string | null = null
-                                 let matchupSegments: Array<{ team: string; label: string }> = []
+                            )
+                          })()}
+                          {/* Player Line Selector and Expand Controls */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <select
+                              onClick={(e) => e.stopPropagation()}
+                              onFocus={async (e) => {
+                                e.stopPropagation()
+                                if (!alternatesCache[item.event.id] && !alternatesLoading[item.event.id]) {
+                                  await fetchAlternates(item.event.id)
+                                }
+                              }}
+                              onChange={async (e) => {
+                                e.stopPropagation()
+                                const value = e.target.value
+                                if (value === 'primary') {
+                                  resetToPrimaryLine(item)
+                                } else {
+                                  const newLine = parseFloat(value)
+                                  if (!isNaN(newLine)) {
+                                    await updatePrimaryRowWithLine(item, newLine)
+                                  }
+                                }
+                              }}
+                              className={`text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] ${isLoadingAlternates(item.event.id) ? 'opacity-75' : ''}`}
+                              value={(() => {
+                                const rowKey = `${item.event.id}-${item.entity.id || 'game'}`
+                                return customLineSelections[rowKey] || 'primary'
+                              })()}
+                              disabled={isLoadingAlternates(item.event.id)}
+                            >
+                              <option value="primary">Primary Line</option>
+                              {isLoadingAlternates(item.event.id) ? (
+                                <option disabled>Loading...</option>
+                              ) : (
+                                getAvailableLines(item).map(line => (
+                                  <option key={line} value={line}>
+                                    {line}
+                                  </option>
+                                ))
+                              )}
+                            </select>
 
-                                 if (playerTeam && homeTeam && awayTeam) {
-                                   if (playerTeam === awayTeam) {
-                                     opponentTeam = homeTeam
-                                     matchupSegments = [
-                                       { team: playerTeam, label: `${playerTeam}` },
-                                       { team: '', label: '@' },
-                                       { team: opponentTeam, label: `${opponentTeam}` }
-                                     ]
-                                   } else if (playerTeam === homeTeam) {
-                                     opponentTeam = awayTeam
-                                     matchupSegments = [
-                                       { team: playerTeam, label: `${playerTeam}` },
-                                       { team: '', label: 'vs.' },
-                                       { team: opponentTeam, label: `${opponentTeam}` }
-                                     ]
-                                   } else {
-                                     matchupSegments = [{ team: playerTeam, label: playerTeam }]
-                                   }
-                                 } else if (playerTeam) {
-                                   matchupSegments = [{ team: playerTeam, label: playerTeam }]
-                                 }
-
-                                 if (matchupSegments.length === 0) {
-                                   return null
-                                 }
-
-                                 return (
-                                   <>
-                                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                       {matchupSegments.map((segment, idx) => (
-                                         <span key={`${segment.label}-${idx}`} className="flex items-center gap-1">
-                                           {segment.team && hasTeamLogos(sport) && (
-                                             <img
-                                               src={getTeamLogoUrl(segment.team)}
-                                               alt={segment.team}
-                                               className="w-4 h-4 object-contain flex-shrink-0"
-                                               onError={(e) => {
-                                                 e.currentTarget.style.display = 'none'
-                                               }}
-                                             />
-                                           )}
-                                           <span>{segment.label}</span>
-                                         </span>
-                                       ))}
-                                     </div>
-                                     
-                                     {/* Line Selector and Expand Controls */}
-                                     <div className="mt-2 flex items-center gap-2">
-                                       {/* Quick Line Selector Dropdown */}
-                                       <select
-                                         onClick={(e) => e.stopPropagation()}
-                                         onFocus={async (e) => {
-                                           e.stopPropagation()
-                                           // Pre-fetch alternates when dropdown is focused for smoother UX
-                                           if (!alternatesCache[item.event.id] && !alternatesLoading[item.event.id]) {
-                                             await fetchAlternates(item.event.id)
-                                           }
-                                         }}
-                                         onChange={async (e) => {
-                                           e.stopPropagation()
-                                           const value = e.target.value
-                                           if (value === 'primary') {
-                                             resetToPrimaryLine(item)
-                                           } else {
-                                             const newLine = parseFloat(value)
-                                             if (!isNaN(newLine)) {
-                                               await updatePrimaryRowWithLine(item, newLine)
-                                             }
-                                           }
-                                         }}
-                                         className={`text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] ${isLoadingAlternates(item.event.id) ? 'opacity-75' : ''}`}
-                                         value={(() => {
-                                           const rowKey = `${item.event.id}-${item.entity.id || 'game'}`
-                                           return customLineSelections[rowKey] || 'primary'
-                                         })()}
-                                         disabled={isLoadingAlternates(item.event.id)}
-                                       >
-                                         <option value="primary">Primary Line</option>
-                                         {isLoadingAlternates(item.event.id) ? (
-                                           <option disabled>Loading...</option>
-                                         ) : (
-                                           getAvailableLines(item).map(line => (
-                                             <option key={line} value={line}>
-                                               {line}
-                                             </option>
-                                           ))
-                                         )}
-                                       </select>
-
-                                       {/* Expand All Alternates Button */}
-                                       {preferences.includeAlternates && (
-                                         <Tooltip>
-                                           <TooltipTrigger asChild>
-                                             <button
-                                               type="button"
-                                               onClick={(e) => {
-                                                 e.stopPropagation()
-                                                 setExpandedRows(prev => ({
-                                                   ...prev,
-                                                   [rowKey]: !prev[rowKey]
-                                                 }))
-                                                 if (!expandedRows[rowKey]) {
-                                                   void fetchAlternates(item.event.id)
-                                                 }
-                                               }}
-                                               className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition text-blue-600 dark:text-blue-400"
-                                               aria-label={isExpanded ? 'Hide all alternates' : 'Show all alternates'}
-                                             >
-                                               {isExpanded ? (
-                                                 <ChevronUp className="w-3 h-3" />
-                                               ) : (
-                                                 <Plus className="w-3 h-3" />
-                                               )}
-                                             </button>
-                                           </TooltipTrigger>
-                                           <TooltipContent>
-                                             <span className="text-xs">{isExpanded ? 'Hide all alternates' : 'Show all alternates'}</span>
-                                           </TooltipContent>
-                                         </Tooltip>
-                                       )}
-                                     </div>
-                                   </>
-                                 )
-                               })()}
+                            {preferences.includeAlternates && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setExpandedRows(prev => ({
+                                        ...prev,
+                                        [rowKey]: !prev[rowKey]
+                                      }))
+                                      if (!expandedRows[rowKey]) {
+                                        void fetchAlternates(item.event.id)
+                                      }
+                                    }}
+                                    className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition text-blue-600 dark:text-blue-400"
+                                    aria-label={isExpanded ? 'Hide all alternates' : 'Show all alternates'}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-3 h-3" />
+                                    ) : (
+                                      <Plus className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <span className="text-xs">{isExpanded ? 'Hide all alternates' : 'Show all alternates'}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                              </div>
                            )}
                          </td>

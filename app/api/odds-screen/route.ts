@@ -579,7 +579,148 @@ export async function GET(request: NextRequest) {
 
     // Validate parameters
     const validatedParams = RequestSchema.parse(rawParams)
-    // Build Redis key
+    // Prefer new per-sport props:{sport}:* keys first for efficiency and SSE compatibility
+    const sportNorm = validatedParams.sport.toLowerCase()
+    const scopeNorm = validatedParams.scope.toLowerCase() as 'pregame' | 'live'
+    const typeNorm = validatedParams.type
+    const marketNorm = validatedParams.market.toLowerCase()
+
+    const zkeyNew = `props:${sportNorm}:sort:roi:${scopeNorm}:${marketNorm}`
+    const sidsUnknownNew = await (redis as any).zrange(zkeyNew, 0, 199, { rev: true })
+    const sidsNew: string[] = Array.isArray(sidsUnknownNew) ? (sidsUnknownNew as any[]).map(String) : []
+
+    if (sidsNew.length > 0) {
+      const primKeyNew = `props:${sportNorm}:rows:prim`
+      const primUnknownNew = await (redis as any).hmget(primKeyNew, ...sidsNew)
+      let primArrNew = Array.isArray(primUnknownNew) ? (primUnknownNew as any[]) : []
+      if (primArrNew.length === 0) {
+        primArrNew = await Promise.all(sidsNew.map((sid) => (redis as any).hget(primKeyNew, sid)))
+      }
+
+      type PropsRow = any
+      const parsedRows = primArrNew.map((val, i) => {
+        let row: any = null
+        if (val) {
+          if (typeof val === 'string') { try { row = JSON.parse(val) } catch { row = null } }
+          else if (typeof val === 'object') row = val
+        }
+        return { sid: sidsNew[i], row }
+      })
+
+      const filteredRows = parsedRows.filter(({ row }) => {
+        if (!row) return false
+        const ent: string = String(row.ent || '')
+        return typeNorm === 'player' ? ent.startsWith('pid:') : !ent.startsWith('pid:')
+      })
+
+      // Group by entity within event so we show a single primary row per player/event (or per game entity)
+      const groupKeyFor = (r: any) => `${String(r.eid || '')}|${String(r.ent || '')}`
+      const groups = new Map<string, Array<{ sid: string; row: any }>>()
+      for (const it of filteredRows) {
+        const k = groupKeyFor(it.row)
+        const arr = groups.get(k) || []
+        arr.push(it)
+        groups.set(k, arr)
+      }
+
+      // For each group, fetch one family to discover primary_ln, then select that line
+      const repSids: string[] = Array.from(groups.values()).map((arr) => arr[0].sid)
+      const altKeyNew = `props:${sportNorm}:rows:alt`
+      let famUnknown: any[] = []
+      if (repSids.length) {
+        const hm = await (redis as any).hmget(altKeyNew, ...repSids)
+        famUnknown = Array.isArray(hm) ? (hm as any[]) : []
+        if (famUnknown.length === 0) {
+          famUnknown = await Promise.all(repSids.map((sid) => (redis as any).hget(altKeyNew, sid)))
+        }
+      }
+      const sidToPrimaryLn = new Map<string, number>()
+      repSids.forEach((sid, i) => {
+        const raw = famUnknown[i]
+        if (!raw) return
+        let fam: any = null
+        if (typeof raw === 'string') { try { fam = JSON.parse(raw) } catch { fam = null } }
+        else if (typeof raw === 'object') fam = raw
+        const pln = typeof fam?.primary_ln === 'number' ? fam.primary_ln : undefined
+        if (pln != null) sidToPrimaryLn.set(sid, pln)
+      })
+
+      const chosen: Array<{ sid: string; row: any }> = []
+      Array.from(groups.values()).forEach((arr) => {
+        if (arr.length === 1) { chosen.push(arr[0]); return }
+        // Determine primary ln from the group's representative family; fallback to first
+        const repSid = arr[0].sid
+        const primaryLn = sidToPrimaryLn.get(repSid)
+        if (primaryLn == null) { chosen.push(arr[0]); return }
+        const exact = arr.find((x) => Number(x.row?.ln) === primaryLn)
+        chosen.push(exact || arr[0])
+      })
+
+      const toOddsItem = (sid: string, r: any): OddsScreenItem => {
+        const ev = r.ev || {}
+        const homeName = ev.home?.abbr || ev.home?.name || ''
+        const awayName = ev.away?.abbr || ev.away?.name || ''
+        const isPlayer = String(r.ent || '').startsWith('pid:')
+        const entityId = isPlayer ? String(r.ent).slice(4) : undefined
+
+        const bestOver = r.best?.over ? { price: r.best.over.price, line: r.ln, book: r.best.over.bk, link: null } : undefined
+        const bestUnder = r.best?.under ? { price: r.best.under.price, line: r.ln, book: r.best.under.bk, link: null } : undefined
+        const avgOver = (r.avg?.over != null) ? { price: r.avg.over, line: r.ln, book: undefined, link: null } : undefined
+        const avgUnder = (r.avg?.under != null) ? { price: r.avg.under, line: r.ln, book: undefined, link: null } : undefined
+
+        const booksIn: Record<string, any> = r.books || {}
+        const booksOut: Record<string, any> = {}
+        Object.keys(booksIn).forEach((bk) => {
+          const b = booksIn[bk] || {}
+          const over = b.over ? { price: b.over.price, line: r.ln, link: b.over.u ?? b.over.link ?? null } : undefined
+          const under = b.under ? { price: b.under.price, line: r.ln, link: b.under.u ?? b.under.link ?? null } : undefined
+          if (over || under) booksOut[bk] = { over, under }
+        })
+
+        const name = isPlayer ? (r.player || 'Unknown') : `${awayName} @ ${homeName}`
+        const entityDetails = isPlayer ? (r.position || r.mkt) : (r.mkt === 'moneyline' ? 'Moneyline' : r.mkt === 'spread' ? 'Point Spread' : 'Total')
+
+        return {
+          id: sid,
+          entity: { type: isPlayer ? 'player' : 'game', name, details: entityDetails, team: isPlayer ? (r.team || ev.team || '') : undefined, id: entityId },
+          event: { id: String(r.eid || ''), startTime: ev.dt || new Date().toISOString(), homeTeam: homeName, awayTeam: awayName },
+          odds: { best: { over: bestOver, under: bestUnder }, average: { over: avgOver, under: avgUnder }, opening: {}, books: booksOut },
+        }
+      }
+
+      const items = chosen.map(({ sid, row }) => toOddsItem(sid, row))
+      let filteredItems = items
+      if (validatedParams.gameId) filteredItems = applyGameFilter(filteredItems, validatedParams.gameId)
+      if (validatedParams.search) filteredItems = applySearchFilter(filteredItems, validatedParams.search)
+      filteredItems.sort((a, b) => {
+        const t = new Date(a.event.startTime).getTime() - new Date(b.event.startTime).getTime()
+        if (t !== 0) return t
+        return String(a.entity.name).localeCompare(String(b.entity.name))
+      })
+
+      const response: OddsScreenResponse = {
+        success: true,
+        metadata: {
+          sport: validatedParams.sport,
+          type: validatedParams.type,
+          market: validatedParams.market,
+          scope: validatedParams.scope,
+          lastUpdated: new Date().toISOString(),
+          totalCount: items.length,
+          filteredCount: filteredItems.length !== items.length ? filteredItems.length : undefined,
+        },
+        data: filteredItems,
+      }
+
+      const payload = JSON.stringify(response)
+      const etagNew = `W/"${createHash('sha1').update(payload).digest('hex')}"`
+      const resNew = NextResponse.json(response)
+      resNew.headers.set('ETag', etagNew)
+      resNew.headers.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=60')
+      return resNew
+    }
+
+    // Legacy path: fall back to cached odds:{sport}:props payload if present
     const parsed = RequestSchema.safeParse(rawParams)
     if (!parsed.success){
         return NextResponse.json({error: parsed.error.flatten()}, {status: 400})
@@ -595,8 +736,103 @@ export async function GET(request: NextRequest) {
     const fetchTime = Date.now() - startTime
     
     if (!rawData) {
-      console.log(`[/api/odds-screen] No data found for key: ${redisKey}`)
-      return NextResponse.json({
+      // Fallback path: build from per-sport props:{sport}:* keys (new ingestion)
+      const sportNorm = validatedParams.sport.toLowerCase()
+      const scopeNorm = validatedParams.scope.toLowerCase() as 'pregame' | 'live'
+      const typeNorm = validatedParams.type
+      const marketNorm = validatedParams.market.toLowerCase()
+
+      const zkey = `props:${sportNorm}:sort:roi:${scopeNorm}:${marketNorm}`
+      const sidsUnknown = await (redis as any).zrange(zkey, 0, 199, { rev: true })
+      const sids: string[] = Array.isArray(sidsUnknown) ? (sidsUnknown as any[]).map(String) : []
+
+      const primKey = `props:${sportNorm}:rows:prim`
+      const primUnknown = sids.length ? await (redis as any).hmget(primKey, ...sids) : []
+      let primArr = Array.isArray(primUnknown) ? (primUnknown as any[]) : []
+      if (sids.length && primArr.length === 0) {
+        primArr = await Promise.all(sids.map((sid) => (redis as any).hget(primKey, sid)))
+      }
+
+      type PropsRow = any
+      const parsedRows: Array<{ sid: string; row: PropsRow | null }> = primArr.map((val, i) => {
+        let row: any = null
+        if (val) {
+          if (typeof val === 'string') { try { row = JSON.parse(val) } catch { row = null } }
+          else if (typeof val === 'object') row = val
+        }
+        return { sid: sids[i], row }
+      })
+
+      const filteredRows = parsedRows.filter(({ row }) => {
+        if (!row) return false
+        const ent: string = String(row.ent || '')
+        if (typeNorm === 'player') return ent.startsWith('pid:')
+        return !ent.startsWith('pid:')
+      })
+
+      const toOddsItem = (sid: string, r: any): OddsScreenItem => {
+        const ev = r.ev || {}
+        const homeName = ev.home?.name || ev.home?.abbr || ''
+        const awayName = ev.away?.name || ev.away?.abbr || ''
+        const isPlayer = String(r.ent || '').startsWith('pid:')
+        const entityId = isPlayer ? String(r.ent).slice(4) : undefined
+
+        const bestOver = r.best?.over ? { price: r.best.over.price, line: r.ln, book: r.best.over.bk, link: null } : undefined
+        const bestUnder = r.best?.under ? { price: r.best.under.price, line: r.ln, book: r.best.under.bk, link: null } : undefined
+
+        const avgOver = (r.avg?.over != null) ? { price: r.avg.over, line: r.ln, book: undefined, link: null } : undefined
+        const avgUnder = (r.avg?.under != null) ? { price: r.avg.under, line: r.ln, book: undefined, link: null } : undefined
+
+        const booksIn: Record<string, any> = r.books || {}
+        const booksOut: Record<string, any> = {}
+        Object.keys(booksIn).forEach((bk) => {
+          const b = booksIn[bk] || {}
+          const over = b.over ? { price: b.over.price, line: r.ln, link: b.over.u ?? b.over.link ?? null } : undefined
+          const under = b.under ? { price: b.under.price, line: r.ln, link: b.under.u ?? b.under.link ?? null } : undefined
+          if (over || under) booksOut[bk] = { over, under }
+        })
+
+        const name = isPlayer ? (r.player || 'Unknown') : `${awayName} @ ${homeName}`
+        const entityDetails = isPlayer ? r.mkt : (r.mkt === 'moneyline' ? 'Moneyline' : r.mkt === 'spread' ? 'Point Spread' : 'Total')
+
+        return {
+          id: sid,
+          entity: {
+            type: isPlayer ? 'player' : 'game',
+            name,
+            details: entityDetails,
+            team: isPlayer ? (r.team || ev.team || '') : undefined,
+            id: entityId,
+          },
+          event: {
+            id: String(r.eid || ''),
+            startTime: ev.dt || new Date().toISOString(),
+            homeTeam: homeName,
+            awayTeam: awayName,
+          },
+          odds: {
+            best: { over: bestOver, under: bestUnder },
+            average: { over: avgOver, under: avgUnder },
+            opening: {},
+            books: booksOut,
+          },
+        }
+      }
+
+      const items = filteredRows.map(({ sid, row }) => toOddsItem(sid, row))
+
+      // Filters
+      let filteredItems = items
+      if (validatedParams.gameId) filteredItems = applyGameFilter(filteredItems, validatedParams.gameId)
+      if (validatedParams.search) filteredItems = applySearchFilter(filteredItems, validatedParams.search)
+
+      filteredItems.sort((a, b) => {
+        const t = new Date(a.event.startTime).getTime() - new Date(b.event.startTime).getTime()
+        if (t !== 0) return t
+        return String(a.entity.name).localeCompare(String(b.entity.name))
+      })
+
+      const response: OddsScreenResponse = {
         success: true,
         metadata: {
           sport: validatedParams.sport,
@@ -604,10 +840,18 @@ export async function GET(request: NextRequest) {
           market: validatedParams.market,
           scope: validatedParams.scope,
           lastUpdated: new Date().toISOString(),
-          totalCount: 0,
+          totalCount: items.length,
+          filteredCount: filteredItems.length !== items.length ? filteredItems.length : undefined,
         },
-        data: []
-      } as OddsScreenResponse)
+        data: filteredItems,
+      }
+
+      const payload = JSON.stringify(response)
+      const etag = `W/"${createHash('sha1').update(payload).digest('hex')}"`
+      const res = NextResponse.json(response)
+      res.headers.set('ETag', etag)
+      res.headers.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=60')
+      return res
     }
 
     // Parse the Redis data

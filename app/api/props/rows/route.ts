@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 
-const H_PRIM = "props:rows:prim";
+const H_PRIM_PREFIX = "props:"; // props:{sport}:rows:prim
 const MAX_IDS = 1000;
 const CHUNK = 300;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
+    const sport = typeof body?.sport === "string" ? body.sport.trim().toLowerCase() : "";
     const input = Array.isArray(body?.sids) ? body.sids : Array.isArray(body?.ids) ? body.ids : [];
     const normalized = (input as unknown[])
       .map((x: unknown) => (typeof x === "string" || typeof x === "number" ? String(x) : ""))
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
+
+    const allowed = new Set(["nfl", "mlb", "wnba", "nba"]);
+    if (!sport || !allowed.has(sport)) {
+      return NextResponse.json(
+        { error: "invalid_sport" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     if (!normalized.length) {
       return NextResponse.json(
@@ -36,6 +45,7 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
+    const H_PRIM = `${H_PRIM_PREFIX}${sport}:rows:prim`;
     for (let offset = 0; offset < capped.length; offset += CHUNK) {
       const chunk = capped.slice(offset, offset + CHUNK);
       const rawUnknown = (await (redis as any).hmget(H_PRIM, ...chunk)) as unknown;

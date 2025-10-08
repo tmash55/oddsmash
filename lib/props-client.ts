@@ -44,13 +44,16 @@ export type PropsFamily = {
   ts?: number;
 };
 
-export async function fetchMarkets(): Promise<{ markets: string[] }> {
-  const res = await fetch(`/api/props/markets`, { credentials: "include", cache: "no-store" });
+export async function fetchMarkets(sport: string): Promise<{ markets: string[] }> {
+  const sp = new URLSearchParams();
+  sp.set("sport", sport);
+  const res = await fetch(`/api/props/markets?${sp.toString()}`, { credentials: "include", cache: "no-store" });
   if (!res.ok) throw new Error(`GET /api/props/markets ${res.status}`);
   return res.json();
 }
 
 export async function fetchPropsTable(params: {
+  sport: string;
   market: string;
   scope: PropsScope;
   cursor?: string | number | null;
@@ -59,6 +62,7 @@ export async function fetchPropsTable(params: {
   team?: string;
 }): Promise<{ sids: string[]; rows: PropsRow[]; nextCursor: string | null }> {
   const sp = new URLSearchParams();
+  sp.set("sport", params.sport);
   sp.set("market", params.market);
   sp.set("scope", params.scope);
   if (params.cursor != null) sp.set("cursor", String(params.cursor));
@@ -70,20 +74,22 @@ export async function fetchPropsTable(params: {
   return res.json();
 }
 
-export async function fetchPropsRows(sids: string[]): Promise<Array<{ sid: string; row: PropsRow | null }>> {
+export async function fetchPropsRows(sport: string, sids: string[]): Promise<Array<{ sid: string; row: PropsRow | null }>> {
   const res = await fetch(`/api/props/rows`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ sids }),
+    body: JSON.stringify({ sport, sids }),
   });
   if (!res.ok) throw new Error(`POST /api/props/rows ${res.status}`);
   const json = await res.json();
   return (json?.rows || []) as Array<{ sid: string; row: PropsRow | null }>;
 }
 
-export async function fetchAlternates(sid: string): Promise<PropsFamily | null> {
-  const res = await fetch(`/api/props/alternates/${encodeURIComponent(sid)}`, { credentials: "include", cache: "no-store" });
+export async function fetchAlternates(sport: string, sid: string): Promise<PropsFamily | null> {
+  const sp = new URLSearchParams();
+  sp.set("sport", sport);
+  const res = await fetch(`/api/props/alternates/${encodeURIComponent(sid)}?${sp.toString()}`, { credentials: "include", cache: "no-store" });
   if (!res.ok) throw new Error(`GET /api/props/alternates/${sid} ${res.status}`);
   const json = await res.json();
   return (json?.family || null) as PropsFamily | null;

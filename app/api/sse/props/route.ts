@@ -22,9 +22,16 @@ export async function GET(req: NextRequest) {
   const denied = await assertPro(req);
   if (denied) return denied;
 
+  const sp = new URL(req.url).searchParams;
+  const sport = (sp.get("sport") || "").trim().toLowerCase();
+  const allowed = new Set(["nfl", "mlb", "wnba", "nba"]);
+  if (!sport || !allowed.has(sport)) {
+    return new Response(JSON.stringify({ error: "invalid_sport" }), { status: 400 });
+  }
+
   const url = process.env.UPSTASH_REDIS_REST_URL!;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
-  const channel = "pub:props";
+  const channel = `pub:props:${sport}`;
 
   const upstream = await fetch(`${url}/subscribe/${encodeURIComponent(channel)}`, {
     method: "POST",
