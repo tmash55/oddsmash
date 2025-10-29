@@ -40,3 +40,10 @@ public/sitemap.xml
 public/sitemap-0.xml
 
 oddsmash-462701-*.json
+
+
+# Editors/IDEs
+.vscode/
+.vs/
+.idea/
+
