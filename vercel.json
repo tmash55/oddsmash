@@ -9,5 +9,12 @@
       "path": "/api/cron/mispriced-odds",
       "schedule": "*/15 * * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://unjuiced.bet/$1",
+      "permanent": true
+    }
   ]
-} 
+}
