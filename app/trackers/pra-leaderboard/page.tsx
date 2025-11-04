@@ -8,7 +8,7 @@ import KOTCDashboard from "@/components/trackers/kotc/kotc-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ScheduledGames from "@/components/trackers/kotc/scheduled-games";
 import PRAOdds from "@/components/trackers/kotc/pra-odds";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -16,6 +16,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function PRALeaderboardPage() {
   const [activeTab, setActiveTab] = useState("odds");
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [showBanner, setShowBanner] = useState(true);
   const isInitialMount = useRef(true);
 
   const updateLastUpdated = useCallback(() => {
@@ -63,6 +64,68 @@ export default function PRALeaderboardPage() {
 
   return (
     <div className="w-full">
+      <AnimatePresence>
+        {showBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="mb-6"
+          >
+            <Alert className="border-2 border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6"
+                onClick={() => setShowBanner(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Sparkles className="h-5 w-5 text-primary" />
+              <AlertTitle className="text-lg font-bold pr-8">
+                📢 We&apos;re Moving to a New Home!
+              </AlertTitle>
+              <AlertDescription className="mt-2 space-y-3">
+                <p className="text-sm md:text-base">
+                  The NBA PRA Leaderboard tracker is moving to{" "}
+                  <a
+                    href="https://unjuiced.bet/stats/nba"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    unjuiced.bet/stats/nba
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
+                <div className="text-sm md:text-base">
+                  <p className="font-medium mb-1">New features include:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Live PRA odds updates</li>
+                    <li>Historical player data and trends</li>
+                    <li>Enhanced statistics and analytics</li>
+                    <li>Improved performance and reliability</li>
+                  </ul>
+                </div>
+                <div className="pt-2">
+                  <a
+                    href="https://unjuiced.bet/stats/nba"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button className="w-full sm:w-auto" size="sm">
+                      Visit New Site
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.section
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
