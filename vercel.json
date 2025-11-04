@@ -13,7 +13,7 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "destination": "https://unjuiced.bet/nba/stats",
+      "destination": "https://unjuiced.bet/stats/nba/$1",
       "permanent": true
     }
   ]
